@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+/* @theme é usado no v4 para customizações, mas vamos manter o padrão por enquanto */
+@theme {
+  --color-background-start: rgb(var(--background-start-rgb));
+  --color-background-end: rgb(var(--background-end-rgb));
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-end-rgb));
+}
