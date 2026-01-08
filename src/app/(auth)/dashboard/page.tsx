@@ -4,16 +4,39 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { User, LogOut } from "lucide-react";
 
+// 1. Definição da interface para corrigir o erro de 'any'
+interface UserData {
+  name: string;
+  email?: string;
+  // Adicione outros campos se necessário
+}
+
 export default function Dashboard() {
-  const [user, setUser] = useState<any>(null);
+  // 2. Uso da interface no useState e inicialização correta
+  const [user, setUser] = useState<UserData | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
+    // 3. O setTimeout resolve o erro "Calling setState synchronously"
+    // movendo a execução para o próximo ciclo de processamento (macrotask)
+    const timeout = setTimeout(() => {
+      const storedUser = localStorage.getItem("user");
 
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+        } catch (error) {
+          console.error("Erro ao processar dados do usuário:", error);
+          localStorage.removeItem("user"); // Limpa dados corrompidos se houver
+        }
+      } else {
+        // Opcional: Redirecionar se não houver usuário
+        // router.push("/login")
+      }
+    }, 0);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   const handleLogout = () => {
@@ -21,6 +44,7 @@ export default function Dashboard() {
     router.push("/login");
   };
 
+  // Evita renderizar a tela antes de carregar o usuário
   if (!user) return null;
 
   return (
@@ -38,6 +62,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-100 px-3 py-1.5 rounded-full">
             <User size={16} />
+            {/* Aqui agora o TypeScript reconhece a propriedade .name */}
             <span>{user.name}</span>
           </div>
           <button

@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { BadgeDollarSign, User, Lock, ArrowRight, Loader2 } from "lucide-react";
+import {
+  BadgeDollarSign,
+  User,
+  Lock,
+  ArrowRight,
+  Loader2,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -9,20 +17,47 @@ export default function LoginForm() {
   const router = useRouter();
   const [cpfCnpj, setCpfCnpj] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Máscara APENAS VISUAL
+  const maskDocument = (value: string) => {
+    const v = value.replace(/\D/g, "");
+    if (v.length <= 11) {
+      return v
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d{1,2})$/, "$1-$2")
+        .substring(0, 14);
+    } else {
+      return v
+        .replace(/^(\d{2})(\d)/, "$1.$2")
+        .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+        .replace(/\.(\d{3})(\d)/, ".$1/$2")
+        .replace(/(\d{4})(\d)/, "$1-$2")
+        .substring(0, 18);
+    }
+  };
+
+  const handleChangeDocument = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = maskDocument(e.target.value);
+    setCpfCnpj(formatted);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // AQUI ESTÁ O SEGREDO: .replace(/\D/g, "")
+      // Removemos tudo que não é número antes de enviar para a API
+      const cleanDocument = cpfCnpj.replace(/\D/g, "");
+
       const res = await fetch("/api/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          document: cpfCnpj,
+          document: cleanDocument, // Envia LIMPO (só números)
           password: password,
         }),
       });
@@ -30,7 +65,6 @@ export default function LoginForm() {
       const data = await res.json();
 
       if (res.ok) {
-        // Salva dados básicos do usuário para usar no dashboard
         localStorage.setItem("user", JSON.stringify(data.user));
         router.push("/dashboard");
       } else {
@@ -38,7 +72,7 @@ export default function LoginForm() {
       }
     } catch (error) {
       console.error("Erro de login:", error);
-      alert("Ocorreu um erro ao tentar entrar. Tente novamente.");
+      alert("Ocorreu um erro ao tentar entrar.");
     } finally {
       setLoading(false);
     }
@@ -61,10 +95,7 @@ export default function LoginForm() {
 
         <form onSubmit={handleLogin} className="px-8 pb-8 space-y-5">
           <div>
-            <label
-              htmlFor="identity"
-              className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2"
-            >
+            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
               CPF ou CNPJ
             </label>
             <div className="relative group">
@@ -72,22 +103,19 @@ export default function LoginForm() {
                 <User size={18} />
               </div>
               <input
-                id="identity"
                 type="text"
                 required
                 value={cpfCnpj}
-                onChange={(e) => setCpfCnpj(e.target.value)}
+                onChange={handleChangeDocument}
                 placeholder="000.000.000-00"
+                maxLength={18}
                 className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all bg-gray-50 focus:bg-white"
               />
             </div>
           </div>
 
           <div>
-            <label
-              htmlFor="password"
-              className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2"
-            >
+            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
               Senha
             </label>
             <div className="relative group">
@@ -95,14 +123,25 @@ export default function LoginForm() {
                 <Lock size={18} />
               </div>
               <input
-                id="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all bg-gray-50 focus:bg-white"
+                className="block w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all bg-gray-50 focus:bg-white"
               />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-indigo-600 cursor-pointer focus:outline-none"
+                onMouseDown={() => setShowPassword(true)}
+                onMouseUp={() => setShowPassword(false)}
+                onMouseLeave={() => setShowPassword(false)}
+                onTouchStart={() => setShowPassword(true)}
+                onTouchEnd={() => setShowPassword(false)}
+                tabIndex={-1}
+              >
+                {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
+              </button>
             </div>
           </div>
 
