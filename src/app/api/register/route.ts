@@ -11,6 +11,8 @@ export async function POST(req: Request) {
       name,
       document,
       type,
+      // NOVO CAMPO AQUI
+      businessSize,
       email,
       phone,
       password,
@@ -23,7 +25,14 @@ export async function POST(req: Request) {
       state,
     } = await req.json();
 
-    // 1. Verifica se usuário já existe
+    // Validação extra: Se for PJ, precisa ter businessSize
+    if (type === "PJ" && !businessSize) {
+      return NextResponse.json(
+        { message: "Selecione o enquadramento da empresa (MEI, ME, etc)." },
+        { status: 400 }
+      );
+    }
+
     const userExists = await User.findOne({
       $or: [{ email }, { document }],
     });
@@ -35,14 +44,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2. SEGURANÇA: Criptografar (Hash) a senha
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 3. Criação do Usuário
     await User.create({
       name,
       document,
       type,
+      businessSize: type === "PJ" ? businessSize : null, // Garante null se for PF
       email,
       phone,
       password: hashedPassword,
@@ -62,7 +70,6 @@ export async function POST(req: Request) {
       { status: 201 }
     );
   } catch (error) {
-    // CORREÇÃO: Removido o ': any' aqui
     console.error("Erro no registro:", error);
     return NextResponse.json(
       { message: "Erro ao registrar usuário." },

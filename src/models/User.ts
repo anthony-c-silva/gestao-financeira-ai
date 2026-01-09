@@ -16,6 +16,12 @@ const UserSchema = new mongoose.Schema(
       enum: ["PF", "PJ"],
       default: "PF",
     },
+    // NOVO CAMPO: Enquadramento Empresarial
+    businessSize: {
+      type: String,
+      enum: ["MEI", "ME", "EPP", "OTHER"],
+      default: null, // Será null se for PF
+    },
     email: {
       type: String,
       required: [true, "Por favor, insira um e-mail."],
@@ -25,7 +31,6 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    // Endereço Estruturado (não mais apenas uma string simples)
     address: {
       cep: String,
       street: String,
@@ -38,7 +43,7 @@ const UserSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, "Por favor, defina uma senha."],
-      select: false, // Por segurança, não retorna a senha nas buscas padrão
+      select: false,
     },
   },
   {

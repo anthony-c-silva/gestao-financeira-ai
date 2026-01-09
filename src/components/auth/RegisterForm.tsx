@@ -10,7 +10,16 @@ import {
   Loader2,
   ArrowRight,
   ArrowLeft,
+  Building2,
 } from "lucide-react";
+
+// Se você não criou o arquivo de constantes ainda, defino aqui para facilitar:
+const BUSINESS_SIZES = {
+  MEI: { label: "MEI - Até R$ 81k/ano", limit: 81000 },
+  ME: { label: "ME - Até R$ 360k/ano", limit: 360000 },
+  EPP: { label: "EPP - Até R$ 4.8M/ano", limit: 4800000 },
+  OTHER: { label: "Outros / Acima do limite", limit: 0 },
+};
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -18,13 +27,14 @@ export default function RegisterForm() {
   const [loadingCep, setLoadingCep] = useState(false);
   const [personType, setPersonType] = useState<"PF" | "PJ">("PF");
 
-  // Controle de Etapas: 1 = Dados, 2 = Endereço, 3 = Senha
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
 
   const [formData, setFormData] = useState({
     name: "",
     document: "",
+    type: "PF",
+    businessSize: "", // NOVO ESTADO
     email: "",
     phone: "",
     password: "",
@@ -72,7 +82,6 @@ export default function RegisterForm() {
           }));
         }
       } catch (error) {
-        // CORREÇÃO: Usando a variável 'error'
         console.error("Erro ao buscar CEP:", error);
       } finally {
         setLoadingCep(false);
@@ -132,7 +141,9 @@ export default function RegisterForm() {
     }
   }, [formData.password, formData.confirmPassword]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     let finalValue = value;
 
@@ -152,9 +163,14 @@ export default function RegisterForm() {
 
   const validateStep = (step: number) => {
     if (step === 1) {
-      return (
-        formData.name && formData.document && formData.email && formData.phone
-      );
+      // Validação básica da etapa 1
+      const basicValidation =
+        formData.name && formData.document && formData.email && formData.phone;
+      // Se for PJ, EXIGE o businessSize
+      if (personType === "PJ") {
+        return basicValidation && formData.businessSize !== "";
+      }
+      return basicValidation;
     }
     if (step === 2) {
       return (
@@ -172,7 +188,11 @@ export default function RegisterForm() {
     if (validateStep(currentStep)) {
       setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
     } else {
-      alert("Preencha todos os campos obrigatórios para continuar.");
+      if (personType === "PJ" && !formData.businessSize && currentStep === 1) {
+        alert("Por favor, selecione o enquadramento da sua empresa.");
+      } else {
+        alert("Preencha todos os campos obrigatórios para continuar.");
+      }
     }
   };
 
@@ -198,10 +218,10 @@ export default function RegisterForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          document: formData.document.replace(/\D/g, ""), // LIMPA CPF/CNPJ
-          phone: formData.phone.replace(/\D/g, ""), // LIMPA TELEFONE
-          cep: formData.cep.replace(/\D/g, ""), // LIMPA CEP
-          type: personType,
+          document: formData.document.replace(/\D/g, ""),
+          phone: formData.phone.replace(/\D/g, ""),
+          cep: formData.cep.replace(/\D/g, ""),
+          type: personType, // Envia o tipo correto (PF ou PJ)
         }),
       });
       const data = await res.json();
@@ -212,7 +232,6 @@ export default function RegisterForm() {
         alert(data.message || "Erro ao cadastrar.");
       }
     } catch (error) {
-      // CORREÇÃO: Usando a variável 'error'
       console.error("Erro no cadastro:", error);
       alert("Erro de conexão.");
     } finally {
@@ -273,7 +292,7 @@ export default function RegisterForm() {
                 type="button"
                 onClick={() => {
                   setPersonType("PF");
-                  setFormData({ ...formData, document: "" });
+                  setFormData({ ...formData, document: "", businessSize: "" });
                 }}
                 className={`flex-1 py-2 text-xs font-bold uppercase rounded-lg transition-all ${
                   personType === "PF"
@@ -312,6 +331,32 @@ export default function RegisterForm() {
                 placeholder="Digite seu nome"
               />
             </div>
+
+            {/* SELEÇÃO DE ENQUADRAMENTO (APENAS PARA PJ) */}
+            {personType === "PJ" && (
+              <div className="animate-in fade-in slide-in-from-top-2">
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center gap-1">
+                  Enquadramento <Building2 size={12} />
+                </label>
+                <select
+                  name="businessSize"
+                  value={formData.businessSize}
+                  onChange={handleChange}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm text-slate-800 appearance-none cursor-pointer"
+                >
+                  <option value="" disabled>
+                    Selecione o porte da empresa
+                  </option>
+                  <option value="MEI">{BUSINESS_SIZES.MEI.label}</option>
+                  <option value="ME">{BUSINESS_SIZES.ME.label}</option>
+                  <option value="EPP">{BUSINESS_SIZES.EPP.label}</option>
+                  <option value="OTHER">{BUSINESS_SIZES.OTHER.label}</option>
+                </select>
+                <p className="text-[10px] text-slate-400 ml-1 mt-1">
+                  Usaremos isso para calcular seu limite de faturamento anual.
+                </p>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 gap-4">
               <div>
