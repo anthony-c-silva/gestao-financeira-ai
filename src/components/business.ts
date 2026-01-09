@@ -15,8 +15,8 @@ export const BUSINESS_SIZES = {
     description: "Faturamento até R$ 4.800.000,00/ano",
   },
   OTHER: {
-    label: "Outros / Não se aplica",
-    limit: 0, // Sem limite ou configurável depois
+    label: "Outros / Médio ou Grande Porte",
+    limit: 0, // 0 = Sem limite para alertas
     description: "Faturamento acima de R$ 4.800.000,00",
   },
 };

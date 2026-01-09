@@ -10,15 +10,15 @@ import {
   Loader2,
   ArrowRight,
   ArrowLeft,
-  Building2,
+  Building2, // Novo ícone
 } from "lucide-react";
 
-// Se você não criou o arquivo de constantes ainda, defino aqui para facilitar:
+// Importamos as constantes (ou definimos aqui se preferir não criar o arquivo agora)
 const BUSINESS_SIZES = {
-  MEI: { label: "MEI - Até R$ 81k/ano", limit: 81000 },
-  ME: { label: "ME - Até R$ 360k/ano", limit: 360000 },
-  EPP: { label: "EPP - Até R$ 4.8M/ano", limit: 4800000 },
-  OTHER: { label: "Outros / Acima do limite", limit: 0 },
+  MEI: { label: "MEI - Microempreendedor Individual", limit: 81000 },
+  ME: { label: "ME - Microempresa", limit: 360000 },
+  EPP: { label: "EPP - Empresa de Pequeno Porte", limit: 4800000 },
+  OTHER: { label: "Outros / Médio ou Grande Porte", limit: 0 },
 };
 
 export default function RegisterForm() {
@@ -34,7 +34,7 @@ export default function RegisterForm() {
     name: "",
     document: "",
     type: "PF",
-    businessSize: "", // NOVO ESTADO
+    businessSize: "", // NOVO CAMPO NO STATE
     email: "",
     phone: "",
     password: "",
@@ -163,14 +163,13 @@ export default function RegisterForm() {
 
   const validateStep = (step: number) => {
     if (step === 1) {
-      // Validação básica da etapa 1
-      const basicValidation =
+      const basic =
         formData.name && formData.document && formData.email && formData.phone;
-      // Se for PJ, EXIGE o businessSize
+      // Se for PJ, obriga a ter businessSize
       if (personType === "PJ") {
-        return basicValidation && formData.businessSize !== "";
+        return basic && formData.businessSize !== "";
       }
-      return basicValidation;
+      return basic;
     }
     if (step === 2) {
       return (
@@ -189,7 +188,7 @@ export default function RegisterForm() {
       setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
     } else {
       if (personType === "PJ" && !formData.businessSize && currentStep === 1) {
-        alert("Por favor, selecione o enquadramento da sua empresa.");
+        alert("Por favor, selecione o porte da sua empresa.");
       } else {
         alert("Preencha todos os campos obrigatórios para continuar.");
       }
@@ -218,10 +217,11 @@ export default function RegisterForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          // LIMPANDO OS DADOS ANTES DE ENVIAR (Profissional)
           document: formData.document.replace(/\D/g, ""),
           phone: formData.phone.replace(/\D/g, ""),
           cep: formData.cep.replace(/\D/g, ""),
-          type: personType, // Envia o tipo correto (PF ou PJ)
+          type: personType,
         }),
       });
       const data = await res.json();
@@ -332,28 +332,45 @@ export default function RegisterForm() {
               />
             </div>
 
-            {/* SELEÇÃO DE ENQUADRAMENTO (APENAS PARA PJ) */}
+            {/* --- NOVO CAMPO: SELECT DE ENQUADRAMENTO (SÓ APARECE SE FOR PJ) --- */}
             {personType === "PJ" && (
               <div className="animate-in fade-in slide-in-from-top-2">
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center gap-1">
-                  Enquadramento <Building2 size={12} />
+                  Porte da Empresa <Building2 size={12} />
                 </label>
-                <select
-                  name="businessSize"
-                  value={formData.businessSize}
-                  onChange={handleChange}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm text-slate-800 appearance-none cursor-pointer"
-                >
-                  <option value="" disabled>
-                    Selecione o porte da empresa
-                  </option>
-                  <option value="MEI">{BUSINESS_SIZES.MEI.label}</option>
-                  <option value="ME">{BUSINESS_SIZES.ME.label}</option>
-                  <option value="EPP">{BUSINESS_SIZES.EPP.label}</option>
-                  <option value="OTHER">{BUSINESS_SIZES.OTHER.label}</option>
-                </select>
+                <div className="relative">
+                  <select
+                    name="businessSize"
+                    value={formData.businessSize}
+                    onChange={handleChange}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm text-slate-800 appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>
+                      Selecione o enquadramento...
+                    </option>
+                    <option value="MEI">{BUSINESS_SIZES.MEI.label}</option>
+                    <option value="ME">{BUSINESS_SIZES.ME.label}</option>
+                    <option value="EPP">{BUSINESS_SIZES.EPP.label}</option>
+                    <option value="OTHER">{BUSINESS_SIZES.OTHER.label}</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-500">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </div>
+                </div>
                 <p className="text-[10px] text-slate-400 ml-1 mt-1">
-                  Usaremos isso para calcular seu limite de faturamento anual.
+                  Importante para calcularmos o limite de faturamento anual.
                 </p>
               </div>
             )}

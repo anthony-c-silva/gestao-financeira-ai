@@ -11,8 +11,7 @@ export async function POST(req: Request) {
       name,
       document,
       type,
-      // NOVO CAMPO AQUI
-      businessSize,
+      businessSize, // Recebendo o novo campo
       email,
       phone,
       password,
@@ -25,7 +24,7 @@ export async function POST(req: Request) {
       state,
     } = await req.json();
 
-    // Validação extra: Se for PJ, precisa ter businessSize
+    // Validação de segurança: PJ é obrigado a ter enquadramento
     if (type === "PJ" && !businessSize) {
       return NextResponse.json(
         { message: "Selecione o enquadramento da empresa (MEI, ME, etc)." },
