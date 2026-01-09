@@ -10,16 +10,11 @@ import {
   Loader2,
   ArrowRight,
   ArrowLeft,
-  Building2, // Novo ícone
+  Building2,
 } from "lucide-react";
 
-// Importamos as constantes (ou definimos aqui se preferir não criar o arquivo agora)
-const BUSINESS_SIZES = {
-  MEI: { label: "MEI - Microempreendedor Individual", limit: 81000 },
-  ME: { label: "ME - Microempresa", limit: 360000 },
-  EPP: { label: "EPP - Empresa de Pequeno Porte", limit: 4800000 },
-  OTHER: { label: "Outros / Médio ou Grande Porte", limit: 0 },
-};
+// IMPORTAÇÃO CORRETA: Agora pegamos da fonte única de verdade
+import { BUSINESS_SIZES } from "@/constants/business";
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -34,7 +29,7 @@ export default function RegisterForm() {
     name: "",
     document: "",
     type: "PF",
-    businessSize: "", // NOVO CAMPO NO STATE
+    businessSize: "",
     email: "",
     phone: "",
     password: "",
@@ -165,7 +160,6 @@ export default function RegisterForm() {
     if (step === 1) {
       const basic =
         formData.name && formData.document && formData.email && formData.phone;
-      // Se for PJ, obriga a ter businessSize
       if (personType === "PJ") {
         return basic && formData.businessSize !== "";
       }
@@ -217,7 +211,6 @@ export default function RegisterForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          // LIMPANDO OS DADOS ANTES DE ENVIAR (Profissional)
           document: formData.document.replace(/\D/g, ""),
           phone: formData.phone.replace(/\D/g, ""),
           cep: formData.cep.replace(/\D/g, ""),
@@ -332,7 +325,7 @@ export default function RegisterForm() {
               />
             </div>
 
-            {/* --- NOVO CAMPO: SELECT DE ENQUADRAMENTO (SÓ APARECE SE FOR PJ) --- */}
+            {/* SELECT DE ENQUADRAMENTO (APENAS PARA PJ) */}
             {personType === "PJ" && (
               <div className="animate-in fade-in slide-in-from-top-2">
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center gap-1">
