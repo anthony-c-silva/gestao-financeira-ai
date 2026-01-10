@@ -14,11 +14,12 @@ import {
   TrendingUp,
   TrendingDown,
   Wallet,
-  CheckCircle2, // Ícone novo para confirmar pagamento
-  Trash2, // Ícone para deletar
+  CheckCircle2,
+  Trash2,
 } from "lucide-react";
 import { FaturamentoCard } from "@/components/dashboard/FaturamentoCard";
 import { NewTransactionModal } from "@/components/dashboard/NewTransactionModal";
+import { FinanceiroView } from "@/components/dashboard/FinanceiroView";
 import {
   AreaChart,
   Area,
@@ -59,7 +60,7 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Cálculos Gerais
+  // Cálculos Gerais (Baseado apenas em PAGOS para saldo real)
   const income = transactions
     .filter((t) => t.type === "INCOME" && t.status === "PAID")
     .reduce((acc, curr) => acc + curr.amount, 0);
@@ -68,6 +69,7 @@ export default function Dashboard() {
     .reduce((acc, curr) => acc + curr.amount, 0);
   const balance = income - expense;
 
+  // Funções de Busca (Definidas antes do useEffect para evitar erros)
   const fetchTransactions = async (userId: string) => {
     try {
       const res = await fetch(`/api/transactions?userId=${userId}`);
@@ -88,7 +90,7 @@ export default function Dashboard() {
     }
   };
 
-  // NOVA FUNÇÃO: Dar baixa (Marcar como Pago/Recebido)
+  // Ações de Gestão
   const handleMarkAsPaid = async (transaction: Transaction) => {
     try {
       const res = await fetch(`/api/transactions/${transaction._id}`, {
@@ -97,13 +99,10 @@ export default function Dashboard() {
         body: JSON.stringify({ status: "PAID" }),
       });
 
-      if (res.ok) {
-        // Atualiza a lista localmente para ser rápido
-        if (user) {
-          fetchTransactions(user._id);
-          if (user.type === "PJ" && transaction.type === "INCOME") {
-            fetchFiscalSummary(user._id); // Recalcula o limite MEI se for entrada
-          }
+      if (res.ok && user) {
+        fetchTransactions(user._id);
+        if (user.type === "PJ" && transaction.type === "INCOME") {
+          fetchFiscalSummary(user._id);
         }
       }
     } catch (error) {
@@ -111,7 +110,6 @@ export default function Dashboard() {
     }
   };
 
-  // NOVA FUNÇÃO: Deletar item
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja apagar este item?")) return;
     try {
@@ -127,6 +125,7 @@ export default function Dashboard() {
     }
   };
 
+  // Carregamento Inicial
   useEffect(() => {
     const checkAuthAndFetch = async () => {
       const storedUser = localStorage.getItem("user");
@@ -163,7 +162,9 @@ export default function Dashboard() {
     });
   };
 
-  // ABA 1: INÍCIO
+  // --- SUB-COMPONENTES VISUAIS ---
+
+  // 1. ABA INÍCIO
   const HomeView = () => (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Card de Saldo */}
@@ -172,7 +173,7 @@ export default function Dashboard() {
 
         <div className="flex justify-between items-start mb-2 relative z-10">
           <span className="text-slate-300 text-sm font-medium">
-            Saldo atual
+            Saldo atual (Disponível)
           </span>
           <button
             onClick={() => setShowValues(!showValues)}
@@ -210,11 +211,11 @@ export default function Dashboard() {
         <FaturamentoCard data={summaryData} loading={loading} />
       )}
 
-      {/* Lista Recente com Ações */}
+      {/* Lista Recente Resumida */}
       <div>
         <h3 className="text-slate-800 font-bold text-lg mb-4 flex items-center gap-2">
           <Wallet size={18} className="text-indigo-600" />
-          Recentes
+          Últimas Atividades
         </h3>
         {transactions.length === 0 ? (
           <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-slate-200 text-slate-400 text-sm">
@@ -222,14 +223,10 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="space-y-3">
-            {transactions.slice(0, 5).map((t) => (
+            {transactions.slice(0, 3).map((t) => (
               <div
                 key={t._id}
-                className={`bg-white p-4 rounded-2xl shadow-sm border flex justify-between items-center transition-all ${
-                  t.status === "PENDING"
-                    ? "border-l-4 border-l-amber-400 border-y-slate-100 border-r-slate-100"
-                    : "border-slate-100 opacity-80"
-                }`}
+                className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center"
               >
                 <div className="flex items-center gap-3 overflow-hidden">
                   <div
@@ -246,144 +243,119 @@ export default function Dashboard() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-bold text-slate-700 text-sm truncate">
+                    <p className="font-bold text-slate-700 text-sm truncate max-w-[150px]">
                       {t.description || t.category}
                     </p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs text-slate-400 truncate">
-                        {new Date(t.date).toLocaleDateString("pt-BR")}
-                      </p>
-                      {t.status === "PENDING" && (
-                        <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 rounded font-bold">
-                          Pendente
-                        </span>
-                      )}
-                    </div>
+                    <p className="text-xs text-slate-400">
+                      {new Date(t.date).toLocaleDateString("pt-BR")}
+                    </p>
                   </div>
                 </div>
-
-                <div className="flex flex-col items-end gap-2">
-                  <span
-                    className={`font-bold text-sm whitespace-nowrap ${
-                      t.type === "INCOME" ? "text-emerald-600" : "text-rose-600"
-                    }`}
-                  >
-                    {t.type === "INCOME" ? "+" : "-"}{" "}
-                    {showValues
-                      ? t.amount.toLocaleString("pt-BR", {
-                          minimumFractionDigits: 2,
-                        })
-                      : "•••"}
-                  </span>
-
-                  {/* AÇÕES: Baixar ou Deletar */}
-                  <div className="flex gap-2">
-                    {t.status === "PENDING" && (
-                      <button
-                        onClick={() => handleMarkAsPaid(t)}
-                        title={
-                          t.type === "INCOME"
-                            ? "Marcar como Recebido"
-                            : "Marcar como Pago"
-                        }
-                        className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 active:scale-95 transition-all"
-                      >
-                        <CheckCircle2 size={16} />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleDelete(t._id)}
-                      title="Excluir"
-                      className="p-1.5 bg-rose-50 text-rose-400 rounded-lg hover:bg-rose-100 active:scale-95 transition-all"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
+                <span
+                  className={`font-bold text-sm ${
+                    t.type === "INCOME" ? "text-emerald-600" : "text-rose-600"
+                  }`}
+                >
+                  {formatMoney(t.amount)}
+                </span>
               </div>
             ))}
+            <button
+              onClick={() => setCurrentTab("FLOW")}
+              className="w-full py-3 text-center text-sm font-bold text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors"
+            >
+              Gerenciar Fluxo Completo
+            </button>
           </div>
         )}
       </div>
     </div>
   );
 
-  // ABA 2: FLUXO
-  const FlowView = () => {
+  // 2. ABA RELATÓRIOS (Gráficos + DRE)
+  const ReportsView = () => {
+    const lucroLiquido = income - expense;
+
+    // Dados para o gráfico (invertidos para mostrar evolução temporal)
     const chartData = transactions
       .slice(0, 7)
       .reverse()
       .map((t, index) => ({
-        name: `Dia ${index + 1}`,
+        name: index + 1,
         valor: t.amount,
         tipo: t.type,
       }));
 
     return (
-      <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
-        <header>
-          <h1 className="text-2xl font-bold text-slate-800">Fluxo de Caixa</h1>
-          <p className="text-slate-500">Tendência financeira</p>
-        </header>
-
-        <section className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1} />
-                  <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#f1f5f9"
-              />
-              <XAxis dataKey="name" hide />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: "12px",
-                  border: "none",
-                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="valor"
-                stroke="#4f46e5"
-                fillOpacity={1}
-                fill="url(#colorValor)"
-                strokeWidth={3}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </section>
-      </div>
-    );
-  };
-
-  // ABA 3: RELATÓRIOS
-  const ReportsView = () => {
-    const lucroLiquido = income - expense;
-    return (
-      <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
+      <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300 pb-20">
         <header>
           <h1 className="text-2xl font-bold text-slate-800">Relatórios</h1>
-          <p className="text-slate-500">DRE Simplificado (Pagos)</p>
+          <p className="text-slate-500">Análise visual e resultados</p>
         </header>
 
+        {/* GRÁFICO DE TENDÊNCIA */}
+        <section className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
+          <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">
+            Tendência (Últimos Movimentos)
+          </h2>
+          <div className="h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#f1f5f9"
+                />
+                <XAxis dataKey="name" hide />
+                <Tooltip
+                  cursor={{ stroke: "#cbd5e1", strokeWidth: 1 }}
+                  contentStyle={{
+                    borderRadius: "12px",
+                    border: "none",
+                    boxShadow: "0 4px 10px -1px rgb(0 0 0 / 0.1)",
+                    fontSize: "12px",
+                    fontWeight: "bold",
+                  }}
+                  // CORREÇÃO: Usando 'number | undefined' que é o tipo esperado pelo Recharts
+                  formatter={(value: number | undefined) => [
+                    `R$ ${value}`,
+                    "Valor",
+                  ]}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="valor"
+                  stroke="#4f46e5"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorValor)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-xs text-slate-400 text-center mt-2">
+            Visualização da oscilação dos valores recentes
+          </p>
+        </section>
+
+        {/* DRE SIMPLIFICADO */}
         <section className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="p-6 border-b border-slate-50">
             <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wider">
-              Resultado Realizado
+              Resultado do Período
             </h2>
           </div>
 
           <div className="p-6 space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-slate-600 text-sm">
-                (+) Entradas Recebidas
+                (+) Total de Entradas
               </span>
               <span className="font-bold text-emerald-600 text-right">
                 {formatMoney(income)}
@@ -419,7 +391,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28">
-      {/* HEADER */}
+      {/* HEADER FIXO */}
       <header className="bg-white px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm border-b border-slate-100">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md">
@@ -448,7 +420,16 @@ export default function Dashboard() {
       {/* CONTEÚDO PRINCIPAL */}
       <main className="p-4 sm:p-6 max-w-2xl mx-auto">
         {currentTab === "HOME" && <HomeView />}
-        {currentTab === "FLOW" && <FlowView />}
+
+        {/* ABA FLUXO: Usa o componente de gestão completa */}
+        {currentTab === "FLOW" && (
+          <FinanceiroView
+            transactions={transactions}
+            onMarkAsPaid={handleMarkAsPaid}
+            onDelete={handleDelete}
+          />
+        )}
+
         {currentTab === "REPORTS" && <ReportsView />}
       </main>
 
@@ -463,7 +444,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* BARRA INFERIOR */}
+      {/* BARRA DE NAVEGAÇÃO */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 z-20 pb-safe">
         <div className="flex justify-around items-center max-w-2xl mx-auto">
           <button
@@ -510,6 +491,7 @@ export default function Dashboard() {
         </div>
       </nav>
 
+      {/* MODAL DE CADASTRO */}
       <NewTransactionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
