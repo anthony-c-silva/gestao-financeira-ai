@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
+import Contact from "@/models/Contact"; // Importante importar para o Mongoose reconhecer o vínculo
 
 // BUSCAR TRANSAÇÕES
 export async function GET(req: Request) {
@@ -16,8 +17,9 @@ export async function GET(req: Request) {
       );
     }
 
-    // Busca as últimas 50 transações ordenadas por data (mais recentes primeiro)
+    // Busca as últimas 50 transações e POPULA os dados do contato (traz o nome)
     const transactions = await Transaction.find({ userId })
+      .populate("contactId", "name type") // <--- A MÁGICA ACONTECE AQUI
       .sort({ date: -1 })
       .limit(50);
 
@@ -34,7 +36,6 @@ export async function POST(req: Request) {
     await connectDB();
     const body = await req.json();
 
-    // Validação básica
     if (!body.userId || !body.amount || !body.type) {
       return NextResponse.json(
         { message: "Dados incompletos" },

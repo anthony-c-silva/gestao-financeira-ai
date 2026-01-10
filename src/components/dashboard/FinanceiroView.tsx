@@ -9,6 +9,9 @@ import {
   CheckCircle2,
   CalendarDays,
   FilterX,
+  HelpCircle,
+  User,
+  Building2,
 } from "lucide-react";
 
 interface Transaction {
@@ -20,6 +23,10 @@ interface Transaction {
   category: string;
   paymentMethod: string;
   status: "PENDING" | "PAID";
+  contactId?: {
+    name: string;
+    type: "CLIENT" | "SUPPLIER";
+  };
 }
 
 interface FinanceiroViewProps {
@@ -34,15 +41,16 @@ export function FinanceiroView({
 }: FinanceiroViewProps) {
   const [viewType, setViewType] = useState<"SAIDA" | "ENTRADA">("SAIDA");
   const [filterPeriod, setFilterPeriod] = useState<"MES" | "TODOS">("MES");
-  // NOVO: Estado para filtrar pelo clique nos cards
   const [activeStatusFilter, setActiveStatusFilter] = useState<
     "ALL" | "VENCIDOS" | "AVENCER" | "PAGOS"
   >("ALL");
+  const [confirmingTransaction, setConfirmingTransaction] =
+    useState<Transaction | null>(null);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // 1. Filtros Básicos (Tipo e Período)
+  // --- FILTROS E CÁLCULOS (Idênticos ao anterior, omitindo para focar no UI) ---
   const typeFiltered = transactions.filter((t) =>
     viewType === "SAIDA" ? t.type === "EXPENSE" : t.type === "INCOME"
   );
@@ -61,7 +69,6 @@ export function FinanceiroView({
     })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  // 2. Cálculos para os Cards (Sempre baseados na lista do período)
   const vencidos = listByPeriod.filter((t) => {
     const tDate = new Date(t.date);
     const tDateAdjusted = new Date(
@@ -80,15 +87,12 @@ export function FinanceiroView({
 
   const pagos = listByPeriod.filter((t) => t.status === "PAID");
 
-  // 3. Lista Final de Exibição (Aplica o filtro do Card Clicado)
   const displayList = listByPeriod.filter((t) => {
     if (activeStatusFilter === "ALL") return true;
-
     const tDate = new Date(t.date);
     const tDateAdjusted = new Date(
       tDate.valueOf() + tDate.getTimezoneOffset() * 60000
     );
-
     if (activeStatusFilter === "PAGOS") return t.status === "PAID";
     if (activeStatusFilter === "VENCIDOS")
       return t.status === "PENDING" && tDateAdjusted < today;
@@ -97,40 +101,37 @@ export function FinanceiroView({
     return true;
   });
 
-  // Totais
   const totalVencido = vencidos.reduce((acc, t) => acc + t.amount, 0);
   const totalAVencer = aVencer.reduce((acc, t) => acc + t.amount, 0);
   const totalPago = pagos.reduce((acc, t) => acc + t.amount, 0);
 
-  // --- FORMATADORES (Mantendo a lógica fiel de valores) ---
+  // --- FORMATADORES ---
   const formatFull = (val: number) =>
     val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
   const formatNoCents = (val: number) =>
     val.toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL",
       maximumFractionDigits: 0,
     });
-
   const getCardValue = (val: number) => {
     if (val >= 10000) return formatNoCents(val);
     return formatFull(val);
   };
-
   const getDynamicFontSize = (text: string) => {
     const length = text.length;
     if (length > 14) return "text-[10px] sm:text-xs leading-tight";
     if (length > 10) return "text-xs sm:text-sm leading-tight";
     return "text-sm sm:text-lg leading-tight";
   };
-
-  // Função para alternar filtro ao clicar no card
   const toggleFilter = (filter: "VENCIDOS" | "AVENCER" | "PAGOS") => {
-    if (activeStatusFilter === filter) {
-      setActiveStatusFilter("ALL"); // Se já está ativo, desativa (toggle)
-    } else {
-      setActiveStatusFilter(filter);
+    if (activeStatusFilter === filter) setActiveStatusFilter("ALL");
+    else setActiveStatusFilter(filter);
+  };
+  const handleConfirmAction = () => {
+    if (confirmingTransaction) {
+      onMarkAsPaid(confirmingTransaction);
+      setConfirmingTransaction(null);
     }
   };
 
@@ -197,9 +198,8 @@ export function FinanceiroView({
         </div>
       </div>
 
-      {/* CARDS DE RESUMO INTERATIVOS */}
+      {/* CARDS DE RESUMO */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
-        {/* Card Vencidos */}
         <button
           onClick={() => toggleFilter("VENCIDOS")}
           className={`p-2 sm:p-4 rounded-2xl border flex flex-col items-center text-center justify-center min-h-[100px] transition-all active:scale-95 ${
@@ -232,7 +232,6 @@ export function FinanceiroView({
           </span>
         </button>
 
-        {/* Card A Vencer */}
         <button
           onClick={() => toggleFilter("AVENCER")}
           className={`p-2 sm:p-4 rounded-2xl border flex flex-col items-center text-center justify-center min-h-[100px] transition-all active:scale-95 ${
@@ -265,7 +264,6 @@ export function FinanceiroView({
           </span>
         </button>
 
-        {/* Card Pagos */}
         <button
           onClick={() => toggleFilter("PAGOS")}
           className={`p-2 sm:p-4 rounded-2xl border flex flex-col items-center text-center justify-center min-h-[100px] transition-all active:scale-95 ${
@@ -312,13 +310,12 @@ export function FinanceiroView({
             onClick={() => setActiveStatusFilter("ALL")}
             className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-800 bg-white px-2 py-1 rounded shadow-sm"
           >
-            <FilterX size={12} />
-            Limpar Filtro
+            <FilterX size={12} /> Limpar Filtro
           </button>
         </div>
       )}
 
-      {/* LISTA DE CONTAS */}
+      {/* LISTA DE CONTAS COM NOME DO CLIENTE */}
       <div className="space-y-3">
         {displayList.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-3xl border-2 border-dashed border-slate-100">
@@ -344,6 +341,13 @@ export function FinanceiroView({
             const isToday =
               t.status === "PENDING" && dateObj.getTime() === today.getTime();
 
+            // Lógica do Título: Preferência pelo Nome do Contato
+            const displayTitle =
+              t.contactId?.name || t.description || t.category;
+            const displaySubtitle = t.contactId
+              ? t.description || t.category
+              : t.category;
+
             return (
               <div
                 key={t._id}
@@ -355,11 +359,24 @@ export function FinanceiroView({
                     : "border-l-4 border-l-amber-400"
                 }`}
               >
-                {/* Informações */}
+                {/* Informações Principais */}
                 <div className="flex flex-col gap-1 w-full sm:w-auto">
                   <div className="flex items-center justify-between sm:justify-start gap-2">
-                    <span className="font-bold text-slate-800 text-sm sm:text-base truncate max-w-[180px] sm:max-w-xs">
-                      {t.description || t.category}
+                    {/* Exibe o Nome do Cliente ou Descrição em Destaque */}
+                    <span className="font-bold text-slate-800 text-sm sm:text-base truncate max-w-[180px] sm:max-w-xs flex items-center gap-1.5">
+                      {t.contactId &&
+                        (t.contactId.type === "CLIENT" ? (
+                          <User
+                            size={14}
+                            className="text-indigo-500 shrink-0"
+                          />
+                        ) : (
+                          <Building2
+                            size={14}
+                            className="text-orange-500 shrink-0"
+                          />
+                        ))}
+                      {displayTitle}
                     </span>
                     {isLate && (
                       <span className="bg-rose-100 text-rose-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
@@ -373,12 +390,15 @@ export function FinanceiroView({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                  {/* Linha de Detalhes: Descrição real + Data + Pagamento */}
+                  <div className="flex items-center gap-2 text-xs text-slate-500 font-medium truncate max-w-[250px]">
+                    <span className="text-slate-400">{displaySubtitle}</span>
+                    <span className="text-slate-300">•</span>
                     <span className="flex items-center gap-1">
                       <CalendarDays size={12} />
                       {dateObj.toLocaleDateString("pt-BR")}
                     </span>
-                    <span>•</span>
+                    <span className="text-slate-300">•</span>
                     <span className="uppercase truncate max-w-[100px]">
                       {t.paymentMethod}
                     </span>
@@ -399,7 +419,7 @@ export function FinanceiroView({
 
                   {t.status === "PENDING" && (
                     <button
-                      onClick={() => onMarkAsPaid(t)}
+                      onClick={() => setConfirmingTransaction(t)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow-sm transition-transform active:scale-90 ${
                         viewType === "SAIDA"
                           ? "bg-rose-500 hover:bg-rose-600"
@@ -421,6 +441,74 @@ export function FinanceiroView({
           })
         )}
       </div>
+
+      {/* --- MODAL DE CONFIRMAÇÃO --- */}
+      {confirmingTransaction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div
+                className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+                  confirmingTransaction.type === "EXPENSE"
+                    ? "bg-rose-100 text-rose-600"
+                    : "bg-emerald-100 text-emerald-600"
+                }`}
+              >
+                <HelpCircle size={32} />
+              </div>
+
+              <h3 className="text-lg font-bold text-slate-800 mb-2">
+                {confirmingTransaction.type === "EXPENSE"
+                  ? "Confirmar Pagamento?"
+                  : "Confirmar Recebimento?"}
+              </h3>
+
+              {/* Texto do Modal também atualizado para mostrar o nome */}
+              <p className="text-slate-500 text-sm mb-6">
+                Confirmar que{" "}
+                <strong className="text-slate-800">
+                  {confirmingTransaction.type === "EXPENSE"
+                    ? "pagou"
+                    : "recebeu"}
+                </strong>{" "}
+                o valor de{" "}
+                <strong className="text-slate-800">
+                  {formatFull(confirmingTransaction.amount)}
+                </strong>{" "}
+                referente a{" "}
+                <strong className="text-slate-800">
+                  {confirmingTransaction.contactId?.name ||
+                    confirmingTransaction.description ||
+                    confirmingTransaction.category}
+                </strong>
+                ?
+              </p>
+
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setConfirmingTransaction(null)}
+                  className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmAction}
+                  className={`flex-1 py-3 rounded-xl font-bold text-white text-sm shadow-lg flex items-center justify-center gap-2 ${
+                    confirmingTransaction.type === "EXPENSE"
+                      ? "bg-rose-600 hover:bg-rose-700 shadow-rose-200"
+                      : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
+                  }`}
+                >
+                  <CheckCircle2 size={18} />
+                  {confirmingTransaction.type === "EXPENSE"
+                    ? "Pagar"
+                    : "Receber"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

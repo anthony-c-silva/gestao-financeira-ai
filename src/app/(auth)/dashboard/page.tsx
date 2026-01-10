@@ -45,6 +45,10 @@ interface Transaction {
   category: string;
   paymentMethod: string;
   status: "PENDING" | "PAID";
+  contactId?: {
+    name: string;
+    type: "CLIENT" | "SUPPLIER";
+  };
 }
 
 export default function Dashboard() {
@@ -243,8 +247,9 @@ export default function Dashboard() {
                     )}
                   </div>
                   <div className="min-w-0">
+                    {/* NOME DO CLIENTE EM DESTAQUE */}
                     <p className="font-bold text-slate-700 text-sm truncate max-w-[150px]">
-                      {t.description || t.category}
+                      {t.contactId?.name || t.description || t.category}
                     </p>
                     <p className="text-xs text-slate-400">
                       {new Date(t.date).toLocaleDateString("pt-BR")}
