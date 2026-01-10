@@ -14,6 +14,8 @@ import {
   TrendingUp,
   TrendingDown,
   Wallet,
+  CheckCircle2, // Ícone novo para confirmar pagamento
+  Trash2, // Ícone para deletar
 } from "lucide-react";
 import { FaturamentoCard } from "@/components/dashboard/FaturamentoCard";
 import { NewTransactionModal } from "@/components/dashboard/NewTransactionModal";
@@ -86,6 +88,45 @@ export default function Dashboard() {
     }
   };
 
+  // NOVA FUNÇÃO: Dar baixa (Marcar como Pago/Recebido)
+  const handleMarkAsPaid = async (transaction: Transaction) => {
+    try {
+      const res = await fetch(`/api/transactions/${transaction._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "PAID" }),
+      });
+
+      if (res.ok) {
+        // Atualiza a lista localmente para ser rápido
+        if (user) {
+          fetchTransactions(user._id);
+          if (user.type === "PJ" && transaction.type === "INCOME") {
+            fetchFiscalSummary(user._id); // Recalcula o limite MEI se for entrada
+          }
+        }
+      }
+    } catch (error) {
+      alert("Erro ao atualizar");
+    }
+  };
+
+  // NOVA FUNÇÃO: Deletar item
+  const handleDelete = async (id: string) => {
+    if (!confirm("Tem certeza que deseja apagar este item?")) return;
+    try {
+      const res = await fetch(`/api/transactions/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok && user) {
+        fetchTransactions(user._id);
+        if (user.type === "PJ") fetchFiscalSummary(user._id);
+      }
+    } catch (error) {
+      alert("Erro ao deletar");
+    }
+  };
+
   useEffect(() => {
     const checkAuthAndFetch = async () => {
       const storedUser = localStorage.getItem("user");
@@ -122,10 +163,10 @@ export default function Dashboard() {
     });
   };
 
-  // ABA 1: INÍCIO (Visão Geral + Saldo)
+  // ABA 1: INÍCIO
   const HomeView = () => (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Card de Saldo Moderno */}
+      {/* Card de Saldo */}
       <div className="bg-slate-800 p-6 rounded-3xl text-white shadow-xl shadow-slate-200 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/20 rounded-full -mr-10 -mt-10 blur-3xl"></div>
 
@@ -141,7 +182,6 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Valor do Saldo: Ajuste de quebra de linha */}
         <div className="text-3xl sm:text-4xl font-black mb-8 relative z-10 tracking-tight break-words">
           {formatMoney(balance)}
         </div>
@@ -151,7 +191,6 @@ export default function Dashboard() {
             <div className="flex items-center gap-1.5 mb-1 text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
               <TrendingUp size={14} /> Entradas
             </div>
-            {/* Valor menor em mobile para não quebrar */}
             <span className="text-sm sm:text-lg font-bold break-words block">
               {formatMoney(income)}
             </span>
@@ -167,12 +206,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Monitoramento Fiscal (PJ) */}
       {user?.type === "PJ" && (
         <FaturamentoCard data={summaryData} loading={loading} />
       )}
 
-      {/* Lista Recente */}
+      {/* Lista Recente com Ações */}
       <div>
         <h3 className="text-slate-800 font-bold text-lg mb-4 flex items-center gap-2">
           <Wallet size={18} className="text-indigo-600" />
@@ -187,7 +225,11 @@ export default function Dashboard() {
             {transactions.slice(0, 5).map((t) => (
               <div
                 key={t._id}
-                className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center"
+                className={`bg-white p-4 rounded-2xl shadow-sm border flex justify-between items-center transition-all ${
+                  t.status === "PENDING"
+                    ? "border-l-4 border-l-amber-400 border-y-slate-100 border-r-slate-100"
+                    : "border-slate-100 opacity-80"
+                }`}
               >
                 <div className="flex items-center gap-3 overflow-hidden">
                   <div
@@ -204,29 +246,60 @@ export default function Dashboard() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    {" "}
-                    {/* min-w-0 é essencial para truncate funcionar em flex */}
                     <p className="font-bold text-slate-700 text-sm truncate">
                       {t.description || t.category}
                     </p>
-                    <p className="text-xs text-slate-400 truncate">
-                      {new Date(t.date).toLocaleDateString("pt-BR")} •{" "}
-                      {t.paymentMethod}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-slate-400 truncate">
+                        {new Date(t.date).toLocaleDateString("pt-BR")}
+                      </p>
+                      {t.status === "PENDING" && (
+                        <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 rounded font-bold">
+                          Pendente
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <span
-                  className={`font-bold text-sm ml-2 whitespace-nowrap ${
-                    t.type === "INCOME" ? "text-emerald-600" : "text-rose-600"
-                  }`}
-                >
-                  {t.type === "INCOME" ? "+" : "-"}{" "}
-                  {showValues
-                    ? t.amount.toLocaleString("pt-BR", {
-                        minimumFractionDigits: 2,
-                      })
-                    : "•••"}
-                </span>
+
+                <div className="flex flex-col items-end gap-2">
+                  <span
+                    className={`font-bold text-sm whitespace-nowrap ${
+                      t.type === "INCOME" ? "text-emerald-600" : "text-rose-600"
+                    }`}
+                  >
+                    {t.type === "INCOME" ? "+" : "-"}{" "}
+                    {showValues
+                      ? t.amount.toLocaleString("pt-BR", {
+                          minimumFractionDigits: 2,
+                        })
+                      : "•••"}
+                  </span>
+
+                  {/* AÇÕES: Baixar ou Deletar */}
+                  <div className="flex gap-2">
+                    {t.status === "PENDING" && (
+                      <button
+                        onClick={() => handleMarkAsPaid(t)}
+                        title={
+                          t.type === "INCOME"
+                            ? "Marcar como Recebido"
+                            : "Marcar como Pago"
+                        }
+                        className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 active:scale-95 transition-all"
+                      >
+                        <CheckCircle2 size={16} />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDelete(t._id)}
+                      title="Excluir"
+                      className="p-1.5 bg-rose-50 text-rose-400 rounded-lg hover:bg-rose-100 active:scale-95 transition-all"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -235,7 +308,7 @@ export default function Dashboard() {
     </div>
   );
 
-  // ABA 2: FLUXO (Gráficos)
+  // ABA 2: FLUXO
   const FlowView = () => {
     const chartData = transactions
       .slice(0, 7)
@@ -286,42 +359,31 @@ export default function Dashboard() {
             </AreaChart>
           </ResponsiveContainer>
         </section>
-
-        <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100">
-          <h3 className="font-bold text-indigo-900 mb-2">Análise Rápida</h3>
-          <p className="text-sm text-indigo-700 leading-relaxed">
-            Seu saldo está{" "}
-            <strong>{balance >= 0 ? "positivo" : "negativo"}</strong>.
-            {balance < 0
-              ? " Tente reduzir gastos não essenciais."
-              : " Ótimo momento para investir no negócio."}
-          </p>
-        </div>
       </div>
     );
   };
 
-  // ABA 3: RELATÓRIOS (DRE Simples)
+  // ABA 3: RELATÓRIOS
   const ReportsView = () => {
     const lucroLiquido = income - expense;
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
         <header>
           <h1 className="text-2xl font-bold text-slate-800">Relatórios</h1>
-          <p className="text-slate-500">DRE Simplificado</p>
+          <p className="text-slate-500">DRE Simplificado (Pagos)</p>
         </header>
 
         <section className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="p-6 border-b border-slate-50">
             <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wider">
-              Resultado do Período
+              Resultado Realizado
             </h2>
           </div>
 
           <div className="p-6 space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-slate-600 text-sm">
-                (+) Total de Entradas
+                (+) Entradas Recebidas
               </span>
               <span className="font-bold text-emerald-600 text-right">
                 {formatMoney(income)}
@@ -329,9 +391,7 @@ export default function Dashboard() {
             </div>
 
             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-              <span className="text-slate-600 text-sm">
-                (-) Total de Saídas
-              </span>
+              <span className="text-slate-600 text-sm">(-) Contas Pagas</span>
               <span className="font-bold text-rose-600 text-right">
                 {formatMoney(expense)}
               </span>
@@ -344,7 +404,7 @@ export default function Dashboard() {
                   : "bg-rose-50 text-rose-800"
               }`}
             >
-              <span className="text-sm font-bold">Resultado</span>
+              <span className="text-sm font-bold">Lucro Líquido</span>
               <span className="text-xl font-black text-right break-all">
                 {formatMoney(lucroLiquido)}
               </span>
@@ -359,7 +419,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28">
-      {/* HEADER FIXO */}
+      {/* HEADER */}
       <header className="bg-white px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm border-b border-slate-100">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md">

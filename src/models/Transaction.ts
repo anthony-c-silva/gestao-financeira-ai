@@ -2,13 +2,14 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface ITransaction extends Document {
   userId: mongoose.Types.ObjectId;
+  contactId?: mongoose.Types.ObjectId; // NOVO: Vínculo com Cliente/Fornecedor
   description: string;
   amount: number;
-  type: "INCOME" | "EXPENSE"; // INCOME = Entrada, EXPENSE = Saída
+  type: "INCOME" | "EXPENSE";
   category: string;
   paymentMethod: string;
   date: Date;
-  status: "PENDING" | "PAID"; // PENDING = Pendente, PAID = Pago
+  status: "PENDING" | "PAID";
   createdAt: Date;
 }
 
@@ -19,6 +20,12 @@ const TransactionSchema = new Schema<ITransaction>(
       ref: "User",
       required: true,
       index: true,
+    },
+    // NOVO CAMPO: Referência ao Contact
+    contactId: {
+      type: Schema.Types.ObjectId,
+      ref: "Contact",
+      required: false, // Opcional, pois pode ser uma despesa avulsa sem fornecedor
     },
     description: { type: String, default: "" },
     amount: { type: Number, required: true },
