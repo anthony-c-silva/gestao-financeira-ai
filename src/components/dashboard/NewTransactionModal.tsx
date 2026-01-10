@@ -24,7 +24,7 @@ import {
   Banknote,
   QrCode,
   FileText,
-  CalendarClock, // <--- ADICIONADO O IMPORT QUE FALTAVA
+  CalendarClock, // <--- ADICIONADO: O import que faltava
 } from "lucide-react";
 
 interface NewTransactionModalProps {
@@ -121,8 +121,8 @@ export function NewTransactionModal({
   // Estados de Interface
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [calendarViewDate, setCalendarViewDate] = useState(new Date());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false); // Novo: Controla o Calendário Custom
+  const [calendarViewDate, setCalendarViewDate] = useState(new Date()); // Data que o calendário está mostrando
 
   // Lógica de Contatos
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -172,6 +172,7 @@ export function NewTransactionModal({
 
   useEffect(() => {
     if (!isOpen) return;
+    // Reseta view do calendário para a data selecionada ou hoje
     setCalendarViewDate(date ? new Date(date + "T12:00:00") : new Date());
 
     const fetchContacts = async () => {
@@ -224,11 +225,14 @@ export function NewTransactionModal({
   };
 
   const handleSelectDate = (day: Date) => {
+    // Ajusta fuso horário simples convertendo para YYYY-MM-DD local
     const offset = day.getTimezoneOffset();
     const localDate = new Date(day.getTime() - offset * 60 * 1000);
     setDate(localDate.toISOString().split("T")[0]);
     setIsCalendarOpen(false);
   };
+
+  // ------------------------------------------
 
   const filteredContacts = contacts.filter((c) =>
     c.name.toLowerCase().includes(contactName.toLowerCase())
@@ -300,6 +304,7 @@ export function NewTransactionModal({
 
   if (!isOpen) return null;
 
+  // Helpers visuais
   const currentCategory =
     CATEGORIES.find((c) => c.id === category) || CATEGORIES[0];
   const CategoryIcon = currentCategory.icon;
@@ -307,6 +312,7 @@ export function NewTransactionModal({
     PAYMENT_METHODS.find((p) => p.id === paymentMethod) || PAYMENT_METHODS[0];
   const PaymentIcon = currentPayment.icon;
 
+  // Formata data para exibição bonita no botão
   const formattedDateDisplay = new Date(date + "T12:00:00").toLocaleDateString(
     "pt-BR",
     { day: "2-digit", month: "short", year: "numeric" }

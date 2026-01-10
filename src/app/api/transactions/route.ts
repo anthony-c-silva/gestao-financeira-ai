@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
-import Contact from "@/models/Contact"; // Importante importar para o Mongoose reconhecer o vínculo
+// Importamos e "usamos" o Contact para garantir que ele seja registrado no Mongoose
+import Contact from "@/models/Contact";
 
 // BUSCAR TRANSAÇÕES
 export async function GET(req: Request) {
   try {
     await connectDB();
+
+    // TRUQUE PARA CORRIGIR O "MissingSchemaError":
+    // Acessamos o modelo explicitamente para garantir que ele foi compilado.
+    // Isso evita que o Next.js "esqueça" de registrar o modelo em modo dev/HMR.
+    if (!Contact) console.log("Carregando modelo Contact...");
+
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
 
@@ -17,9 +24,8 @@ export async function GET(req: Request) {
       );
     }
 
-    // Busca as últimas 50 transações e POPULA os dados do contato (traz o nome)
     const transactions = await Transaction.find({ userId })
-      .populate("contactId", "name type") // <--- A MÁGICA ACONTECE AQUI
+      .populate("contactId", "name type")
       .sort({ date: -1 })
       .limit(50);
 
