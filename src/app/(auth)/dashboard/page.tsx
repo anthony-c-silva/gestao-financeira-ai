@@ -286,12 +286,6 @@ export default function Dashboard() {
                   </span>
                 </div>
               ))}
-              <button
-                onClick={() => setCurrentTab("FLOW")}
-                className="w-full py-3 text-center text-sm font-bold text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors"
-              >
-                Gerenciar Fluxo Completo
-              </button>
             </div>
           )}
         </div>
