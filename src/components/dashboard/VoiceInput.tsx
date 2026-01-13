@@ -77,7 +77,6 @@ export function VoiceInput({ onSuccess }: VoiceInputProps) {
           console.error("Erro no reconhecimento de voz:", event.error);
           setIsRecording(false);
 
-          // ALTERAÇÃO: Mostrar o erro real para facilitar o diagnóstico
           if (event.error === "not-allowed") {
             alert(
               "Permissão de microfone negada. Clique no cadeado 🔒 ao lado da URL e permita o microfone."
