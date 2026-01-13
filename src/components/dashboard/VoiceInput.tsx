@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Mic, Loader2, StopCircle, Keyboard, Send } from "lucide-react";
+import { Mic, Loader2, StopCircle, Keyboard, Send, X } from "lucide-react";
 // Importamos o novo modal
 import { FeedbackModal, FeedbackType } from "@/components/ui/FeedbackModal";
 
@@ -227,9 +227,10 @@ export function VoiceInput({ onSuccess }: VoiceInputProps) {
           <button
             type="button"
             onClick={() => setShowTextInput(false)}
-            className="p-2 text-slate-400 hover:text-red-500"
+            className="p-2 text-slate-400 hover:text-red-500 transition-colors"
           >
-            <StopCircle size={20} />
+            {/* ÍCONE ALTERADO AQUI: De StopCircle para X */}
+            <X size={20} />
           </button>
           <button
             type="submit"
