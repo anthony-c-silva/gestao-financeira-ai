@@ -20,7 +20,7 @@ import { FinanceiroView } from "@/components/dashboard/FinanceiroView";
 import {
   VoiceInput,
   AiTransactionData,
-} from "@/components/dashboard/VoiceInput"; // Importamos o Tipo também
+} from "@/components/dashboard/VoiceInput";
 import {
   AreaChart,
   Area,
@@ -50,6 +50,7 @@ interface Transaction {
     name: string;
     type: "CLIENT" | "SUPPLIER";
   };
+  createdAt?: string; // Adicionado para ordenação correta
 }
 
 export default function Dashboard() {
@@ -65,7 +66,6 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // CORREÇÃO: Usando o tipo correto ao invés de any
   const [aiData, setAiData] = useState<AiTransactionData | null>(null);
 
   // Cálculos Gerais (Baseado apenas em PAGOS para saldo real)
@@ -77,7 +77,7 @@ export default function Dashboard() {
     .reduce((acc, curr) => acc + curr.amount, 0);
   const balance = income - expense;
 
-  // Funções de Busca (Definidas antes do useEffect para evitar erros)
+  // Funções de Busca
   const fetchTransactions = async (userId: string) => {
     try {
       const res = await fetch(`/api/transactions?userId=${userId}`);
@@ -98,14 +98,13 @@ export default function Dashboard() {
     }
   };
 
-  // Callback da IA - CORREÇÃO DE TIPO
   const handleAiSuccess = (data: AiTransactionData) => {
-    setAiData(data); // Salva os dados
-    setIsModalOpen(true); // Abre o modal
+    setAiData(data);
+    setIsModalOpen(true);
   };
 
   const handleOpenModalManual = () => {
-    setAiData(null); // Reseta para não abrir com lixo anterior
+    setAiData(null);
     setIsModalOpen(true);
   };
 
@@ -144,7 +143,6 @@ export default function Dashboard() {
     }
   };
 
-  // Carregamento Inicial
   useEffect(() => {
     const checkAuthAndFetch = async () => {
       const storedUser = localStorage.getItem("user");
@@ -181,121 +179,130 @@ export default function Dashboard() {
     });
   };
 
-  // --- SUB-COMPONENTES VISUAIS ---
-
   // 1. ABA INÍCIO
-  const HomeView = () => (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Card de Saldo */}
-      <div className="bg-slate-800 p-6 rounded-3xl text-white shadow-xl shadow-slate-200 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/20 rounded-full -mr-10 -mt-10 blur-3xl"></div>
+  const HomeView = () => {
+    // CORREÇÃO: Ordenar por 'createdAt' para mostrar o que foi digitado por último,
+    // independentemente da data de vencimento da conta.
+    const recentActivities = [...transactions]
+      .sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.date).getTime();
+        const dateB = new Date(b.createdAt || b.date).getTime();
+        return dateB - dateA; // Mais recente primeiro
+      })
+      .slice(0, 3);
 
-        <div className="flex justify-between items-start mb-2 relative z-10">
-          <span className="text-slate-300 text-sm font-medium">
-            Saldo atual (Disponível)
-          </span>
-          <button
-            onClick={() => setShowValues(!showValues)}
-            className="text-slate-400 hover:text-white transition-colors"
-          >
-            {showValues ? <Eye size={18} /> : <EyeOff size={18} />}
-          </button>
-        </div>
+    return (
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {/* Card de Saldo */}
+        <div className="bg-slate-800 p-6 rounded-3xl text-white shadow-xl shadow-slate-200 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/20 rounded-full -mr-10 -mt-10 blur-3xl"></div>
 
-        <div className="text-3xl sm:text-4xl font-black mb-8 relative z-10 tracking-tight break-words">
-          {formatMoney(balance)}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 relative z-10">
-          <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/5">
-            <div className="flex items-center gap-1.5 mb-1 text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
-              <TrendingUp size={14} /> Entradas
-            </div>
-            <span className="text-sm sm:text-lg font-bold break-words block">
-              {formatMoney(income)}
+          <div className="flex justify-between items-start mb-2 relative z-10">
+            <span className="text-slate-300 text-sm font-medium">
+              Saldo atual (Disponível)
             </span>
-          </div>
-          <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/5">
-            <div className="flex items-center gap-1.5 mb-1 text-rose-300 text-[10px] font-bold uppercase tracking-wider">
-              <TrendingDown size={14} /> Saídas
-            </div>
-            <span className="text-sm sm:text-lg font-bold break-words block">
-              {formatMoney(expense)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {user?.type === "PJ" && (
-        <FaturamentoCard data={summaryData} loading={loading} />
-      )}
-
-      {/* Lista Recente Resumida */}
-      <div>
-        <h3 className="text-slate-800 font-bold text-lg mb-4 flex items-center gap-2">
-          <Wallet size={18} className="text-indigo-600" />
-          Últimas Atividades
-        </h3>
-        {transactions.length === 0 ? (
-          <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-slate-200 text-slate-400 text-sm">
-            Nenhuma conta registrada.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {transactions.slice(0, 3).map((t) => (
-              <div
-                key={t._id}
-                className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center"
-              >
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                      t.type === "INCOME"
-                        ? "bg-emerald-100 text-emerald-600"
-                        : "bg-rose-100 text-rose-600"
-                    }`}
-                  >
-                    {t.type === "INCOME" ? (
-                      <TrendingUp size={18} />
-                    ) : (
-                      <TrendingDown size={18} />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-bold text-slate-700 text-sm truncate max-w-[150px]">
-                      {t.contactId?.name || t.description || t.category}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {new Date(t.date).toLocaleDateString("pt-BR")}
-                    </p>
-                  </div>
-                </div>
-                <span
-                  className={`font-bold text-sm ${
-                    t.type === "INCOME" ? "text-emerald-600" : "text-rose-600"
-                  }`}
-                >
-                  {formatMoney(t.amount)}
-                </span>
-              </div>
-            ))}
             <button
-              onClick={() => setCurrentTab("FLOW")}
-              className="w-full py-3 text-center text-sm font-bold text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors"
+              onClick={() => setShowValues(!showValues)}
+              className="text-slate-400 hover:text-white transition-colors"
             >
-              Gerenciar Fluxo Completo
+              {showValues ? <Eye size={18} /> : <EyeOff size={18} />}
             </button>
           </div>
-        )}
-      </div>
-    </div>
-  );
 
-  // 2. ABA RELATÓRIOS (Gráficos + DRE)
+          <div className="text-3xl sm:text-4xl font-black mb-8 relative z-10 tracking-tight break-words">
+            {formatMoney(balance)}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 relative z-10">
+            <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/5">
+              <div className="flex items-center gap-1.5 mb-1 text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
+                <TrendingUp size={14} /> Entradas
+              </div>
+              <span className="text-sm sm:text-lg font-bold break-words block">
+                {formatMoney(income)}
+              </span>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/5">
+              <div className="flex items-center gap-1.5 mb-1 text-rose-300 text-[10px] font-bold uppercase tracking-wider">
+                <TrendingDown size={14} /> Saídas
+              </div>
+              <span className="text-sm sm:text-lg font-bold break-words block">
+                {formatMoney(expense)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {user?.type === "PJ" && (
+          <FaturamentoCard data={summaryData} loading={loading} />
+        )}
+
+        {/* Lista Recente Resumida */}
+        <div>
+          <h3 className="text-slate-800 font-bold text-lg mb-4 flex items-center gap-2">
+            <Wallet size={18} className="text-indigo-600" />
+            Últimas Atividades
+          </h3>
+          {recentActivities.length === 0 ? (
+            <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-slate-200 text-slate-400 text-sm">
+              Nenhuma conta registrada.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentActivities.map((t) => (
+                <div
+                  key={t._id}
+                  className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center animate-in slide-in-from-bottom-2"
+                >
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                        t.type === "INCOME"
+                          ? "bg-emerald-100 text-emerald-600"
+                          : "bg-rose-100 text-rose-600"
+                      }`}
+                    >
+                      {t.type === "INCOME" ? (
+                        <TrendingUp size={18} />
+                      ) : (
+                        <TrendingDown size={18} />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-slate-700 text-sm truncate max-w-[150px]">
+                        {t.contactId?.name || t.description || t.category}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {new Date(t.date).toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className={`font-bold text-sm ${
+                      t.type === "INCOME" ? "text-emerald-600" : "text-rose-600"
+                    }`}
+                  >
+                    {formatMoney(t.amount)}
+                  </span>
+                </div>
+              ))}
+              <button
+                onClick={() => setCurrentTab("FLOW")}
+                className="w-full py-3 text-center text-sm font-bold text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors"
+              >
+                Gerenciar Fluxo Completo
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // 2. ABA RELATÓRIOS
   const ReportsView = () => {
     const lucroLiquido = income - expense;
 
-    // Dados para o gráfico (invertidos para mostrar evolução temporal)
     const chartData = transactions
       .slice(0, 7)
       .reverse()
@@ -312,7 +319,7 @@ export default function Dashboard() {
           <p className="text-slate-500">Análise visual e resultados</p>
         </header>
 
-        {/* GRÁFICO DE TENDÊNCIA */}
+        {/* GRÁFICO */}
         <section className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
           <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">
             Tendência (Últimos Movimentos)
@@ -341,7 +348,6 @@ export default function Dashboard() {
                     fontSize: "12px",
                     fontWeight: "bold",
                   }}
-                  // CORREÇÃO: Usando 'number | undefined'
                   formatter={(value: number | undefined) => [
                     `R$ ${value}`,
                     "Valor",
@@ -440,7 +446,6 @@ export default function Dashboard() {
       <main className="p-4 sm:p-6 max-w-2xl mx-auto">
         {currentTab === "HOME" && <HomeView />}
 
-        {/* ABA FLUXO: Usa o componente de gestão completa */}
         {currentTab === "FLOW" && (
           <FinanceiroView
             transactions={transactions}
@@ -452,12 +457,10 @@ export default function Dashboard() {
         {currentTab === "REPORTS" && <ReportsView />}
       </main>
 
-      {/* BOTÕES FLUTUANTES (VOZ E REGISTRAR) */}
+      {/* BOTÕES FLUTUANTES */}
       <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3">
-        {/* Botão de Voz */}
         <VoiceInput onSuccess={handleAiSuccess} />
 
-        {/* Botão Manual */}
         <button
           onClick={handleOpenModalManual}
           className="bg-indigo-600 text-white px-6 py-3 rounded-full shadow-xl shadow-indigo-300 flex items-center gap-2 font-bold hover:bg-indigo-700 active:scale-95 transition-all transform hover:-translate-y-1 h-[56px]"
@@ -514,12 +517,11 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      {/* MODAL DE CADASTRO */}
       <NewTransactionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         userId={user._id}
-        initialData={aiData} // Passa os dados da IA para o modal
+        initialData={aiData}
         onSuccess={() => {
           fetchTransactions(user._id);
           if (user.type === "PJ") fetchFiscalSummary(user._id);
