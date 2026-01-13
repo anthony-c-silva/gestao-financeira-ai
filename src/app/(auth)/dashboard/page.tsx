@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  User,
   LogOut,
   Plus,
   Home,
@@ -14,12 +13,14 @@ import {
   TrendingUp,
   TrendingDown,
   Wallet,
-  CheckCircle2,
-  Trash2,
 } from "lucide-react";
 import { FaturamentoCard } from "@/components/dashboard/FaturamentoCard";
 import { NewTransactionModal } from "@/components/dashboard/NewTransactionModal";
 import { FinanceiroView } from "@/components/dashboard/FinanceiroView";
+import {
+  VoiceInput,
+  AiTransactionData,
+} from "@/components/dashboard/VoiceInput"; // Importamos o Tipo também
 import {
   AreaChart,
   Area,
@@ -64,6 +65,9 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // CORREÇÃO: Usando o tipo correto ao invés de any
+  const [aiData, setAiData] = useState<AiTransactionData | null>(null);
+
   // Cálculos Gerais (Baseado apenas em PAGOS para saldo real)
   const income = transactions
     .filter((t) => t.type === "INCOME" && t.status === "PAID")
@@ -92,6 +96,17 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Erro fiscal");
     }
+  };
+
+  // Callback da IA - CORREÇÃO DE TIPO
+  const handleAiSuccess = (data: AiTransactionData) => {
+    setAiData(data); // Salva os dados
+    setIsModalOpen(true); // Abre o modal
+  };
+
+  const handleOpenModalManual = () => {
+    setAiData(null); // Reseta para não abrir com lixo anterior
+    setIsModalOpen(true);
   };
 
   // Ações de Gestão
@@ -247,7 +262,6 @@ export default function Dashboard() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    {/* NOME DO CLIENTE EM DESTAQUE */}
                     <p className="font-bold text-slate-700 text-sm truncate max-w-[150px]">
                       {t.contactId?.name || t.description || t.category}
                     </p>
@@ -327,7 +341,7 @@ export default function Dashboard() {
                     fontSize: "12px",
                     fontWeight: "bold",
                   }}
-                  // CORREÇÃO: Usando 'number | undefined' que é o tipo esperado pelo Recharts
+                  // CORREÇÃO: Usando 'number | undefined'
                   formatter={(value: number | undefined) => [
                     `R$ ${value}`,
                     "Valor",
@@ -438,11 +452,15 @@ export default function Dashboard() {
         {currentTab === "REPORTS" && <ReportsView />}
       </main>
 
-      {/* BOTÃO FLUTUANTE */}
-      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30">
+      {/* BOTÕES FLUTUANTES (VOZ E REGISTRAR) */}
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3">
+        {/* Botão de Voz */}
+        <VoiceInput onSuccess={handleAiSuccess} />
+
+        {/* Botão Manual */}
         <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-indigo-600 text-white px-6 py-3 rounded-full shadow-xl shadow-indigo-300 flex items-center gap-2 font-bold hover:bg-indigo-700 active:scale-95 transition-all transform hover:-translate-y-1"
+          onClick={handleOpenModalManual}
+          className="bg-indigo-600 text-white px-6 py-3 rounded-full shadow-xl shadow-indigo-300 flex items-center gap-2 font-bold hover:bg-indigo-700 active:scale-95 transition-all transform hover:-translate-y-1 h-[56px]"
         >
           <Plus size={20} />
           Registrar
@@ -501,6 +519,7 @@ export default function Dashboard() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         userId={user._id}
+        initialData={aiData} // Passa os dados da IA para o modal
         onSuccess={() => {
           fetchTransactions(user._id);
           if (user.type === "PJ") fetchFiscalSummary(user._id);

@@ -24,14 +24,25 @@ import {
   Banknote,
   QrCode,
   FileText,
-  CalendarClock, // <--- ADICIONADO: O import que faltava
+  CalendarClock,
 } from "lucide-react";
+
+// Definindo a interface para os dados que vêm da IA
+interface AiTransactionData {
+  amount?: number;
+  description?: string;
+  category?: string;
+  type?: "INCOME" | "EXPENSE";
+  paymentMethod?: string;
+  date?: string;
+}
 
 interface NewTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   userId: string;
+  initialData?: AiTransactionData | null; // Tipagem corrigida aqui
 }
 
 interface Contact {
@@ -104,6 +115,7 @@ export function NewTransactionModal({
   onClose,
   onSuccess,
   userId,
+  initialData, // Agora tipado corretamente
 }: NewTransactionModalProps) {
   const [loading, setLoading] = useState(false);
 
@@ -114,15 +126,13 @@ export function NewTransactionModal({
   const [category, setCategory] = useState("Outros");
   const [paymentMethod, setPaymentMethod] = useState("Pix");
   const [status, setStatus] = useState<"PAID" | "PENDING">("PAID");
-
-  // Data (String ISO para envio, mas manipulada via objeto Date no calendário)
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
   // Estados de Interface
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false); // Novo: Controla o Calendário Custom
-  const [calendarViewDate, setCalendarViewDate] = useState(new Date()); // Data que o calendário está mostrando
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [calendarViewDate, setCalendarViewDate] = useState(new Date());
 
   // Lógica de Contatos
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -137,6 +147,31 @@ export function NewTransactionModal({
   const categoryRef = useRef<HTMLDivElement>(null);
   const paymentRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
+
+  // Efeito: Preenchimento automático via IA
+  useEffect(() => {
+    if (initialData && isOpen) {
+      if (initialData.amount) setAmount(initialData.amount.toString());
+      if (initialData.description) setDescription(initialData.description);
+      if (initialData.type) setType(initialData.type);
+
+      const catExists = CATEGORIES.find((c) => c.id === initialData.category);
+      setCategory(
+        catExists && initialData.category ? initialData.category : "Outros"
+      );
+
+      const payExists = PAYMENT_METHODS.find(
+        (p) => p.id === initialData.paymentMethod
+      );
+      setPaymentMethod(
+        payExists && initialData.paymentMethod
+          ? initialData.paymentMethod
+          : "Pix"
+      );
+
+      if (initialData.date) setDate(initialData.date);
+    }
+  }, [initialData, isOpen]);
 
   // Fecha dropdowns ao clicar fora
   useEffect(() => {
@@ -172,7 +207,6 @@ export function NewTransactionModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    // Reseta view do calendário para a data selecionada ou hoje
     setCalendarViewDate(date ? new Date(date + "T12:00:00") : new Date());
 
     const fetchContacts = async () => {
@@ -195,23 +229,15 @@ export function NewTransactionModal({
     fetchContacts();
   }, [type, userId, isOpen]);
 
-  // --- LÓGICA DO CALENDÁRIO CUSTOMIZADO ---
+  // --- LÓGICA DO CALENDÁRIO ---
   const generateCalendarDays = () => {
     const year = calendarViewDate.getFullYear();
     const month = calendarViewDate.getMonth();
-
-    const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 = Domingo
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-
     const days = [];
-    // Dias vazios antes do dia 1
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push(null);
-    }
-    // Dias do mês
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(new Date(year, month, i));
-    }
+    for (let i = 0; i < firstDayOfMonth; i++) days.push(null);
+    for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i));
     return days;
   };
 
@@ -225,14 +251,11 @@ export function NewTransactionModal({
   };
 
   const handleSelectDate = (day: Date) => {
-    // Ajusta fuso horário simples convertendo para YYYY-MM-DD local
     const offset = day.getTimezoneOffset();
     const localDate = new Date(day.getTime() - offset * 60 * 1000);
     setDate(localDate.toISOString().split("T")[0]);
     setIsCalendarOpen(false);
   };
-
-  // ------------------------------------------
 
   const filteredContacts = contacts.filter((c) =>
     c.name.toLowerCase().includes(contactName.toLowerCase())
@@ -304,15 +327,12 @@ export function NewTransactionModal({
 
   if (!isOpen) return null;
 
-  // Helpers visuais
   const currentCategory =
     CATEGORIES.find((c) => c.id === category) || CATEGORIES[0];
   const CategoryIcon = currentCategory.icon;
   const currentPayment =
     PAYMENT_METHODS.find((p) => p.id === paymentMethod) || PAYMENT_METHODS[0];
   const PaymentIcon = currentPayment.icon;
-
-  // Formata data para exibição bonita no botão
   const formattedDateDisplay = new Date(date + "T12:00:00").toLocaleDateString(
     "pt-BR",
     { day: "2-digit", month: "short", year: "numeric" }
@@ -321,10 +341,9 @@ export function NewTransactionModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar flex flex-col">
-        {/* Header */}
         <div className="flex justify-between items-center mb-4 shrink-0">
           <h2 className="text-xl font-bold text-slate-800">
-            Nova Movimentação
+            {initialData ? "IA: Conferir e Salvar" : "Nova Movimentação"}
           </h2>
           <button
             onClick={onClose}
@@ -335,7 +354,6 @@ export function NewTransactionModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 pb-4">
-          {/* Seletor de Tipo */}
           <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 rounded-2xl">
             <button
               type="button"
@@ -361,7 +379,6 @@ export function NewTransactionModal({
             </button>
           </div>
 
-          {/* Valor */}
           <div className="text-center py-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               Valor da transação
@@ -376,12 +393,11 @@ export function NewTransactionModal({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="w-48 text-5xl font-black text-slate-800 placeholder-slate-200 focus:outline-none bg-transparent text-center"
-                autoFocus
+                autoFocus={!initialData} // Se veio da IA, não foca automaticamente para evitar teclado subindo
               />
             </div>
           </div>
 
-          {/* Seletor de Status */}
           <div className="flex gap-3">
             <button
               type="button"
@@ -409,7 +425,6 @@ export function NewTransactionModal({
             </button>
           </div>
 
-          {/* Cliente / Fornecedor */}
           <div className="relative" ref={wrapperRef}>
             <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
               {type === "INCOME" ? "Quem pagou?" : "Para quem?"}
@@ -468,9 +483,7 @@ export function NewTransactionModal({
             )}
           </div>
 
-          {/* Grid: Data Custom e Detalhes */}
           <div className="grid grid-cols-2 gap-4 relative">
-            {/* DATA CUSTOMIZADA */}
             <div ref={calendarRef} className="relative">
               <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
                 Data
@@ -486,7 +499,6 @@ export function NewTransactionModal({
                 </span>
               </button>
 
-              {/* CALENDÁRIO POPUP */}
               {isCalendarOpen && (
                 <div className="absolute bottom-full mb-2 left-0 w-[300px] bg-white rounded-3xl shadow-2xl border border-slate-100 p-4 z-40 animate-in zoom-in-95 origin-bottom-left">
                   <div className="flex items-center justify-between mb-4">
@@ -529,7 +541,6 @@ export function NewTransactionModal({
                       const isToday =
                         day.toISOString().split("T")[0] ===
                         new Date().toISOString().split("T")[0];
-
                       return (
                         <button
                           key={idx}
@@ -552,7 +563,6 @@ export function NewTransactionModal({
               )}
             </div>
 
-            {/* Detalhes */}
             <div>
               <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
                 Detalhes
@@ -567,9 +577,7 @@ export function NewTransactionModal({
             </div>
           </div>
 
-          {/* CATEGORIA E PAGAMENTO */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2">
-            {/* Dropdown Categoria */}
             <div className="relative" ref={categoryRef}>
               <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
                 Categoria
@@ -631,7 +639,6 @@ export function NewTransactionModal({
               )}
             </div>
 
-            {/* Dropdown Pagamento */}
             <div className="relative" ref={paymentRef}>
               <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
                 Pagamento
@@ -690,7 +697,6 @@ export function NewTransactionModal({
             </div>
           </div>
 
-          {/* Botão Salvar (Com margem para não encavalar) */}
           <div className="pt-2 pb-6">
             <button
               type="submit"
