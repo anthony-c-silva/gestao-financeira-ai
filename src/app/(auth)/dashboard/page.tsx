@@ -13,6 +13,8 @@ import {
   TrendingUp,
   TrendingDown,
   Wallet,
+  CalendarClock,
+  ArrowRight
 } from "lucide-react";
 import { FaturamentoCard } from "@/components/dashboard/FaturamentoCard";
 import { NewTransactionModal } from "@/components/dashboard/NewTransactionModal";
@@ -22,12 +24,14 @@ import {
   AiTransactionData,
 } from "@/components/dashboard/VoiceInput";
 import {
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
   XAxis,
+  YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from "recharts";
 
 interface UserData {
@@ -67,11 +71,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   const [aiData, setAiData] = useState<AiTransactionData | null>(null);
-
-  // NOVO ESTADO: Controla se o usuário está digitando na IA
   const [isInputMode, setIsInputMode] = useState(false);
 
-  // Cálculos Gerais
+  // Cálculos Gerais (Baseado apenas em PAGOS para saldo real)
   const income = transactions
     .filter((t) => t.type === "INCOME" && t.status === "PAID")
     .reduce((acc, curr) => acc + curr.amount, 0);
@@ -180,6 +182,7 @@ export default function Dashboard() {
     });
   };
 
+  // 1. ABA INÍCIO
   const HomeView = () => {
     const recentActivities = [...transactions]
       .sort((a, b) => {
@@ -289,110 +292,156 @@ export default function Dashboard() {
     );
   };
 
+  // 2. ABA RELATÓRIOS (Atualizada para incluir Previsão Futura)
   const ReportsView = () => {
-    const lucroLiquido = income - expense;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const chartData = transactions
-      .slice(0, 7)
-      .reverse()
-      .map((t, index) => ({
-        name: index + 1,
-        valor: t.amount,
-        tipo: t.type,
-      }));
+    // --- DADOS PARA O GRÁFICO (REALIZADO) ---
+    const dailyMap = new Map<
+      string,
+      { date: string; Entradas: number; Saidas: number }
+    >();
+
+    const sortedTransactions = [...transactions].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    sortedTransactions.forEach((t) => {
+      const dateObj = new Date(t.date);
+      // Inclui no gráfico apenas o mês atual ou histórico
+      if(dateObj <= new Date(today.getFullYear(), today.getMonth() + 1, 0)) {
+        const dateKey = dateObj.toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+        });
+
+        if (!dailyMap.has(dateKey)) {
+          dailyMap.set(dateKey, { date: dateKey, Entradas: 0, Saidas: 0 });
+        }
+
+        const entry = dailyMap.get(dateKey)!;
+        if (t.type === "INCOME" && t.status === "PAID") entry.Entradas += t.amount;
+        if (t.type === "EXPENSE" && t.status === "PAID") entry.Saidas += t.amount;
+      }
+    });
+
+    const chartData = Array.from(dailyMap.values()).slice(-15); // Últimos 15 dias com movimento
+
+    // --- CÁLCULO DE LANÇAMENTOS FUTUROS (PEDIDO DO CLIENTE) ---
+    const futureTransactions = transactions.filter(t => {
+      const tDate = new Date(t.date);
+      // Ajuste de fuso horário simples
+      const tDateAdjusted = new Date(tDate.valueOf() + tDate.getTimezoneOffset() * 60000);
+      return t.status === "PENDING" && tDateAdjusted >= today;
+    }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    const futureIncome = futureTransactions
+      .filter(t => t.type === "INCOME")
+      .reduce((acc, t) => acc + t.amount, 0);
+    
+    const futureExpense = futureTransactions
+      .filter(t => t.type === "EXPENSE")
+      .reduce((acc, t) => acc + t.amount, 0);
+
+    const projectedBalance = balance + futureIncome - futureExpense;
 
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300 pb-20">
         <header>
           <h1 className="text-2xl font-bold text-slate-800">Relatórios</h1>
-          <p className="text-slate-500">Análise visual e resultados</p>
+          <p className="text-slate-500">Visão do passado e do futuro</p>
         </header>
 
+        {/* 1. GRÁFICO DE REALIZADO (Fluxo Diário) */}
         <section className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
-          <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">
-            Tendência (Últimos Movimentos)
-          </h2>
-          <div className="h-48 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1} />
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="#f1f5f9"
-                />
-                <XAxis dataKey="name" hide />
-                <Tooltip
-                  cursor={{ stroke: "#cbd5e1", strokeWidth: 1 }}
-                  contentStyle={{
-                    borderRadius: "12px",
-                    border: "none",
-                    boxShadow: "0 4px 10px -1px rgb(0 0 0 / 0.1)",
-                    fontSize: "12px",
-                    fontWeight: "bold",
-                  }}
-                  formatter={(value: number | undefined) => [
-                    `R$ ${value}`,
-                    "Valor",
-                  ]}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="valor"
-                  stroke="#4f46e5"
-                  strokeWidth={3}
-                  fillOpacity={1}
-                  fill="url(#colorValor)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="text-xs text-slate-400 text-center mt-2">
-            Visualização da oscilação dos valores recentes
-          </p>
-        </section>
-
-        <section className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="p-6 border-b border-slate-50">
-            <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wider">
-              Resultado do Período
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider">
+              Fluxo de Caixa (Realizado)
             </h2>
           </div>
+          <div className="h-56 w-full">
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 10 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 10 }} tickFormatter={(val) => `R$${val}`} />
+                  <Tooltip cursor={{ fill: "#f8fafc" }} contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }} formatter={(val: number) => [`R$ ${val.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`]} />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
+                  <Bar dataKey="Entradas" fill="#10b981" radius={[4, 4, 0, 0]} barSize={12} />
+                  <Bar dataKey="Saidas" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={12} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-slate-400 text-xs">
+                Sem dados suficientes para o gráfico.
+              </div>
+            )}
+          </div>
+        </section>
 
-          <div className="p-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-slate-600 text-sm">
-                (+) Total de Entradas
-              </span>
-              <span className="font-bold text-emerald-600 text-right">
-                {formatMoney(income)}
+        {/* 2. TABELA DE PREVISÃO FUTURA (ATENDE O PEDIDO DO CLIENTE) */}
+        <section className="bg-slate-800 rounded-3xl shadow-lg overflow-hidden text-white relative">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+          
+          <div className="p-6 border-b border-white/10">
+            <h2 className="font-bold text-white text-sm uppercase tracking-wider flex items-center gap-2">
+              <CalendarClock size={18} className="text-indigo-400"/>
+              Previsão de Lançamentos
+            </h2>
+            <p className="text-slate-400 text-xs mt-1">Próximas entradas e saídas agendadas</p>
+          </div>
+
+          <div className="p-6 grid grid-cols-2 gap-4 border-b border-white/10">
+            <div>
+              <p className="text-xs text-slate-400 font-bold uppercase">A Receber</p>
+              <p className="text-xl font-bold text-emerald-400">{formatMoney(futureIncome)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400 font-bold uppercase">A Pagar</p>
+              <p className="text-xl font-bold text-rose-400">{formatMoney(futureExpense)}</p>
+            </div>
+          </div>
+
+          <div className="bg-white/5 p-4">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-300">Saldo Projetado:</span>
+              <span className={`font-bold ${projectedBalance >= 0 ? "text-white" : "text-red-400"}`}>
+                {formatMoney(projectedBalance)}
               </span>
             </div>
+          </div>
 
-            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-              <span className="text-slate-600 text-sm">(-) Contas Pagas</span>
-              <span className="font-bold text-rose-600 text-right">
-                {formatMoney(expense)}
-              </span>
-            </div>
-
-            <div
-              className={`flex justify-between items-center p-4 rounded-2xl mt-2 ${
-                lucroLiquido >= 0
-                  ? "bg-emerald-50 text-emerald-800"
-                  : "bg-rose-50 text-rose-800"
-              }`}
-            >
-              <span className="text-sm font-bold">Lucro Líquido</span>
-              <span className="text-xl font-black text-right break-all">
-                {formatMoney(lucroLiquido)}
-              </span>
-            </div>
+          {/* Lista Compacta de Futuros */}
+          <div className="bg-white text-slate-800 p-4 max-h-60 overflow-y-auto">
+            <h3 className="text-xs font-bold text-slate-500 mb-3 uppercase">Próximos Itens</h3>
+            {futureTransactions.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-4">Nada agendado.</p>
+            ) : (
+              <div className="space-y-2">
+                {futureTransactions.slice(0, 5).map(t => (
+                  <div key={t._id} className="flex justify-between items-center text-sm border-b border-slate-50 last:border-0 pb-2 last:pb-0">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-slate-700 truncate max-w-[150px]">
+                        {t.description || t.category}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {new Date(t.date).toLocaleDateString("pt-BR")}
+                      </span>
+                    </div>
+                    <span className={`font-bold ${t.type === "INCOME" ? "text-emerald-600" : "text-rose-600"}`}>
+                      {t.type === "INCOME" ? "+" : "-"}{formatMoney(t.amount)}
+                    </span>
+                  </div>
+                ))}
+                {futureTransactions.length > 5 && (
+                  <button onClick={() => setCurrentTab("FLOW")} className="w-full text-center text-xs text-indigo-600 font-bold pt-2 flex items-center justify-center gap-1">
+                    Ver todos <ArrowRight size={12} />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </section>
       </div>
@@ -442,19 +491,13 @@ export default function Dashboard() {
         {currentTab === "REPORTS" && <ReportsView />}
       </main>
 
-      {/* BOTÕES FLUTUANTES (Agora com lógica de esconder o Registrar) */}
       <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 w-full justify-center pointer-events-none">
-        {/* A div acima tem pointer-events-none para que o container largo não bloqueie cliques laterais, 
-            mas os botões filhos terão pointer-events-auto */}
-
         <div className="pointer-events-auto flex items-center gap-3">
-          {/* VoiceInput agora avisa quando o modo de texto está ativo */}
           <VoiceInput
             onSuccess={handleAiSuccess}
             onModeChange={(isActive) => setIsInputMode(isActive)}
           />
 
-          {/* O botão registrar só aparece se NÃO estiver digitando */}
           {!isInputMode && (
             <button
               onClick={handleOpenModalManual}
