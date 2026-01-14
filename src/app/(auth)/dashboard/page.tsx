@@ -50,7 +50,7 @@ interface Transaction {
     name: string;
     type: "CLIENT" | "SUPPLIER";
   };
-  createdAt?: string; // Adicionado para ordenação correta
+  createdAt?: string;
 }
 
 export default function Dashboard() {
@@ -62,13 +62,16 @@ export default function Dashboard() {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summaryData, setSummaryData] = useState(null);
-  const [showValues, setShowValues] = useState(true);
+  const [showValues, setShowValues] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [aiData, setAiData] = useState<AiTransactionData | null>(null);
 
-  // Cálculos Gerais (Baseado apenas em PAGOS para saldo real)
+  // NOVO ESTADO: Controla se o usuário está digitando na IA
+  const [isInputMode, setIsInputMode] = useState(false);
+
+  // Cálculos Gerais
   const income = transactions
     .filter((t) => t.type === "INCOME" && t.status === "PAID")
     .reduce((acc, curr) => acc + curr.amount, 0);
@@ -77,7 +80,6 @@ export default function Dashboard() {
     .reduce((acc, curr) => acc + curr.amount, 0);
   const balance = income - expense;
 
-  // Funções de Busca
   const fetchTransactions = async (userId: string) => {
     try {
       const res = await fetch(`/api/transactions?userId=${userId}`);
@@ -108,7 +110,6 @@ export default function Dashboard() {
     setIsModalOpen(true);
   };
 
-  // Ações de Gestão
   const handleMarkAsPaid = async (transaction: Transaction) => {
     try {
       const res = await fetch(`/api/transactions/${transaction._id}`, {
@@ -179,21 +180,17 @@ export default function Dashboard() {
     });
   };
 
-  // 1. ABA INÍCIO
   const HomeView = () => {
-    // CORREÇÃO: Ordenar por 'createdAt' para mostrar o que foi digitado por último,
-    // independentemente da data de vencimento da conta.
     const recentActivities = [...transactions]
       .sort((a, b) => {
         const dateA = new Date(a.createdAt || a.date).getTime();
         const dateB = new Date(b.createdAt || b.date).getTime();
-        return dateB - dateA; // Mais recente primeiro
+        return dateB - dateA;
       })
       .slice(0, 3);
 
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {/* Card de Saldo */}
         <div className="bg-slate-800 p-6 rounded-3xl text-white shadow-xl shadow-slate-200 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/20 rounded-full -mr-10 -mt-10 blur-3xl"></div>
 
@@ -205,7 +202,7 @@ export default function Dashboard() {
               onClick={() => setShowValues(!showValues)}
               className="text-slate-400 hover:text-white transition-colors"
             >
-              {showValues ? <Eye size={18} /> : <EyeOff size={18} />}
+              {showValues ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
 
@@ -237,7 +234,6 @@ export default function Dashboard() {
           <FaturamentoCard data={summaryData} loading={loading} />
         )}
 
-        {/* Lista Recente Resumida */}
         <div>
           <h3 className="text-slate-800 font-bold text-lg mb-4 flex items-center gap-2">
             <Wallet size={18} className="text-indigo-600" />
@@ -293,7 +289,6 @@ export default function Dashboard() {
     );
   };
 
-  // 2. ABA RELATÓRIOS
   const ReportsView = () => {
     const lucroLiquido = income - expense;
 
@@ -313,7 +308,6 @@ export default function Dashboard() {
           <p className="text-slate-500">Análise visual e resultados</p>
         </header>
 
-        {/* GRÁFICO */}
         <section className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
           <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">
             Tendência (Últimos Movimentos)
@@ -363,7 +357,6 @@ export default function Dashboard() {
           </p>
         </section>
 
-        {/* DRE SIMPLIFICADO */}
         <section className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="p-6 border-b border-slate-50">
             <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wider">
@@ -410,7 +403,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28">
-      {/* HEADER FIXO */}
       <header className="bg-white px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm border-b border-slate-100">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md">
@@ -436,7 +428,6 @@ export default function Dashboard() {
         </button>
       </header>
 
-      {/* CONTEÚDO PRINCIPAL */}
       <main className="p-4 sm:p-6 max-w-2xl mx-auto">
         {currentTab === "HOME" && <HomeView />}
 
@@ -451,20 +442,31 @@ export default function Dashboard() {
         {currentTab === "REPORTS" && <ReportsView />}
       </main>
 
-      {/* BOTÕES FLUTUANTES */}
-      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3">
-        <VoiceInput onSuccess={handleAiSuccess} />
+      {/* BOTÕES FLUTUANTES (Agora com lógica de esconder o Registrar) */}
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 w-full justify-center pointer-events-none">
+        {/* A div acima tem pointer-events-none para que o container largo não bloqueie cliques laterais, 
+            mas os botões filhos terão pointer-events-auto */}
 
-        <button
-          onClick={handleOpenModalManual}
-          className="bg-indigo-600 text-white px-6 py-3 rounded-full shadow-xl shadow-indigo-300 flex items-center gap-2 font-bold hover:bg-indigo-700 active:scale-95 transition-all transform hover:-translate-y-1 h-[56px]"
-        >
-          <Plus size={20} />
-          Registrar
-        </button>
+        <div className="pointer-events-auto flex items-center gap-3">
+          {/* VoiceInput agora avisa quando o modo de texto está ativo */}
+          <VoiceInput
+            onSuccess={handleAiSuccess}
+            onModeChange={(isActive) => setIsInputMode(isActive)}
+          />
+
+          {/* O botão registrar só aparece se NÃO estiver digitando */}
+          {!isInputMode && (
+            <button
+              onClick={handleOpenModalManual}
+              className="bg-indigo-600 text-white px-6 py-3 rounded-full shadow-xl shadow-indigo-300 flex items-center gap-2 font-bold hover:bg-indigo-700 active:scale-95 transition-all transform hover:-translate-y-1 h-[56px] animate-in fade-in zoom-in"
+            >
+              <Plus size={20} />
+              Registrar
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* BARRA DE NAVEGAÇÃO */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 z-20 pb-safe">
         <div className="flex justify-around items-center max-w-2xl mx-auto">
           <button

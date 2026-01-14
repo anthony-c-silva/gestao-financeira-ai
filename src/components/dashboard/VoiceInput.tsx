@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { Mic, Loader2, StopCircle, Keyboard, Send, X } from "lucide-react";
-// Importamos o novo modal
 import { FeedbackModal, FeedbackType } from "@/components/ui/FeedbackModal";
 
 export interface AiTransactionData {
@@ -43,18 +42,17 @@ interface IWindow extends Window {
 
 interface VoiceInputProps {
   onSuccess: (data: AiTransactionData) => void;
+  // NOVO: Função para avisar o Dashboard para esconder o botão Registrar
+  onModeChange?: (isInputMode: boolean) => void;
 }
 
-export function VoiceInput({ onSuccess }: VoiceInputProps) {
+export function VoiceInput({ onSuccess, onModeChange }: VoiceInputProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showTextInput, setShowTextInput] = useState(false);
   const [textInput, setTextInput] = useState("");
-  const [recognition, setRecognition] = useState<ISpeechRecognition | null>(
-    null
-  );
+  const [recognition, setRecognition] = useState<ISpeechRecognition | null>(null);
 
-  // Estado para controlar o Modal de Feedback
   const [feedback, setFeedback] = useState<{
     isOpen: boolean;
     type: FeedbackType;
@@ -67,7 +65,6 @@ export function VoiceInput({ onSuccess }: VoiceInputProps) {
     message: "",
   });
 
-  // Função auxiliar para abrir o modal
   const showFeedback = (type: FeedbackType, title: string, message: string) => {
     setFeedback({ isOpen: true, type, title, message });
   };
@@ -76,11 +73,18 @@ export function VoiceInput({ onSuccess }: VoiceInputProps) {
     setFeedback((prev) => ({ ...prev, isOpen: false }));
   };
 
+  // Função para controlar a abertura/fechamento do input e avisar o pai
+  const toggleInputMode = (active: boolean) => {
+    setShowTextInput(active);
+    if (onModeChange) {
+      onModeChange(active);
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const win = window as unknown as IWindow;
-      const SpeechRecognition =
-        win.SpeechRecognition || win.webkitSpeechRecognition;
+      const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
 
       if (SpeechRecognition) {
         const recognitionInstance = new SpeechRecognition();
@@ -88,15 +92,12 @@ export function VoiceInput({ onSuccess }: VoiceInputProps) {
         recognitionInstance.lang = "pt-BR";
         recognitionInstance.interimResults = false;
 
-        recognitionInstance.onresult = async (
-          event: SpeechRecognitionEvent
-        ) => {
+        recognitionInstance.onresult = async (event: SpeechRecognitionEvent) => {
           const transcript = event.results[0][0].transcript;
           setIsRecording(false);
           await processTextWithAI(transcript);
         };
 
-        // --- TRATAMENTO DE ERROS COM MODAL BONITO ---
         recognitionInstance.onerror = (event: SpeechRecognitionEvent) => {
           console.error("Erro voz:", event.error);
           setIsRecording(false);
@@ -105,25 +106,19 @@ export function VoiceInput({ onSuccess }: VoiceInputProps) {
             showFeedback(
               "warning",
               "Permissão Negada",
-              "O navegador bloqueou o microfone.\n\nClique no cadeado 🔒 ao lado do endereço do site (lá em cima) e ative a opção 'Microfone'."
+              "O navegador bloqueou o microfone.\n\nClique no cadeado 🔒 ao lado do endereço do site e ative a opção 'Microfone'."
             );
           } else if (event.error === "no-speech") {
             showFeedback(
               "info",
               "Não ouvi nada",
-              "Parece que você não falou nada ou o microfone está mudo.\n\nTente falar mais perto ou use o botão de teclado ao lado para digitar."
-            );
-          } else if (event.error === "audio-capture") {
-            showFeedback(
-              "error",
-              "Microfone Desconectado",
-              "Não encontrei nenhum microfone.\nVerifique se ele está conectado ou use o modo teclado."
+              "O microfone está mudo ou você não falou.\n\nTente falar mais perto ou use o botão de teclado para digitar."
             );
           } else {
             showFeedback(
               "error",
-              "Erro Desconhecido",
-              `Ocorreu um erro técnico: ${event.error}\nTente digitar o comando.`
+              "Erro Técnico",
+              `Ocorreu um erro: ${event.error}\nPor favor, use a digitação.`
             );
           }
         };
@@ -142,7 +137,7 @@ export function VoiceInput({ onSuccess }: VoiceInputProps) {
     if (!text.trim()) return;
 
     setIsProcessing(true);
-    setShowTextInput(false);
+    toggleInputMode(false); // Fecha o input ao enviar
 
     try {
       const response = await fetch("/api/ai/process", {
@@ -161,7 +156,7 @@ export function VoiceInput({ onSuccess }: VoiceInputProps) {
       showFeedback(
         "error",
         "Falha na Inteligência",
-        "Não consegui processar seu comando no momento.\nVerifique sua conexão e tente novamente."
+        "Não consegui processar seu comando.\nVerifique sua conexão e tente novamente."
       );
     } finally {
       setIsProcessing(false);
@@ -173,7 +168,7 @@ export function VoiceInput({ onSuccess }: VoiceInputProps) {
       showFeedback(
         "warning",
         "Navegador Incompatível",
-        "Este navegador não suporta comandos de voz.\nPor favor, use o Google Chrome ou digite o comando no botão de teclado."
+        "Este navegador não suporta voz.\nPor favor, use o botão de teclado para digitar."
       );
       return;
     }
@@ -198,7 +193,6 @@ export function VoiceInput({ onSuccess }: VoiceInputProps) {
 
   return (
     <>
-      {/* Renderiza o Modal de Feedback no topo da hierarquia */}
       <FeedbackModal
         isOpen={feedback.isOpen}
         onClose={closeFeedback}
@@ -212,38 +206,42 @@ export function VoiceInput({ onSuccess }: VoiceInputProps) {
           <Loader2 size={24} className="animate-spin" />
         </div>
       ) : showTextInput ? (
+        /* MUDANÇA AQUI: Layout Fixo e Responsivo para o Campo de Texto */
         <form
           onSubmit={handleTextSubmit}
-          className="flex items-center gap-2 bg-white p-2 rounded-2xl shadow-xl border border-indigo-100 animate-in slide-in-from-bottom-2"
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[90%] max-w-lg bg-white p-3 rounded-2xl shadow-2xl border border-indigo-100 flex items-center gap-2 z-50 animate-in slide-in-from-bottom-4 zoom-in-95"
         >
           <input
             type="text"
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
             placeholder="Ex: Gastei 50 no mercado..."
-            className="pl-3 py-2 outline-none text-slate-700 text-sm w-48 sm:w-64"
+            className="flex-1 pl-3 py-3 outline-none text-slate-700 text-base font-medium placeholder:text-slate-400"
             autoFocus
           />
-          <button
-            type="button"
-            onClick={() => setShowTextInput(false)}
-            className="p-2 text-slate-400 hover:text-red-500 transition-colors"
-          >
-            {/* ÍCONE ALTERADO AQUI: De StopCircle para X */}
-            <X size={20} />
-          </button>
-          <button
-            type="submit"
-            disabled={!textInput}
-            className="bg-indigo-600 text-white p-2 rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50"
-          >
-            <Send size={18} />
-          </button>
+          
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => toggleInputMode(false)} // Fecha e avisa o pai para mostrar botões
+              className="p-3 bg-slate-100 text-slate-500 rounded-xl hover:bg-red-50 hover:text-red-500 transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <button
+              type="submit"
+              disabled={!textInput}
+              className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-indigo-200"
+            >
+              <Send size={20} />
+            </button>
+          </div>
         </form>
       ) : (
+        /* BOTÕES NORMAIS (Só aparecem se não estiver digitando) */
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowTextInput(true)}
+            onClick={() => toggleInputMode(true)} // Abre e avisa o pai para esconder outros botões
             className="p-4 bg-white text-indigo-600 rounded-full shadow-lg border border-indigo-50 hover:bg-indigo-50 transition-all active:scale-95"
             title="Digitar comando"
           >

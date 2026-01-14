@@ -42,7 +42,7 @@ export function FinanceiroView({
   const [viewType, setViewType] = useState<"SAIDA" | "ENTRADA">("SAIDA");
   const [filterPeriod, setFilterPeriod] = useState<"MES" | "TODOS">("MES");
   const [activeStatusFilter, setActiveStatusFilter] = useState<
-    "ALL" | "VENCIDOS" | "AVENCER" | "PAGOS"
+    "ALL" | "VENCIDOS" | "A VENCER" | "PAGOS"
   >("ALL");
   const [confirmingTransaction, setConfirmingTransaction] =
     useState<Transaction | null>(null);
@@ -96,7 +96,7 @@ export function FinanceiroView({
     if (activeStatusFilter === "PAGOS") return t.status === "PAID";
     if (activeStatusFilter === "VENCIDOS")
       return t.status === "PENDING" && tDateAdjusted < today;
-    if (activeStatusFilter === "AVENCER")
+    if (activeStatusFilter === "A VENCER")
       return t.status === "PENDING" && tDateAdjusted >= today;
     return true;
   });
@@ -124,7 +124,7 @@ export function FinanceiroView({
     if (length > 10) return "text-xs sm:text-sm leading-tight";
     return "text-sm sm:text-lg leading-tight";
   };
-  const toggleFilter = (filter: "VENCIDOS" | "AVENCER" | "PAGOS") => {
+  const toggleFilter = (filter: "VENCIDOS" | "A VENCER" | "PAGOS") => {
     if (activeStatusFilter === filter) setActiveStatusFilter("ALL");
     else setActiveStatusFilter(filter);
   };
@@ -233,16 +233,16 @@ export function FinanceiroView({
         </button>
 
         <button
-          onClick={() => toggleFilter("AVENCER")}
+          onClick={() => toggleFilter("A VENCER")}
           className={`p-2 sm:p-4 rounded-2xl border flex flex-col items-center text-center justify-center min-h-[100px] transition-all active:scale-95 ${
-            activeStatusFilter === "AVENCER"
+            activeStatusFilter === "A VENCER"
               ? "bg-amber-100 border-amber-400 ring-2 ring-amber-200 shadow-lg scale-[1.02]"
               : "bg-white border-slate-100 hover:bg-slate-50"
           }`}
         >
           <div
             className={`mb-1 sm:mb-2 p-1.5 sm:p-2 rounded-full shadow-sm ${
-              activeStatusFilter === "AVENCER"
+              activeStatusFilter === "A VENCER"
                 ? "bg-white text-amber-600"
                 : "bg-amber-50 text-amber-500"
             }`}
