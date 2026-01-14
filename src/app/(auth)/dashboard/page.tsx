@@ -328,7 +328,7 @@ export default function Dashboard() {
 
     const chartData = Array.from(dailyMap.values()).slice(-15); // Últimos 15 dias com movimento
 
-    // --- CÁLCULO DE LANÇAMENTOS FUTUROS (PEDIDO DO CLIENTE) ---
+    // --- CÁLCULO DE LANÇAMENTOS FUTUROS ---
     const futureTransactions = transactions.filter(t => {
       const tDate = new Date(t.date);
       // Ajuste de fuso horário simples
@@ -367,7 +367,12 @@ export default function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 10 }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 10 }} tickFormatter={(val) => `R$${val}`} />
-                  <Tooltip cursor={{ fill: "#f8fafc" }} contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }} formatter={(val: number) => [`R$ ${val.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`]} />
+                  {/* CORREÇÃO DO ERRO DE BUILD AQUI: Tipagem number | undefined */}
+                  <Tooltip 
+                    cursor={{ fill: "#f8fafc" }} 
+                    contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }} 
+                    formatter={(val: number | undefined) => [`R$ ${(val || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`]} 
+                  />
                   <Legend iconType="circle" wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
                   <Bar dataKey="Entradas" fill="#10b981" radius={[4, 4, 0, 0]} barSize={12} />
                   <Bar dataKey="Saidas" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={12} />
@@ -381,7 +386,7 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* 2. TABELA DE PREVISÃO FUTURA (ATENDE O PEDIDO DO CLIENTE) */}
+        {/* 2. TABELA DE PREVISÃO FUTURA */}
         <section className="bg-slate-800 rounded-3xl shadow-lg overflow-hidden text-white relative">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full -mr-16 -mt-16 blur-3xl"></div>
           
