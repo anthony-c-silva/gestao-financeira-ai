@@ -25,9 +25,9 @@ import {
   QrCode,
   FileText,
   CalendarClock,
+  Repeat, // Ícone novo
 } from "lucide-react";
 
-// Definindo a interface para os dados que vêm da IA
 interface AiTransactionData {
   amount?: number;
   description?: string;
@@ -42,7 +42,7 @@ interface NewTransactionModalProps {
   onClose: () => void;
   onSuccess: () => void;
   userId: string;
-  initialData?: AiTransactionData | null; // Tipagem corrigida aqui
+  initialData?: AiTransactionData | null;
 }
 
 interface Contact {
@@ -50,7 +50,6 @@ interface Contact {
   name: string;
 }
 
-// --- CONFIGURAÇÕES VISUAIS ---
 const CATEGORIES = [
   {
     id: "Outros",
@@ -115,7 +114,7 @@ export function NewTransactionModal({
   onClose,
   onSuccess,
   userId,
-  initialData, // Agora tipado corretamente
+  initialData,
 }: NewTransactionModalProps) {
   const [loading, setLoading] = useState(false);
 
@@ -127,6 +126,10 @@ export function NewTransactionModal({
   const [paymentMethod, setPaymentMethod] = useState("Pix");
   const [status, setStatus] = useState<"PAID" | "PENDING">("PAID");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+
+  // NOVOS CAMPOS DE RECORRÊNCIA
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [installments, setInstallments] = useState("2"); // Padrão: repetir por 2 meses
 
   // Estados de Interface
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
@@ -142,13 +145,11 @@ export function NewTransactionModal({
   );
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Refs
   const wrapperRef = useRef<HTMLDivElement>(null);
   const categoryRef = useRef<HTMLDivElement>(null);
   const paymentRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
 
-  // Efeito: Preenchimento automático via IA
   useEffect(() => {
     if (initialData && isOpen) {
       if (initialData.amount) setAmount(initialData.amount.toString());
@@ -173,7 +174,6 @@ export function NewTransactionModal({
     }
   }, [initialData, isOpen]);
 
-  // Fecha dropdowns ao clicar fora
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -227,9 +227,8 @@ export function NewTransactionModal({
     setContactName("");
     setSelectedContactId(null);
     fetchContacts();
-  }, [type, userId, isOpen]);
+  }, [type, userId, isOpen, date]);
 
-  // --- LÓGICA DO CALENDÁRIO ---
   const generateCalendarDays = () => {
     const year = calendarViewDate.getFullYear();
     const month = calendarViewDate.getMonth();
@@ -296,6 +295,9 @@ export function NewTransactionModal({
         paymentMethod,
         date,
         status,
+        // Envia dados de recorrência se estiver ativo
+        isRecurring,
+        installments: isRecurring ? parseInt(installments) : 1,
       };
 
       await fetch("/api/transactions", {
@@ -323,6 +325,8 @@ export function NewTransactionModal({
     setPaymentMethod("Pix");
     setDate(new Date().toISOString().split("T")[0]);
     setStatus("PAID");
+    setIsRecurring(false);
+    setInstallments("2");
   };
 
   if (!isOpen) return null;
@@ -335,7 +339,11 @@ export function NewTransactionModal({
   const PaymentIcon = currentPayment.icon;
   const formattedDateDisplay = new Date(date + "T12:00:00").toLocaleDateString(
     "pt-BR",
-    { day: "2-digit", month: "short", year: "numeric" }
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }
   );
 
   return (
@@ -393,7 +401,7 @@ export function NewTransactionModal({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="w-48 text-5xl font-black text-slate-800 placeholder-slate-200 focus:outline-none bg-transparent text-center"
-                autoFocus={!initialData} // Se veio da IA, não foca automaticamente para evitar teclado subindo
+                autoFocus={!initialData}
               />
             </div>
           </div>
@@ -521,7 +529,6 @@ export function NewTransactionModal({
                       <ChevronRight size={20} />
                     </button>
                   </div>
-
                   <div className="grid grid-cols-7 gap-1 mb-2 text-center">
                     {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => (
                       <span
@@ -532,7 +539,6 @@ export function NewTransactionModal({
                       </span>
                     ))}
                   </div>
-
                   <div className="grid grid-cols-7 gap-1">
                     {generateCalendarDays().map((day, idx) => {
                       if (!day) return <div key={idx} />;
@@ -569,12 +575,56 @@ export function NewTransactionModal({
               </label>
               <input
                 type="text"
-                placeholder="Ex: Parcela 2"
+                placeholder="Ex: Aluguel"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 font-medium text-sm"
               />
             </div>
+          </div>
+
+          {/* SESSÃO DE RECORRÊNCIA */}
+          <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-indigo-900 font-bold text-sm">
+                <Repeat size={18} />
+                Repetir este lançamento?
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+
+            {isRecurring && (
+              <div className="animate-in slide-in-from-top-2 fade-in">
+                <label className="block text-xs font-bold text-indigo-400 uppercase mb-1 ml-1">
+                  Repetir por quantos meses?
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="2"
+                    max="60"
+                    value={installments}
+                    onChange={(e) => setInstallments(e.target.value)}
+                    className="w-20 p-2 bg-white border border-indigo-200 rounded-xl text-center font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm text-indigo-600 font-medium">
+                    Meses (Vezes)
+                  </span>
+                </div>
+                <p className="text-[10px] text-indigo-400 mt-2 leading-tight">
+                  Isso criará automaticamente {installments} lançamentos futuros
+                  com vencimento no mesmo dia dos próximos meses.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2">

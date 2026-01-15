@@ -40,7 +40,12 @@ export function FinanceiroView({
   onMarkAsPaid,
 }: FinanceiroViewProps) {
   const [viewType, setViewType] = useState<"SAIDA" | "ENTRADA">("SAIDA");
-  const [filterPeriod, setFilterPeriod] = useState<"MES" | "TODOS">("MES");
+
+  // ALTERAÇÃO 1: Adicionado tipo 'DIA' ao estado
+  const [filterPeriod, setFilterPeriod] = useState<"DIA" | "MES" | "TODOS">(
+    "MES"
+  );
+
   const [activeStatusFilter, setActiveStatusFilter] = useState<
     "ALL" | "VENCIDOS" | "A VENCER" | "PAGOS"
   >("ALL");
@@ -50,18 +55,30 @@ export function FinanceiroView({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // --- FILTROS E CÁLCULOS (Idênticos ao anterior, omitindo para focar no UI) ---
   const typeFiltered = transactions.filter((t) =>
     viewType === "SAIDA" ? t.type === "EXPENSE" : t.type === "INCOME"
   );
 
+  // ALTERAÇÃO 2: Lógica para filtrar apenas o dia atual
   const listByPeriod = typeFiltered
     .filter((t) => {
       if (filterPeriod === "TODOS") return true;
+
       const tDate = new Date(t.date);
       const tDateAdjusted = new Date(
         tDate.valueOf() + tDate.getTimezoneOffset() * 60000
       );
+
+      // Lógica nova para o DIA
+      if (filterPeriod === "DIA") {
+        return (
+          tDateAdjusted.getDate() === today.getDate() &&
+          tDateAdjusted.getMonth() === today.getMonth() &&
+          tDateAdjusted.getFullYear() === today.getFullYear()
+        );
+      }
+
+      // Lógica padrão para o MES
       return (
         tDateAdjusted.getMonth() === today.getMonth() &&
         tDateAdjusted.getFullYear() === today.getFullYear()
@@ -105,7 +122,6 @@ export function FinanceiroView({
   const totalAVencer = aVencer.reduce((acc, t) => acc + t.amount, 0);
   const totalPago = pagos.reduce((acc, t) => acc + t.amount, 0);
 
-  // --- FORMATADORES ---
   const formatFull = (val: number) =>
     val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const formatNoCents = (val: number) =>
@@ -133,6 +149,13 @@ export function FinanceiroView({
       onMarkAsPaid(confirmingTransaction);
       setConfirmingTransaction(null);
     }
+  };
+
+  // Texto dinâmico do título
+  const getFilterTitle = () => {
+    if (filterPeriod === "DIA") return "Hoje";
+    if (filterPeriod === "MES") return "Este Mês";
+    return "Todo o Período";
   };
 
   return (
@@ -168,19 +191,29 @@ export function FinanceiroView({
         </button>
       </div>
 
-      {/* FILTRO TEMPO */}
+      {/* ALTERAÇÃO 3: UI DOS BOTÕES DE FILTRO DE TEMPO */}
       <div className="flex justify-between items-center px-2">
         <h2 className="text-base sm:text-lg font-bold text-slate-700 flex items-center gap-2">
           <CalendarDays className="text-indigo-600" size={20} />
-          {filterPeriod === "MES" ? "Este Mês" : "Todo o Período"}
+          {getFilterTitle()}
         </h2>
         <div className="flex bg-white rounded-lg border border-slate-200 p-0.5">
+          <button
+            onClick={() => setFilterPeriod("DIA")}
+            className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${
+              filterPeriod === "DIA"
+                ? "bg-indigo-100 text-indigo-700"
+                : "text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            Hoje
+          </button>
           <button
             onClick={() => setFilterPeriod("MES")}
             className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${
               filterPeriod === "MES"
                 ? "bg-indigo-100 text-indigo-700"
-                : "text-slate-400"
+                : "text-slate-400 hover:text-slate-600"
             }`}
           >
             Mês
@@ -190,7 +223,7 @@ export function FinanceiroView({
             className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${
               filterPeriod === "TODOS"
                 ? "bg-indigo-100 text-indigo-700"
-                : "text-slate-400"
+                : "text-slate-400 hover:text-slate-600"
             }`}
           >
             Tudo
@@ -250,7 +283,8 @@ export function FinanceiroView({
             <Clock size={16} className="sm:w-5 sm:h-5" />
           </div>
           <span className="text-[9px] sm:text-xs font-bold text-slate-500 uppercase tracking-tight">
-            A Vencer
+            {/* Texto adapta conforme o filtro */}
+            {filterPeriod === "DIA" ? "Vence Hoje" : "A Vencer"}
           </span>
           <span
             className={`${getDynamicFontSize(
@@ -315,13 +349,15 @@ export function FinanceiroView({
         </div>
       )}
 
-      {/* LISTA DE CONTAS COM NOME DO CLIENTE */}
+      {/* LISTA DE CONTAS */}
       <div className="space-y-3">
         {displayList.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-3xl border-2 border-dashed border-slate-100">
             <p className="text-slate-400 font-medium text-sm">
               {activeStatusFilter !== "ALL"
                 ? "Nenhuma conta com este status."
+                : filterPeriod === "DIA"
+                ? "Nenhuma conta para hoje."
                 : "Nenhuma conta encontrada."}
             </p>
             {activeStatusFilter === "ALL" && (
@@ -341,7 +377,6 @@ export function FinanceiroView({
             const isToday =
               t.status === "PENDING" && dateObj.getTime() === today.getTime();
 
-            // Lógica do Título: Preferência pelo Nome do Contato
             const displayTitle =
               t.contactId?.name || t.description || t.category;
             const displaySubtitle = t.contactId
@@ -359,10 +394,8 @@ export function FinanceiroView({
                     : "border-l-4 border-l-amber-400"
                 }`}
               >
-                {/* Informações Principais */}
                 <div className="flex flex-col gap-1 w-full sm:w-auto">
                   <div className="flex items-center justify-between sm:justify-start gap-2">
-                    {/* Exibe o Nome do Cliente ou Descrição em Destaque */}
                     <span className="font-bold text-slate-800 text-sm sm:text-base truncate max-w-[180px] sm:max-w-xs flex items-center gap-1.5">
                       {t.contactId &&
                         (t.contactId.type === "CLIENT" ? (
@@ -390,7 +423,6 @@ export function FinanceiroView({
                     )}
                   </div>
 
-                  {/* Linha de Detalhes: Descrição real + Data + Pagamento */}
                   <div className="flex items-center gap-2 text-xs text-slate-500 font-medium truncate max-w-[250px]">
                     <span className="text-slate-400">{displaySubtitle}</span>
                     <span className="text-slate-300">•</span>
@@ -405,7 +437,6 @@ export function FinanceiroView({
                   </div>
                 </div>
 
-                {/* Valor e Ação */}
                 <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-3 sm:gap-1 border-t sm:border-0 border-slate-50 pt-2 sm:pt-0 mt-1 sm:mt-0">
                   <span
                     className={`text-base sm:text-lg font-black ${
@@ -442,7 +473,6 @@ export function FinanceiroView({
         )}
       </div>
 
-      {/* --- MODAL DE CONFIRMAÇÃO --- */}
       {confirmingTransaction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
@@ -463,7 +493,6 @@ export function FinanceiroView({
                   : "Confirmar Recebimento?"}
               </h3>
 
-              {/* Texto do Modal também atualizado para mostrar o nome */}
               <p className="text-slate-500 text-sm mb-6">
                 Confirmar que{" "}
                 <strong className="text-slate-800">

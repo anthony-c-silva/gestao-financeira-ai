@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
-// Importamos e "usamos" o Contact para garantir que ele seja registrado no Mongoose
 import Contact from "@/models/Contact";
 
 // BUSCAR TRANSAÇÕES
 export async function GET(req: Request) {
   try {
     await connectDB();
-
-    // TRUQUE PARA CORRIGIR O "MissingSchemaError":
-    // Acessamos o modelo explicitamente para garantir que ele foi compilado.
-    // Isso evita que o Next.js "esqueça" de registrar o modelo em modo dev/HMR.
+    // Garante que o modelo Contact está registrado antes de fazer o populate
     if (!Contact) console.log("Carregando modelo Contact...");
 
     const { searchParams } = new URL(req.url);
@@ -27,7 +23,7 @@ export async function GET(req: Request) {
     const transactions = await Transaction.find({ userId })
       .populate("contactId", "name type")
       .sort({ date: -1 })
-      .limit(50);
+      .limit(100);
 
     return NextResponse.json(transactions, { status: 200 });
   } catch (error) {
@@ -36,7 +32,7 @@ export async function GET(req: Request) {
   }
 }
 
-// CRIAR NOVA TRANSAÇÃO
+// CRIAR NOVA TRANSAÇÃO (COM RECORRÊNCIA)
 export async function POST(req: Request) {
   try {
     await connectDB();
@@ -49,9 +45,51 @@ export async function POST(req: Request) {
       );
     }
 
-    const newTransaction = await Transaction.create(body);
+    // Lógica de Recorrência
+    const isRecurring = body.isRecurring === true;
+    const installmentsCount = body.installments
+      ? parseInt(body.installments)
+      : 1;
 
-    return NextResponse.json(newTransaction, { status: 201 });
+    // Geramos um ID simples e aleatório para agrupar as parcelas
+    const recurrenceId = isRecurring
+      ? Math.random().toString(36).substring(7)
+      : null;
+
+    const transactionsToCreate = [];
+    const baseDate = new Date(body.date);
+
+    // Loop para criar as parcelas
+    for (let i = 0; i < installmentsCount; i++) {
+      const newDate = new Date(baseDate);
+      // Adiciona 'i' meses à data original (ex: hoje, mês que vem, outro mês...)
+      newDate.setMonth(newDate.getMonth() + i);
+
+      transactionsToCreate.push({
+        userId: body.userId,
+        contactId: body.contactId,
+        type: body.type,
+        amount: body.amount,
+        description: body.description,
+        category: body.category,
+        paymentMethod: body.paymentMethod,
+        date: newDate,
+        // A primeira parcela mantém o status escolhido (ex: PAGO)
+        // As futuras (i > 0) nascem sempre como PENDENTE
+        status: i === 0 ? body.status : "PENDING",
+        recurrenceId: recurrenceId,
+        installment: i + 1,
+        totalInstallments: installmentsCount,
+      });
+    }
+
+    // Salva tudo de uma vez no banco
+    const createdTransactions = await Transaction.insertMany(
+      transactionsToCreate
+    );
+
+    // Retorna apenas a primeira para o front-end não bugar
+    return NextResponse.json(createdTransactions[0], { status: 201 });
   } catch (error) {
     console.error("Erro ao criar transação:", error);
     return NextResponse.json({ message: "Erro ao salvar" }, { status: 500 });
