@@ -25,7 +25,7 @@ import {
   QrCode,
   FileText,
   CalendarClock,
-  Repeat, // Ícone novo
+  Repeat,
 } from "lucide-react";
 
 interface AiTransactionData {
@@ -118,7 +118,6 @@ export function NewTransactionModal({
 }: NewTransactionModalProps) {
   const [loading, setLoading] = useState(false);
 
-  // Dados do Formulário
   const [type, setType] = useState<"INCOME" | "EXPENSE">("EXPENSE");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
@@ -127,17 +126,14 @@ export function NewTransactionModal({
   const [status, setStatus] = useState<"PAID" | "PENDING">("PAID");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
-  // NOVOS CAMPOS DE RECORRÊNCIA
   const [isRecurring, setIsRecurring] = useState(false);
-  const [installments, setInstallments] = useState("2"); // Padrão: repetir por 2 meses
+  const [installments, setInstallments] = useState("2");
 
-  // Estados de Interface
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarViewDate, setCalendarViewDate] = useState(new Date());
 
-  // Lógica de Contatos
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactName, setContactName] = useState("");
   const [selectedContactId, setSelectedContactId] = useState<string | null>(
@@ -149,6 +145,14 @@ export function NewTransactionModal({
   const categoryRef = useRef<HTMLDivElement>(null);
   const paymentRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
+
+  // Lógica para tamanho dinâmico da fonte do valor
+  const getAmountSize = (value: string) => {
+    if (value.length > 10) return "text-2xl"; // Números muito grandes
+    if (value.length > 7) return "text-3xl";  // Milhões
+    if (value.length > 5) return "text-4xl";  // Milhares
+    return "text-5xl"; // Padrão
+  };
 
   useEffect(() => {
     if (initialData && isOpen) {
@@ -295,7 +299,6 @@ export function NewTransactionModal({
         paymentMethod,
         date,
         status,
-        // Envia dados de recorrência se estiver ativo
         isRecurring,
         installments: isRecurring ? parseInt(installments) : 1,
       };
@@ -392,7 +395,8 @@ export function NewTransactionModal({
               Valor da transação
             </span>
             <div className="flex justify-center items-center gap-1 mt-1">
-              <span className="text-2xl font-medium text-slate-400">R$</span>
+              <span className={`text-2xl font-medium text-slate-400`}>R$</span>
+              {/* ALTERAÇÃO: Input com tamanho de fonte dinâmico e largura maior */}
               <input
                 type="number"
                 step="0.01"
@@ -400,7 +404,7 @@ export function NewTransactionModal({
                 placeholder="0,00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-48 text-5xl font-black text-slate-800 placeholder-slate-200 focus:outline-none bg-transparent text-center"
+                className={`w-full max-w-[280px] ${getAmountSize(amount)} font-black text-slate-800 placeholder-slate-200 focus:outline-none bg-transparent text-center transition-all`}
                 autoFocus={!initialData}
               />
             </div>
@@ -457,7 +461,7 @@ export function NewTransactionModal({
             </div>
 
             {showSuggestions && contactName && (
-              <div className="absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 max-h-48 overflow-y-auto animate-in slide-in-from-top-2">
+              <div className="absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 max-h-48 overflow-y-auto animate-in slide-in-from-top-2 custom-scrollbar">
                 {filteredContacts.length > 0 ? (
                   filteredContacts.map((contact) => (
                     <button
@@ -583,7 +587,6 @@ export function NewTransactionModal({
             </div>
           </div>
 
-          {/* SESSÃO DE RECORRÊNCIA */}
           <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-indigo-900 font-bold text-sm">
@@ -655,7 +658,7 @@ export function NewTransactionModal({
               </button>
 
               {isCategoryOpen && (
-                <div className="absolute bottom-full mb-2 w-full bg-white rounded-2xl shadow-xl border border-slate-100 max-h-60 overflow-y-auto z-30 animate-in zoom-in-95 origin-bottom">
+                <div className="absolute bottom-full mb-2 w-full bg-white rounded-2xl shadow-xl border border-slate-100 max-h-60 overflow-y-auto z-30 animate-in zoom-in-95 origin-bottom custom-scrollbar">
                   {CATEGORIES.map((cat) => (
                     <button
                       key={cat.id}
@@ -691,7 +694,7 @@ export function NewTransactionModal({
 
             <div className="relative" ref={paymentRef}>
               <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
-                Pagamento
+                {type === "INCOME" ? "Recebimento" : "Pagamento"}
               </label>
               <button
                 type="button"
@@ -714,7 +717,7 @@ export function NewTransactionModal({
               </button>
 
               {isPaymentOpen && (
-                <div className="absolute bottom-full mb-2 w-full bg-white rounded-2xl shadow-xl border border-slate-100 max-h-60 overflow-y-auto z-30 animate-in zoom-in-95 origin-bottom">
+                <div className="absolute bottom-full mb-2 w-full bg-white rounded-2xl shadow-xl border border-slate-100 max-h-60 overflow-y-auto z-30 animate-in zoom-in-95 origin-bottom custom-scrollbar">
                   {PAYMENT_METHODS.map((method) => (
                     <button
                       key={method.id}
@@ -729,7 +732,7 @@ export function NewTransactionModal({
                         <method.icon size={16} />
                       </div>
                       <span
-                        className={`text-sm font-medium ${
+                        className={`text-sm font-medium whitespace-nowrap ${
                           paymentMethod === method.id
                             ? "text-indigo-600"
                             : "text-slate-600"
@@ -762,7 +765,7 @@ export function NewTransactionModal({
               ) : (
                 <>
                   <Check size={20} /> Confirmar{" "}
-                  {type === "INCOME" ? "Entrada" : "Saída"}
+                  {type === "INCOME" ? "Recebimento" : "Pagamento"}
                 </>
               )}
             </button>
