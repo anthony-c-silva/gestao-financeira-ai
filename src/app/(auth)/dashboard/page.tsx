@@ -14,7 +14,8 @@ import {
   TrendingDown,
   Wallet,
   CalendarClock,
-  ArrowRight
+  ArrowRight,
+  Filter
 } from "lucide-react";
 import { FaturamentoCard } from "@/components/dashboard/FaturamentoCard";
 import { NewTransactionModal } from "@/components/dashboard/NewTransactionModal";
@@ -69,6 +70,9 @@ export default function Dashboard() {
   const [showValues, setShowValues] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Filtro Rápido da Home (Novo)
+  const [homeFilter, setHomeFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
 
   const [aiData, setAiData] = useState<AiTransactionData | null>(null);
   const [isInputMode, setIsInputMode] = useState(false);
@@ -190,7 +194,11 @@ export default function Dashboard() {
         const dateB = new Date(b.createdAt || b.date).getTime();
         return dateB - dateA;
       })
-      .slice(0, 3);
+      .filter((t) => {
+        if (homeFilter === 'ALL') return true;
+        return t.type === homeFilter;
+      })
+      .slice(0, 5); // ALTERADO: Agora mostra as 5 últimas
 
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -238,13 +246,52 @@ export default function Dashboard() {
         )}
 
         <div>
-          <h3 className="text-slate-800 font-bold text-lg mb-4 flex items-center gap-2">
-            <Wallet size={18} className="text-indigo-600" />
-            Últimas Atividades
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
+              <Wallet size={18} className="text-indigo-600" />
+              Últimas Atividades
+            </h3>
+          </div>
+
+          {/* FILTRO RÁPIDO DE ENTRADA/SAÍDA */}
+          <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+            <button
+              onClick={() => setHomeFilter('ALL')}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${
+                homeFilter === 'ALL'
+                  ? "bg-slate-800 text-white border-slate-800 shadow-md"
+                  : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              Todos
+            </button>
+            <button
+              onClick={() => setHomeFilter('INCOME')}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition-all border flex items-center gap-1 ${
+                homeFilter === 'INCOME'
+                  ? "bg-emerald-100 text-emerald-700 border-emerald-200 shadow-sm"
+                  : "bg-white text-slate-500 border-slate-200 hover:text-emerald-600"
+              }`}
+            >
+              <TrendingUp size={12} />
+              Entradas
+            </button>
+            <button
+              onClick={() => setHomeFilter('EXPENSE')}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition-all border flex items-center gap-1 ${
+                homeFilter === 'EXPENSE'
+                  ? "bg-rose-100 text-rose-700 border-rose-200 shadow-sm"
+                  : "bg-white text-slate-500 border-slate-200 hover:text-rose-600"
+              }`}
+            >
+              <TrendingDown size={12} />
+              Saídas
+            </button>
+          </div>
+
           {recentActivities.length === 0 ? (
             <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-slate-200 text-slate-400 text-sm">
-              Nenhuma conta registrada.
+              Nenhuma movimentação encontrada neste filtro.
             </div>
           ) : (
             <div className="space-y-3">
