@@ -41,7 +41,6 @@ export function FinanceiroView({
 }: FinanceiroViewProps) {
   const [viewType, setViewType] = useState<"SAIDA" | "ENTRADA">("SAIDA");
 
-  // ALTERAÇÃO 1: Adicionado tipo 'DIA' ao estado
   const [filterPeriod, setFilterPeriod] = useState<"DIA" | "MES" | "TODOS">(
     "MES"
   );
@@ -59,7 +58,6 @@ export function FinanceiroView({
     viewType === "SAIDA" ? t.type === "EXPENSE" : t.type === "INCOME"
   );
 
-  // ALTERAÇÃO 2: Lógica para filtrar apenas o dia atual
   const listByPeriod = typeFiltered
     .filter((t) => {
       if (filterPeriod === "TODOS") return true;
@@ -69,7 +67,6 @@ export function FinanceiroView({
         tDate.valueOf() + tDate.getTimezoneOffset() * 60000
       );
 
-      // Lógica nova para o DIA
       if (filterPeriod === "DIA") {
         return (
           tDateAdjusted.getDate() === today.getDate() &&
@@ -78,7 +75,7 @@ export function FinanceiroView({
         );
       }
 
-      // Lógica padrão para o MES
+      // MES
       return (
         tDateAdjusted.getMonth() === today.getMonth() &&
         tDateAdjusted.getFullYear() === today.getFullYear()
@@ -151,11 +148,24 @@ export function FinanceiroView({
     }
   };
 
-  // Texto dinâmico do título
   const getFilterTitle = () => {
     if (filterPeriod === "DIA") return "Hoje";
     if (filterPeriod === "MES") return "Este Mês";
     return "Todo o Período";
+  };
+
+  // --- LÓGICA DE NOMENCLATURA DINÂMICA (NOVO) ---
+  const getLabel = (type: "LATE" | "PENDING" | "DONE") => {
+    if (viewType === "SAIDA") {
+      if (type === "LATE") return "Vencidos";
+      if (type === "PENDING") return filterPeriod === "DIA" ? "Vence Hoje" : "A Vencer";
+      if (type === "DONE") return "Pagos";
+    } else {
+      // ENTRADA
+      if (type === "LATE") return "Em Atraso";
+      if (type === "PENDING") return filterPeriod === "DIA" ? "Receber Hoje" : "A Receber";
+      if (type === "DONE") return "Recebidos";
+    }
   };
 
   return (
@@ -191,7 +201,7 @@ export function FinanceiroView({
         </button>
       </div>
 
-      {/* ALTERAÇÃO 3: UI DOS BOTÕES DE FILTRO DE TEMPO */}
+      {/* FILTRO DE TEMPO */}
       <div className="flex justify-between items-center px-2">
         <h2 className="text-base sm:text-lg font-bold text-slate-700 flex items-center gap-2">
           <CalendarDays className="text-indigo-600" size={20} />
@@ -231,8 +241,9 @@ export function FinanceiroView({
         </div>
       </div>
 
-      {/* CARDS DE RESUMO */}
+      {/* CARDS DE RESUMO (Agora com Nomes Dinâmicos) */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        {/* CARD 1: VENCIDOS / EM ATRASO */}
         <button
           onClick={() => toggleFilter("VENCIDOS")}
           className={`p-2 sm:p-4 rounded-2xl border flex flex-col items-center text-center justify-center min-h-[100px] transition-all active:scale-95 ${
@@ -251,7 +262,7 @@ export function FinanceiroView({
             <AlertCircle size={16} className="sm:w-5 sm:h-5" />
           </div>
           <span className="text-[9px] sm:text-xs font-bold text-slate-500 uppercase tracking-tight">
-            Vencidos
+            {getLabel("LATE")}
           </span>
           <span
             className={`${getDynamicFontSize(
@@ -265,6 +276,7 @@ export function FinanceiroView({
           </span>
         </button>
 
+        {/* CARD 2: A VENCER / A RECEBER */}
         <button
           onClick={() => toggleFilter("A VENCER")}
           className={`p-2 sm:p-4 rounded-2xl border flex flex-col items-center text-center justify-center min-h-[100px] transition-all active:scale-95 ${
@@ -283,8 +295,7 @@ export function FinanceiroView({
             <Clock size={16} className="sm:w-5 sm:h-5" />
           </div>
           <span className="text-[9px] sm:text-xs font-bold text-slate-500 uppercase tracking-tight">
-            {/* Texto adapta conforme o filtro */}
-            {filterPeriod === "DIA" ? "Vence Hoje" : "A Vencer"}
+            {getLabel("PENDING")}
           </span>
           <span
             className={`${getDynamicFontSize(
@@ -298,6 +309,7 @@ export function FinanceiroView({
           </span>
         </button>
 
+        {/* CARD 3: PAGOS / RECEBIDOS */}
         <button
           onClick={() => toggleFilter("PAGOS")}
           className={`p-2 sm:p-4 rounded-2xl border flex flex-col items-center text-center justify-center min-h-[100px] transition-all active:scale-95 ${
@@ -316,7 +328,7 @@ export function FinanceiroView({
             <CheckCircle2 size={16} className="sm:w-5 sm:h-5" />
           </div>
           <span className="text-[9px] sm:text-xs font-bold text-slate-500 uppercase tracking-tight">
-            Pagos
+            {getLabel("DONE")}
           </span>
           <span
             className={`${getDynamicFontSize(
@@ -337,7 +349,10 @@ export function FinanceiroView({
           <span className="text-xs font-bold text-slate-600">
             Exibindo apenas:{" "}
             <span className="text-indigo-600 uppercase">
-              {activeStatusFilter}
+              {/* Ajuste também o texto do filtro ativo */}
+              {activeStatusFilter === "VENCIDOS" ? getLabel("LATE") :
+               activeStatusFilter === "A VENCER" ? getLabel("PENDING") :
+               getLabel("DONE")}
             </span>
           </span>
           <button
@@ -413,7 +428,7 @@ export function FinanceiroView({
                     </span>
                     {isLate && (
                       <span className="bg-rose-100 text-rose-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
-                        ATRASADO
+                        {viewType === "SAIDA" ? "ATRASADO" : "PENDENTE"}
                       </span>
                     )}
                     {isToday && (
@@ -463,7 +478,7 @@ export function FinanceiroView({
                   )}
                   {t.status === "PAID" && (
                     <span className="flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
-                      <CheckCircle2 size={12} /> Pago
+                      <CheckCircle2 size={12} /> {viewType === "SAIDA" ? "Pago" : "Recebido"}
                     </span>
                   )}
                 </div>
