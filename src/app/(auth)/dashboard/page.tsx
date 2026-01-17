@@ -7,7 +7,7 @@ import {
   Plus,
   Home,
   BarChart3,
-  PieChart,
+  PieChart as PieIcon,
   Eye,
   EyeOff,
   TrendingUp,
@@ -16,13 +16,13 @@ import {
   CalendarClock,
   ArrowRight,
   Filter,
-  Download // Importado ícone novo
+  Download
 } from "lucide-react";
 import { FaturamentoCard } from "@/components/dashboard/FaturamentoCard";
 import { NewTransactionModal, TransactionData } from "@/components/dashboard/NewTransactionModal";
 import { FinanceiroView } from "@/components/dashboard/FinanceiroView";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
-import { ExportModal } from "@/components/dashboard/ExportModal"; // IMPORTAÇÃO DO NOVO MODAL
+import { ExportModal } from "@/components/dashboard/ExportModal";
 import {
   VoiceInput,
   AiTransactionData,
@@ -36,9 +36,14 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 
-// ... (Interfaces UserData e Transaction mantêm-se iguais) ...
+// CORES PARA O GRÁFICO DE PIZZA
+const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#f43f5e", "#8b5cf6", "#ec4899", "#06b6d4"];
+
 interface UserData {
   _id: string;
   name: string;
@@ -76,15 +81,13 @@ export default function Dashboard() {
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // NOVO ESTADO PARA EXPORTAÇÃO
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const [homeFilter, setHomeFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
   const [modalInitialData, setModalInitialData] = useState<TransactionData | null>(null);
   const [isInputMode, setIsInputMode] = useState(false);
 
-  // ... (Cálculos e fetch functions mantêm-se iguais) ...
+  // Cálculos Gerais
   const income = transactions
     .filter((t) => t.type === "INCOME" && t.status === "PAID")
     .reduce((acc, curr) => acc + curr.amount, 0);
@@ -113,7 +116,6 @@ export default function Dashboard() {
     }
   };
 
-  // ... (Handlers handleAiSuccess, Edit, Delete, etc. mantêm-se iguais) ...
   const handleAiSuccess = (data: AiTransactionData) => {
     setModalInitialData(data);
     setIsModalOpen(true);
@@ -136,11 +138,16 @@ export default function Dashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "PAID" }),
       });
+
       if (res.ok && user) {
         fetchTransactions(user._id);
-        if (user.type === "PJ" && transaction.type === "INCOME") fetchFiscalSummary(user._id);
+        if (user.type === "PJ" && transaction.type === "INCOME") {
+          fetchFiscalSummary(user._id);
+        }
       }
-    } catch (error) { alert("Erro ao atualizar"); }
+    } catch (error) {
+      alert("Erro ao atualizar");
+    }
   };
 
   const handleDeleteRequest = (id: string) => setDeleteId(id);
@@ -188,19 +195,15 @@ export default function Dashboard() {
     return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   };
 
-  // ... (HomeView mantém-se igual) ...
+  // --- HOME VIEW ---
   const HomeView = () => {
     const recentActivities = [...transactions]
-      .sort((a, b) => new Date(a.createdAt || a.date).getTime() - new Date(b.createdAt || b.date).getTime()) // Erro na ordenação anterior corrigido aqui: (b - a) para decrescente
-      .sort((a, b) => { // Correção da ordenação para Decrescente (Mais novo primeiro)
+      .sort((a, b) => {
          const dateA = new Date(a.createdAt || a.date).getTime();
          const dateB = new Date(b.createdAt || b.date).getTime();
          return dateB - dateA;
       })
-      .filter((t) => {
-        if (homeFilter === 'ALL') return true;
-        return t.type === homeFilter;
-      })
+      .filter((t) => homeFilter === 'ALL' ? true : t.type === homeFilter)
       .slice(0, 5);
 
     return (
@@ -258,11 +261,12 @@ export default function Dashboard() {
     );
   };
 
-  // 2. ABA RELATÓRIOS ATUALIZADA COM O BOTÃO
+  // 2. ABA RELATÓRIOS
   const ReportsView = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // DADOS PARA GRÁFICO DE BARRAS
     const dailyMap = new Map<string, { date: string; Entradas: number; Saidas: number }>();
     const sortedTransactions = [...transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -276,9 +280,21 @@ export default function Dashboard() {
         if (t.type === "EXPENSE" && t.status === "PAID") entry.Saidas += t.amount;
       }
     });
+    const barChartData = Array.from(dailyMap.values()).slice(-15);
 
-    const chartData = Array.from(dailyMap.values()).slice(-15);
+    // DADOS PARA GRÁFICO DE PIZZA
+    const categoryMap: { [key: string]: number } = {};
+    transactions.forEach((t) => {
+        if (t.type === "EXPENSE" && t.status === "PAID") {
+            categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount;
+        }
+    });
+    const pieChartData = Object.keys(categoryMap)
+        .map(key => ({ name: key, value: categoryMap[key] }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 6);
 
+    // DADOS FUTUROS
     const futureTransactions = transactions.filter(t => {
       const tDate = new Date(t.date);
       const tDateAdjusted = new Date(tDate.valueOf() + tDate.getTimezoneOffset() * 60000);
@@ -296,25 +312,23 @@ export default function Dashboard() {
             <h1 className="text-2xl font-bold text-slate-800">Relatórios</h1>
             <p className="text-slate-500">Visão do passado e do futuro</p>
           </div>
-          
-          {/* BOTÃO DE EXPORTAR (NOVO) */}
           <button 
             onClick={() => setIsExportModalOpen(true)}
-            className="p-3 bg-indigo-100 text-indigo-700 rounded-xl hover:bg-indigo-200 transition-colors shadow-sm"
-            title="Exportar Dados"
+            className="p-3 bg-indigo-100 text-indigo-700 rounded-xl hover:bg-indigo-200 transition-colors shadow-sm flex items-center gap-2 font-bold text-xs"
           >
-            <Download size={20} />
+            <Download size={18} /> Exportar
           </button>
         </header>
 
+        {/* 1. GRÁFICO DE BARRAS */}
         <section className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Fluxo de Caixa (Realizado)</h2>
           </div>
           <div className="h-56 w-full">
-            {chartData.length > 0 ? (
+            {barChartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                <BarChart data={barChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 10 }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 10 }} tickFormatter={(val) => `R$${val}`} />
@@ -330,6 +344,41 @@ export default function Dashboard() {
           </div>
         </section>
 
+        {/* 2. GRÁFICO DE PIZZA (CORRIGIDO) */}
+        <section className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center">
+            <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider w-full mb-2">Despesas por Categoria</h2>
+            <div className="h-64 w-full">
+                {pieChartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                            <Pie
+                                data={pieChartData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={80}
+                                paddingAngle={5}
+                                dataKey="value"
+                            >
+                                {pieChartData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                            </Pie>
+                            <Tooltip 
+                                contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }} 
+                                /* CORREÇÃO AQUI: Tipagem correta para o Recharts */
+                                formatter={(val: number | undefined) => [`R$ ${(val || 0).toLocaleString("pt-BR")}`]} 
+                            />
+                            <Legend iconType="circle" wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} layout="horizontal" align="center" />
+                        </PieChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="h-full flex items-center justify-center text-slate-400 text-xs">Nenhuma despesa registrada.</div>
+                )}
+            </div>
+        </section>
+
+        {/* 3. PREVISÃO FUTURA */}
         <section className="bg-slate-800 rounded-3xl shadow-lg overflow-hidden text-white relative">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full -mr-16 -mt-16 blur-3xl"></div>
           <div className="p-6 border-b border-white/10">
@@ -382,7 +431,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28">
-      {/* ... (Header) ... */}
+      {/* HEADER */}
       <header className="bg-white px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm border-b border-slate-100">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md">{user.name.charAt(0).toUpperCase()}</div>
@@ -394,6 +443,7 @@ export default function Dashboard() {
         <button onClick={() => { localStorage.removeItem("user"); router.push("/login"); }} className="p-2 text-slate-300 hover:text-red-500 transition-colors"><LogOut size={18} /></button>
       </header>
 
+      {/* CONTEÚDO PRINCIPAL */}
       <main className="p-4 sm:p-6 max-w-2xl mx-auto">
         {currentTab === "HOME" && <HomeView />}
         {currentTab === "FLOW" && (
@@ -402,6 +452,7 @@ export default function Dashboard() {
         {currentTab === "REPORTS" && <ReportsView />}
       </main>
 
+      {/* BOTÕES FLUTUANTES (IA + NOVO) */}
       <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 w-full justify-center pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-3">
           <VoiceInput onSuccess={handleAiSuccess} onModeChange={(isActive) => setIsInputMode(isActive)} />
@@ -411,24 +462,19 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* NAVEGAÇÃO INFERIOR */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 z-20 pb-safe">
         <div className="flex justify-around items-center max-w-2xl mx-auto">
           <button onClick={() => setCurrentTab("HOME")} className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "HOME" ? "text-indigo-600" : "text-slate-300 hover:text-slate-500"}`}><Home size={24} strokeWidth={currentTab === "HOME" ? 2.5 : 2} /><span className="text-[10px] font-bold">Início</span></button>
           <button onClick={() => setCurrentTab("FLOW")} className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "FLOW" ? "text-indigo-600" : "text-slate-300 hover:text-slate-500"}`}><BarChart3 size={24} strokeWidth={currentTab === "FLOW" ? 2.5 : 2} /><span className="text-[10px] font-bold">Fluxo</span></button>
-          <button onClick={() => setCurrentTab("REPORTS")} className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "REPORTS" ? "text-indigo-600" : "text-slate-300 hover:text-slate-500"}`}><PieChart size={24} strokeWidth={currentTab === "REPORTS" ? 2.5 : 2} /><span className="text-[10px] font-bold">Relatórios</span></button>
+          <button onClick={() => setCurrentTab("REPORTS")} className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "REPORTS" ? "text-indigo-600" : "text-slate-300 hover:text-slate-500"}`}><PieIcon size={24} strokeWidth={currentTab === "REPORTS" ? 2.5 : 2} /><span className="text-[10px] font-bold">Relatórios</span></button>
         </div>
       </nav>
 
+      {/* MODAIS GLOBAIS */}
       <NewTransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} userId={user._id} initialData={modalInitialData} onSuccess={() => { fetchTransactions(user._id); if (user.type === "PJ") fetchFiscalSummary(user._id); }} />
       <ConfirmationModal isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={confirmDelete} title="Excluir Transação?" message="Essa ação é irreversível." isDeleting={isDeleting} />
-      
-      {/* EXPORT MODAL (NOVO) */}
-      <ExportModal 
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        transactions={transactions}
-        userName={user.name}
-      />
+      <ExportModal isOpen={isExportModalOpen} onClose={() => setIsExportModalOpen(false)} transactions={transactions} userName={user.name} />
     </div>
   );
 }
