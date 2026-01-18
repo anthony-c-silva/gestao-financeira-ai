@@ -6,6 +6,12 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: [true, "Por favor, insira um nome."],
     },
+    // --- ESTE CAMPO É O SEGREDO ---
+    companyName: {
+      type: String,
+      required: false, // É opcional no banco para não quebrar contas antigas
+    },
+    // -----------------------------
     document: {
       type: String,
       required: [true, "Por favor, insira CPF ou CNPJ."],
@@ -16,11 +22,10 @@ const UserSchema = new mongoose.Schema(
       enum: ["PF", "PJ"],
       default: "PF",
     },
-    // NOVO CAMPO: Enquadramento Empresarial
     businessSize: {
       type: String,
       enum: ["MEI", "ME", "EPP", "OTHER"],
-      default: null, // Será null se for PF
+      default: null,
     },
     email: {
       type: String,

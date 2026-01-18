@@ -9,9 +9,10 @@ export async function POST(req: Request) {
 
     const {
       name,
+      companyName, // Novo campo recebido
       document,
       type,
-      businessSize, // Recebendo o novo campo
+      businessSize,
       email,
       phone,
       password,
@@ -24,12 +25,20 @@ export async function POST(req: Request) {
       state,
     } = await req.json();
 
-    // Validação de segurança: PJ é obrigado a ter enquadramento
-    if (type === "PJ" && !businessSize) {
-      return NextResponse.json(
-        { message: "Selecione o enquadramento da empresa (MEI, ME, etc)." },
-        { status: 400 }
-      );
+    // Validação de segurança: PJ é obrigado a ter enquadramento e Razão Social
+    if (type === "PJ") {
+      if (!businessSize) {
+        return NextResponse.json(
+          { message: "Selecione o enquadramento da empresa (MEI, ME, etc)." },
+          { status: 400 }
+        );
+      }
+      if (!companyName) {
+        return NextResponse.json(
+          { message: "A Razão Social é obrigatória para contas empresariais." },
+          { status: 400 }
+        );
+      }
     }
 
     const userExists = await User.findOne({
@@ -46,7 +55,8 @@ export async function POST(req: Request) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await User.create({
-      name,
+      name, // Nome da Pessoa (Responsável)
+      companyName: type === "PJ" ? companyName : null, // Salva Razão Social apenas se for PJ
       document,
       type,
       businessSize: type === "PJ" ? businessSize : null, // Garante null se for PF

@@ -23,7 +23,8 @@ export function ConfirmationModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    // CORREÇÃO: Alterado z-[70] para z-[100] para garantir que fique acima do SettingsModal (que é z-80)
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col items-center text-center relative">
         
         {/* Botão Fechar X no topo */}

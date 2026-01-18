@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   LogOut,
@@ -16,17 +16,18 @@ import {
   CalendarClock,
   ArrowRight,
   Filter,
-  Download
+  Download,
+  Settings,
+  ChevronDown,
+  User as UserIcon,
 } from "lucide-react";
 import { FaturamentoCard } from "@/components/dashboard/FaturamentoCard";
 import { NewTransactionModal, TransactionData } from "@/components/dashboard/NewTransactionModal";
 import { FinanceiroView } from "@/components/dashboard/FinanceiroView";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { ExportModal } from "@/components/dashboard/ExportModal";
-import {
-  VoiceInput,
-  AiTransactionData,
-} from "@/components/dashboard/VoiceInput";
+import { SettingsModal } from "@/components/dashboard/SettingsModal";
+import { VoiceInput, AiTransactionData } from "@/components/dashboard/VoiceInput";
 import {
   BarChart,
   Bar,
@@ -41,14 +42,16 @@ import {
   Cell,
 } from "recharts";
 
-// CORES PARA O GRÁFICO DE PIZZA
 const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#f43f5e", "#8b5cf6", "#ec4899", "#06b6d4"];
 
 interface UserData {
   _id: string;
   name: string;
+  companyName?: string;
   type?: "PF" | "PJ";
   businessSize?: string;
+  email: string;
+  phone: string;
 }
 
 interface Transaction {
@@ -79,9 +82,16 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Estados de Modais
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
+
+  // Estado do Dropdown de Perfil
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   const [homeFilter, setHomeFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
   const [modalInitialData, setModalInitialData] = useState<TransactionData | null>(null);
@@ -113,6 +123,38 @@ export default function Dashboard() {
       if (res.ok) setSummaryData(await res.json());
     } catch (error) {
       console.error("Erro fiscal");
+    }
+  };
+
+  // HANDLERS
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    router.push("/login");
+  };
+
+  const handleUpdateUser = (updatedUser: UserData) => {
+    const newUserState = { ...user, ...updatedUser };
+    setUser(newUserState);
+    localStorage.setItem("user", JSON.stringify(newUserState));
+    setIsSettingsModalOpen(false);
+    
+    if (updatedUser.businessSize && user?.type === "PJ") {
+        fetchFiscalSummary(updatedUser._id);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    try {
+        const res = await fetch(`/api/user/${user._id}`, { method: "DELETE" });
+        if (res.ok) {
+            alert("Sua conta foi excluída. Esperamos vê-lo novamente!");
+            handleLogout();
+        } else {
+            alert("Erro ao excluir conta.");
+        }
+    } catch (error) {
+        alert("Erro ao conectar com servidor.");
     }
   };
 
@@ -166,6 +208,16 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
     const checkAuthAndFetch = async () => {
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
@@ -193,6 +245,11 @@ export default function Dashboard() {
   const formatMoney = (value: number) => {
     if (!showValues) return "••••••";
     return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  };
+
+  // HELPER PARA PRIMEIRO NOME
+  const getFirstName = (fullName: string) => {
+    return fullName.split(' ')[0];
   };
 
   // --- HOME VIEW ---
@@ -261,12 +318,11 @@ export default function Dashboard() {
     );
   };
 
-  // 2. ABA RELATÓRIOS
+  // --- REPORTS VIEW ---
   const ReportsView = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // DADOS PARA GRÁFICO DE BARRAS
     const dailyMap = new Map<string, { date: string; Entradas: number; Saidas: number }>();
     const sortedTransactions = [...transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -282,7 +338,6 @@ export default function Dashboard() {
     });
     const barChartData = Array.from(dailyMap.values()).slice(-15);
 
-    // DADOS PARA GRÁFICO DE PIZZA
     const categoryMap: { [key: string]: number } = {};
     transactions.forEach((t) => {
         if (t.type === "EXPENSE" && t.status === "PAID") {
@@ -294,7 +349,6 @@ export default function Dashboard() {
         .sort((a, b) => b.value - a.value)
         .slice(0, 6);
 
-    // DADOS FUTUROS
     const futureTransactions = transactions.filter(t => {
       const tDate = new Date(t.date);
       const tDateAdjusted = new Date(tDate.valueOf() + tDate.getTimezoneOffset() * 60000);
@@ -320,7 +374,6 @@ export default function Dashboard() {
           </button>
         </header>
 
-        {/* 1. GRÁFICO DE BARRAS */}
         <section className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Fluxo de Caixa (Realizado)</h2>
@@ -344,7 +397,6 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* 2. GRÁFICO DE PIZZA (CORRIGIDO) */}
         <section className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center">
             <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider w-full mb-2">Despesas por Categoria</h2>
             <div className="h-64 w-full">
@@ -366,7 +418,6 @@ export default function Dashboard() {
                             </Pie>
                             <Tooltip 
                                 contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }} 
-                                /* CORREÇÃO AQUI: Tipagem correta para o Recharts */
                                 formatter={(val: number | undefined) => [`R$ ${(val || 0).toLocaleString("pt-BR")}`]} 
                             />
                             <Legend iconType="circle" wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} layout="horizontal" align="center" />
@@ -378,7 +429,6 @@ export default function Dashboard() {
             </div>
         </section>
 
-        {/* 3. PREVISÃO FUTURA */}
         <section className="bg-slate-800 rounded-3xl shadow-lg overflow-hidden text-white relative">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full -mr-16 -mt-16 blur-3xl"></div>
           <div className="p-6 border-b border-white/10">
@@ -431,16 +481,74 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28">
-      {/* HEADER */}
+      {/* HEADER ATUALIZADO (FOTO, DROPDOWN E SAUDAÇÃO INTELIGENTE) */}
       <header className="bg-white px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm border-b border-slate-100">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md">{user.name.charAt(0).toUpperCase()}</div>
-          <div className="min-w-0">
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Olá, {user.type === "PJ" ? "Empresa" : "Usuário"}</p>
-            <p className="font-bold text-slate-800 text-sm leading-none truncate">{user.name}</p>
+          <div className="relative" ref={profileMenuRef}>
+            <button 
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                className="flex items-center gap-3 group outline-none"
+            >
+                <div className="relative">
+                    <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md group-hover:bg-indigo-700 transition-colors">
+                        {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    {/* Ícone de Engrenagem (Indicador Visual) */}
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100">
+                        <Settings size={10} className="text-slate-600" />
+                    </div>
+                </div>
+                
+                <div className="hidden sm:block text-left">
+                    {/* LINHA 1: CONTEXTO (EMPRESA OU GENÉRICO) */}
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                        {user.type === "PJ" 
+                            ? (user.companyName || "Gestão Empresarial") 
+                            : "Finanças Pessoais"
+                        }
+                    </p>
+                    {/* LINHA 2: SAUDAÇÃO PESSOAL */}
+                    <div className="flex items-center gap-1">
+                        <p className="font-bold text-slate-800 text-sm leading-none truncate max-w-[120px]">
+                            Olá, {getFirstName(user.name)}
+                        </p>
+                        <ChevronDown size={12} className="text-slate-400" />
+                    </div>
+                </div>
+            </button>
+
+            {/* DROPDOWN FLUTUANTE */}
+            {isProfileMenuOpen && (
+                <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 z-50 animate-in slide-in-from-top-2">
+                    <div className="px-3 py-2 border-b border-slate-50 mb-1 sm:hidden">
+                        <p className="font-bold text-slate-800 text-sm truncate">{user.name}</p>
+                    </div>
+                    <button 
+                        onClick={() => { setIsSettingsModalOpen(true); setIsProfileMenuOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-colors font-medium"
+                    >
+                        <UserIcon size={16} /> Minha Conta
+                    </button>
+                    <button 
+                        onClick={() => { setIsExportModalOpen(true); setIsProfileMenuOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-colors font-medium"
+                    >
+                        <Download size={16} /> Exportar Dados
+                    </button>
+                    <div className="h-px bg-slate-50 my-1"></div>
+                    <button 
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-rose-500 hover:bg-rose-50 rounded-xl transition-colors font-bold"
+                    >
+                        <LogOut size={16} /> Sair
+                    </button>
+                </div>
+            )}
           </div>
         </div>
-        <button onClick={() => { localStorage.removeItem("user"); router.push("/login"); }} className="p-2 text-slate-300 hover:text-red-500 transition-colors"><LogOut size={18} /></button>
+        
+        {/* Botão Sair Mobile */}
+        <button onClick={handleLogout} className="sm:hidden p-2 text-slate-300 hover:text-red-500 transition-colors"><LogOut size={18} /></button>
       </header>
 
       {/* CONTEÚDO PRINCIPAL */}
@@ -475,6 +583,25 @@ export default function Dashboard() {
       <NewTransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} userId={user._id} initialData={modalInitialData} onSuccess={() => { fetchTransactions(user._id); if (user.type === "PJ") fetchFiscalSummary(user._id); }} />
       <ConfirmationModal isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={confirmDelete} title="Excluir Transação?" message="Essa ação é irreversível." isDeleting={isDeleting} />
       <ExportModal isOpen={isExportModalOpen} onClose={() => setIsExportModalOpen(false)} transactions={transactions} userName={user.name} />
+      
+      {/* MODAL DE CONFIGURAÇÕES */}
+      <SettingsModal 
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        user={user}
+        onUpdateUser={handleUpdateUser}
+        onLogout={handleLogout}
+        onDeleteAccount={() => setIsDeleteAccountModalOpen(true)}
+      />
+
+      {/* CONFIRMAÇÃO DE EXCLUSÃO DE CONTA */}
+      <ConfirmationModal 
+        isOpen={isDeleteAccountModalOpen}
+        onClose={() => setIsDeleteAccountModalOpen(false)}
+        onConfirm={handleDeleteAccount}
+        title="Excluir Conta Permanentemente?"
+        message="Tem certeza absoluta? Isso apagará TODOS os seus lançamentos, contatos e configurações. Não é possível recuperar depois."
+      />
     </div>
   );
 }
