@@ -26,8 +26,8 @@ import {
   Gift,
   Music,
 } from "lucide-react";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 
-// Lista de Ícones
 export const AVAILABLE_ICONS = [
   { name: "Tag", icon: Tag },
   { name: "Utensils", icon: Utensils },
@@ -61,7 +61,6 @@ const COLORS = [
   { name: "Rosa", bg: "bg-pink-100", text: "text-pink-600" },
 ];
 
-// Mapa de ícones para renderização
 const ICON_MAP = AVAILABLE_ICONS.reduce(
   (acc, curr) => {
     acc[curr.name] = curr.icon;
@@ -97,7 +96,6 @@ export function CategoryModal({
   const [categories, setCategories] = useState<Category[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Form States
   const [name, setName] = useState("");
   const [selectedIcon, setSelectedIcon] = useState("Tag");
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
@@ -105,6 +103,9 @@ export function CategoryModal({
   const [loading, setLoading] = useState(false);
   const [loadingList, setLoadingList] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -129,27 +130,36 @@ export function CategoryModal({
     setEditingId(cat._id);
     setName(cat.name);
     setSelectedIcon(cat.icon);
-
     const colorObj = COLORS.find((c) => c.text === cat.color) || COLORS[0];
     setSelectedColor(colorObj);
     setError(null);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta categoria?")) return;
+  const handleDeleteRequest = (id: string) => {
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
 
     try {
-      const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/categories/${deleteId}`, {
+        method: "DELETE",
+      });
       const data = await res.json();
 
       if (res.ok) {
         fetchCategories();
         onSuccess();
+        setDeleteId(null);
       } else {
         alert(data.message || "Erro ao excluir.");
       }
     } catch (e) {
       alert("Erro de conexão.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -206,195 +216,206 @@ export function CategoryModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-      <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="p-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-          <div>
-            <h2 className="font-bold text-slate-800 text-lg">
-              Gerenciar Categorias
-            </h2>
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
-              {type === "INCOME" ? "Entradas" : "Saídas"}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:bg-slate-200 rounded-full"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <form
-            onSubmit={handleSubmit}
-            className="p-6 space-y-6 border-b border-slate-100"
-          >
-            {error && (
-              <div className="bg-rose-50 text-rose-600 px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-2">
-                <AlertCircle size={16} /> {error}
-              </div>
-            )}
-
+    <>
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+        <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="p-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
-                {editingId ? "Editar Nome" : "Nova Categoria"}
-              </label>
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${selectedColor.bg} ${selectedColor.text}`}
-                >
-                  {(() => {
-                    const Icon =
-                      AVAILABLE_ICONS.find((i) => i.name === selectedIcon)
-                        ?.icon || Tag;
-                    return <Icon size={24} />;
-                  })()}
-                </div>
-                {/* CORREÇÃO: Adicionado min-w-0 para evitar overflow em telas pequenas */}
-                <input
-                  type="text"
-                  placeholder="Ex: Academia"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="flex-1 min-w-0 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
-                />
-              </div>
+              <h2 className="font-bold text-slate-800 text-lg">
+                Gerenciar Categorias
+              </h2>
+              <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+                {type === "INCOME" ? "Entradas" : "Saídas"}
+              </p>
             </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
-                Cor
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {COLORS.map((color) => (
-                  <button
-                    key={color.name}
-                    type="button"
-                    onClick={() => setSelectedColor(color)}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${color.bg} ${selectedColor.name === color.name ? "border-slate-800 scale-110" : "border-transparent hover:scale-105"}`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
-                Ícone
-              </label>
-              <div className="grid grid-cols-6 gap-2">
-                {AVAILABLE_ICONS.map((item) => (
-                  <button
-                    key={item.name}
-                    type="button"
-                    onClick={() => setSelectedIcon(item.name)}
-                    className={`aspect-square flex items-center justify-center rounded-xl transition-all ${
-                      selectedIcon === item.name
-                        ? "bg-indigo-100 text-indigo-600 ring-2 ring-indigo-500"
-                        : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                    }`}
-                  >
-                    <item.icon size={18} />
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <button
-              type="submit"
-              disabled={loading || !name}
-              className={`w-full font-bold py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                editingId
-                  ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200"
-                  : "bg-slate-800 text-white hover:bg-slate-900 shadow-slate-300"
-              }`}
+              onClick={onClose}
+              className="p-2 text-slate-400 hover:bg-slate-200 rounded-full"
             >
-              {loading ? (
-                "Salvando..."
-              ) : editingId ? (
-                <>
-                  <Save size={18} /> Atualizar
-                </>
-              ) : (
-                <>
-                  <Save size={18} /> Criar
-                </>
-              )}
+              <X size={20} />
             </button>
-            {editingId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="w-full text-xs text-slate-400 hover:text-slate-600 font-bold underline"
-              >
-                Cancelar Edição
-              </button>
-            )}
-          </form>
+          </div>
 
-          <div className="p-6 pt-2">
-            <h3 className="text-xs font-bold text-slate-400 uppercase mb-3">
-              Categorias Existentes
-            </h3>
-            <div className="space-y-2">
-              {loadingList ? (
-                <p className="text-center text-xs text-slate-400 py-4">
-                  Carregando...
-                </p>
-              ) : categories.length === 0 ? (
-                <p className="text-center text-xs text-slate-400 py-4">
-                  Nenhuma categoria encontrada.
-                </p>
-              ) : (
-                categories.map((cat) => {
-                  const IconComp = ICON_MAP[cat.icon] || Tag;
-                  return (
-                    <div
-                      key={cat._id}
-                      className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-indigo-100 transition-colors group"
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <form
+              onSubmit={handleSubmit}
+              className="p-6 space-y-6 border-b border-slate-100"
+            >
+              {error && (
+                <div className="bg-rose-50 text-rose-600 px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-2">
+                  <AlertCircle size={16} /> {error}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
+                  {editingId ? "Editar Nome" : "Nova Categoria"}
+                </label>
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${selectedColor.bg} ${selectedColor.text}`}
+                  >
+                    {(() => {
+                      const Icon =
+                        AVAILABLE_ICONS.find((i) => i.name === selectedIcon)
+                          ?.icon || Tag;
+                      return <Icon size={24} />;
+                    })()}
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Ex: Academia"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="flex-1 min-w-0 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
+                  Cor
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {COLORS.map((color) => (
+                    <button
+                      key={color.name}
+                      type="button"
+                      onClick={() => setSelectedColor(color)}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${color.bg} ${selectedColor.name === color.name ? "border-slate-800 scale-110" : "border-transparent hover:scale-105"}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
+                  Ícone
+                </label>
+                <div className="grid grid-cols-6 gap-2">
+                  {AVAILABLE_ICONS.map((item) => (
+                    <button
+                      key={item.name}
+                      type="button"
+                      onClick={() => setSelectedIcon(item.name)}
+                      className={`aspect-square flex items-center justify-center rounded-xl transition-all ${
+                        selectedIcon === item.name
+                          ? "bg-indigo-100 text-indigo-600 ring-2 ring-indigo-500"
+                          : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`p-2 rounded-lg ${cat.bg} ${cat.color}`}
-                        >
-                          <IconComp size={16} />
-                        </div>
-                        <span className="text-sm font-bold text-slate-700">
-                          {cat.name}
-                        </span>
-                        {cat.isDefault && (
-                          <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full font-bold">
-                            Padrão
+                      <item.icon size={18} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !name}
+                className={`w-full font-bold py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  editingId
+                    ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200"
+                    : "bg-slate-800 text-white hover:bg-slate-900 shadow-slate-300"
+                }`}
+              >
+                {loading ? (
+                  "Salvando..."
+                ) : editingId ? (
+                  <>
+                    <Save size={18} /> Atualizar
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} /> Criar
+                  </>
+                )}
+              </button>
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="w-full text-xs text-slate-400 hover:text-slate-600 font-bold underline"
+                >
+                  Cancelar Edição
+                </button>
+              )}
+            </form>
+
+            <div className="p-6 pt-2">
+              <h3 className="text-xs font-bold text-slate-400 uppercase mb-3">
+                Categorias Existentes
+              </h3>
+              <div className="space-y-2">
+                {loadingList ? (
+                  <p className="text-center text-xs text-slate-400 py-4">
+                    Carregando...
+                  </p>
+                ) : categories.length === 0 ? (
+                  <p className="text-center text-xs text-slate-400 py-4">
+                    Nenhuma categoria encontrada.
+                  </p>
+                ) : (
+                  categories.map((cat) => {
+                    const IconComp = ICON_MAP[cat.icon] || Tag;
+                    return (
+                      <div
+                        key={cat._id}
+                        className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-indigo-100 transition-colors group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`p-2 rounded-lg ${cat.bg} ${cat.color}`}
+                          >
+                            <IconComp size={16} />
+                          </div>
+                          <span className="text-sm font-bold text-slate-700">
+                            {cat.name}
                           </span>
+                          {cat.isDefault && (
+                            <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full font-bold">
+                              Padrão
+                            </span>
+                          )}
+                        </div>
+
+                        {!cat.isDefault && (
+                          // AQUI FOI A ALTERAÇÃO: Removida a opacidade condicional. Sempre visível.
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleEdit(cat)}
+                              className="p-2 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors"
+                              title="Editar"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteRequest(cat._id)}
+                              className="p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-colors"
+                              title="Excluir"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         )}
                       </div>
-
-                      {!cat.isDefault && (
-                        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => handleEdit(cat)}
-                            className="p-2 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors"
-                            title="Editar"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(cat._id)}
-                            className="p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-colors"
-                            title="Excluir"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <ConfirmationModal
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={confirmDelete}
+        title="Excluir Categoria?"
+        message="Se houver transações vinculadas a esta categoria, a exclusão será bloqueada. Deseja tentar?"
+        isDeleting={isDeleting}
+      />
+    </>
   );
 }

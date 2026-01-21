@@ -114,7 +114,7 @@ export default function Dashboard() {
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   const [homeFilter, setHomeFilter] = useState<"ALL" | "INCOME" | "EXPENSE">(
-    "ALL"
+    "ALL",
   );
   const [modalInitialData, setModalInitialData] =
     useState<TransactionData | null>(null);
@@ -350,31 +350,19 @@ export default function Dashboard() {
           <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
             <button
               onClick={() => setHomeFilter("ALL")}
-              className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${
-                homeFilter === "ALL"
-                  ? "bg-slate-800 text-white border-slate-800 shadow-md"
-                  : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
-              }`}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${homeFilter === "ALL" ? "bg-slate-800 text-white border-slate-800 shadow-md" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"}`}
             >
               Todos
             </button>
             <button
               onClick={() => setHomeFilter("INCOME")}
-              className={`px-4 py-2 rounded-full text-xs font-bold transition-all border flex items-center gap-1 ${
-                homeFilter === "INCOME"
-                  ? "bg-emerald-100 text-emerald-700 border-emerald-200 shadow-sm"
-                  : "bg-white text-slate-500 border-slate-200 hover:text-emerald-600"
-              }`}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition-all border flex items-center gap-1 ${homeFilter === "INCOME" ? "bg-emerald-100 text-emerald-700 border-emerald-200 shadow-sm" : "bg-white text-slate-500 border-slate-200 hover:text-emerald-600"}`}
             >
               <TrendingUp size={12} /> Entradas
             </button>
             <button
               onClick={() => setHomeFilter("EXPENSE")}
-              className={`px-4 py-2 rounded-full text-xs font-bold transition-all border flex items-center gap-1 ${
-                homeFilter === "EXPENSE"
-                  ? "bg-rose-100 text-rose-700 border-rose-200 shadow-sm"
-                  : "bg-white text-slate-500 border-slate-200 hover:text-rose-600"
-              }`}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition-all border flex items-center gap-1 ${homeFilter === "EXPENSE" ? "bg-rose-100 text-rose-700 border-rose-200 shadow-sm" : "bg-white text-slate-500 border-slate-200 hover:text-rose-600"}`}
             >
               <TrendingDown size={12} /> Saídas
             </button>
@@ -392,11 +380,7 @@ export default function Dashboard() {
                 >
                   <div className="flex items-center gap-3 overflow-hidden">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                        t.type === "INCOME"
-                          ? "bg-emerald-100 text-emerald-600"
-                          : "bg-rose-100 text-rose-600"
-                      }`}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${t.type === "INCOME" ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"}`}
                     >
                       {t.type === "INCOME" ? (
                         <TrendingUp size={18} />
@@ -414,9 +398,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <span
-                    className={`font-bold text-sm ${
-                      t.type === "INCOME" ? "text-emerald-600" : "text-rose-600"
-                    }`}
+                    className={`font-bold text-sm ${t.type === "INCOME" ? "text-emerald-600" : "text-rose-600"}`}
                   >
                     {formatMoney(t.amount)}
                   </span>
@@ -439,7 +421,7 @@ export default function Dashboard() {
       { date: string; Entradas: number; Saidas: number }
     >();
     const sortedTransactions = [...transactions].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
 
     sortedTransactions.forEach((t) => {
@@ -475,7 +457,7 @@ export default function Dashboard() {
       .filter((t) => {
         const tDate = new Date(t.date);
         const tDateAdjusted = new Date(
-          tDate.valueOf() + tDate.getTimezoneOffset() * 60000
+          tDate.valueOf() + tDate.getTimezoneOffset() * 60000,
         );
         return t.status === "PENDING" && tDateAdjusted >= today;
       })
@@ -542,9 +524,7 @@ export default function Dashboard() {
                       boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
                     }}
                     formatter={(val: number | undefined) => [
-                      `R$ ${(val || 0).toLocaleString("pt-BR", {
-                        minimumFractionDigits: 2,
-                      })}`,
+                      `R$ ${(val || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
                     ]}
                   />
                   <Legend
@@ -656,9 +636,7 @@ export default function Dashboard() {
             <div className="flex justify-between items-center text-sm">
               <span className="text-slate-300">Saldo Projetado:</span>
               <span
-                className={`font-bold ${
-                  projectedBalance >= 0 ? "text-white" : "text-red-400"
-                }`}
+                className={`font-bold ${projectedBalance >= 0 ? "text-white" : "text-red-400"}`}
               >
                 {formatMoney(projectedBalance)}
               </span>
@@ -688,11 +666,7 @@ export default function Dashboard() {
                       </span>
                     </div>
                     <span
-                      className={`font-bold ${
-                        t.type === "INCOME"
-                          ? "text-emerald-600"
-                          : "text-rose-600"
-                      }`}
+                      className={`font-bold ${t.type === "INCOME" ? "text-emerald-600" : "text-rose-600"}`}
                     >
                       {t.type === "INCOME" ? "+" : "-"}
                       {formatMoney(t.amount)}
@@ -736,7 +710,8 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="hidden sm:block text-left">
+              {/* AQUI FOI A ALTERAÇÃO: Removido 'hidden sm:block' para aparecer sempre */}
+              <div className="text-left">
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
                   {user.type === "PJ"
                     ? user.companyName || "Gestão Empresarial"
@@ -839,22 +814,14 @@ export default function Dashboard() {
         <div className="flex justify-around items-center max-w-2xl mx-auto">
           <button
             onClick={() => setCurrentTab("HOME")}
-            className={`flex flex-col items-center gap-1 transition-colors ${
-              currentTab === "HOME"
-                ? "text-indigo-600"
-                : "text-slate-300 hover:text-slate-500"
-            }`}
+            className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "HOME" ? "text-indigo-600" : "text-slate-300 hover:text-slate-500"}`}
           >
             <Home size={24} strokeWidth={currentTab === "HOME" ? 2.5 : 2} />
             <span className="text-[10px] font-bold">Início</span>
           </button>
           <button
             onClick={() => setCurrentTab("FLOW")}
-            className={`flex flex-col items-center gap-1 transition-colors ${
-              currentTab === "FLOW"
-                ? "text-indigo-600"
-                : "text-slate-300 hover:text-slate-500"
-            }`}
+            className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "FLOW" ? "text-indigo-600" : "text-slate-300 hover:text-slate-500"}`}
           >
             <BarChart3
               size={24}
@@ -864,11 +831,7 @@ export default function Dashboard() {
           </button>
           <button
             onClick={() => setCurrentTab("REPORTS")}
-            className={`flex flex-col items-center gap-1 transition-colors ${
-              currentTab === "REPORTS"
-                ? "text-indigo-600"
-                : "text-slate-300 hover:text-slate-500"
-            }`}
+            className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "REPORTS" ? "text-indigo-600" : "text-slate-300 hover:text-slate-500"}`}
           >
             <PieIcon
               size={24}
@@ -879,11 +842,7 @@ export default function Dashboard() {
           {/* BOTÃO DA NOVA ABA */}
           <button
             onClick={() => setCurrentTab("CONTACTS")}
-            className={`flex flex-col items-center gap-1 transition-colors ${
-              currentTab === "CONTACTS"
-                ? "text-indigo-600"
-                : "text-slate-300 hover:text-slate-500"
-            }`}
+            className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "CONTACTS" ? "text-indigo-600" : "text-slate-300 hover:text-slate-500"}`}
           >
             <Users
               size={24}
