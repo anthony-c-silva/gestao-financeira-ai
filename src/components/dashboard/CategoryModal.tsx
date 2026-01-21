@@ -106,13 +106,12 @@ export function CategoryModal({
   const [loadingList, setLoadingList] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Carrega a lista ao abrir
   useEffect(() => {
     if (isOpen) {
       fetchCategories();
       resetForm();
     }
-  }, [isOpen, type]); // Recarrega se mudar o tipo (Entrada/Saída)
+  }, [isOpen, type]);
 
   const fetchCategories = async () => {
     setLoadingList(true);
@@ -131,7 +130,6 @@ export function CategoryModal({
     setName(cat.name);
     setSelectedIcon(cat.icon);
 
-    // Tenta encontrar a cor, senão usa a primeira
     const colorObj = COLORS.find((c) => c.text === cat.color) || COLORS[0];
     setSelectedColor(colorObj);
     setError(null);
@@ -145,8 +143,8 @@ export function CategoryModal({
       const data = await res.json();
 
       if (res.ok) {
-        fetchCategories(); // Atualiza a lista
-        onSuccess(); // Avisa o pai que mudou algo
+        fetchCategories();
+        onSuccess();
       } else {
         alert(data.message || "Erro ao excluir.");
       }
@@ -184,8 +182,8 @@ export function CategoryModal({
       const data = await res.json();
 
       if (res.ok) {
-        onSuccess(); // Atualiza dropdown do pai
-        fetchCategories(); // Atualiza lista local
+        onSuccess();
+        fetchCategories();
         resetForm();
       } else {
         setError(data.message || "Erro ao salvar.");
@@ -210,7 +208,6 @@ export function CategoryModal({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
       <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
         <div className="p-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
           <div>
             <h2 className="font-bold text-slate-800 text-lg">
@@ -229,7 +226,6 @@ export function CategoryModal({
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar">
-          {/* Form */}
           <form
             onSubmit={handleSubmit}
             className="p-6 space-y-6 border-b border-slate-100"
@@ -255,12 +251,13 @@ export function CategoryModal({
                     return <Icon size={24} />;
                   })()}
                 </div>
+                {/* CORREÇÃO: Adicionado min-w-0 para evitar overflow em telas pequenas */}
                 <input
                   type="text"
                   placeholder="Ex: Academia"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
+                  className="flex-1 min-w-0 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
                 />
               </div>
             </div>
@@ -335,7 +332,6 @@ export function CategoryModal({
             )}
           </form>
 
-          {/* Lista de Existentes */}
           <div className="p-6 pt-2">
             <h3 className="text-xs font-bold text-slate-400 uppercase mb-3">
               Categorias Existentes
