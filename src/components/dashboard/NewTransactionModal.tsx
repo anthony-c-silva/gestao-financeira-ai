@@ -12,25 +12,30 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Utensils,
-  Car,
-  ShoppingBag,
-  Zap,
-  Briefcase,
-  Wrench,
-  Users,
-  MoreHorizontal,
+  Repeat,
   CreditCard,
   Banknote,
   QrCode,
   FileText,
   CalendarClock,
-  Repeat,
+  PlusCircle,
+  Tag, // Novo ícone
 } from "lucide-react";
 
-// Interface unificada para Criação (IA) e Edição
+// Importa o novo Modal de Categorias e a lista de ícones para o mapa
+import { CategoryModal, AVAILABLE_ICONS } from "./CategoryModal";
+
+// Cria o Mapa de Ícones dinâmico baseado no arquivo do Modal
+const ICON_MAP = AVAILABLE_ICONS.reduce(
+  (acc, curr) => {
+    acc[curr.name] = curr.icon;
+    return acc;
+  },
+  {} as { [key: string]: React.ElementType },
+);
+
 export interface TransactionData {
-  _id?: string; // Se existir, é edição
+  _id?: string;
   amount?: number;
   description?: string;
   category?: string;
@@ -57,16 +62,14 @@ interface Contact {
   name: string;
 }
 
-const CATEGORIES = [
-  { id: "Outros", icon: MoreHorizontal, color: "text-slate-500", bg: "bg-slate-100" },
-  { id: "Alimentação", icon: Utensils, color: "text-orange-500", bg: "bg-orange-100" },
-  { id: "Transporte", icon: Car, color: "text-blue-500", bg: "bg-blue-100" },
-  { id: "Lazer", icon: ShoppingBag, color: "text-pink-500", bg: "bg-pink-100" },
-  { id: "Contas Fixas", icon: Zap, color: "text-yellow-500", bg: "bg-yellow-100" },
-  { id: "Vendas", icon: Briefcase, color: "text-emerald-500", bg: "bg-emerald-100" },
-  { id: "Serviços", icon: Wrench, color: "text-cyan-500", bg: "bg-cyan-100" },
-  { id: "Salários", icon: Users, color: "text-indigo-500", bg: "bg-indigo-100" },
-];
+interface Category {
+  _id: string;
+  name: string;
+  type: "INCOME" | "EXPENSE";
+  icon: string;
+  color: string;
+  bg: string;
+}
 
 const PAYMENT_METHODS = [
   { id: "Pix", icon: QrCode },
@@ -77,8 +80,18 @@ const PAYMENT_METHODS = [
 ];
 
 const MONTHS = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 export function NewTransactionModal({
@@ -95,12 +108,12 @@ export function NewTransactionModal({
   const [type, setType] = useState<"INCOME" | "EXPENSE">("EXPENSE");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("Outros");
+  const [category, setCategory] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("Pix");
   const [status, setStatus] = useState<"PAID" | "PENDING">("PAID");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
-  // Recorrência (Desabilitada na edição para simplificar MVP)
+  // Recorrência
   const [isRecurring, setIsRecurring] = useState(false);
   const [installments, setInstallments] = useState("2");
 
@@ -110,10 +123,17 @@ export function NewTransactionModal({
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarViewDate, setCalendarViewDate] = useState(new Date());
 
+  // Dados Dinâmicos
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [contactName, setContactName] = useState("");
-  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(
+    null,
+  );
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // NOVO: Estado para abrir o modal de criar categoria
+  const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const categoryRef = useRef<HTMLDivElement>(null);
@@ -127,68 +147,99 @@ export function NewTransactionModal({
     return "text-5xl";
   };
 
+  // Função para recarregar categorias
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch(`/api/categories?userId=${userId}&type=${type}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data);
+
+        // Se a categoria selecionada não existir mais (ou mudou tipo), reseta ou seleciona a primeira
+        if (!editingId && !initialData && data.length > 0) {
+          // Lógica opcional: selecionar o primeiro ou manter vazio
+          if (!category) setCategory(data[0].name);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao buscar categorias");
+    }
+  };
+
+  // Recarrega categorias quando abre, muda tipo ou cria nova
+  useEffect(() => {
+    if (isOpen) fetchCategories();
+  }, [type, userId, isOpen]);
+
+  // Configuração Inicial
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
-        // MODO EDIÇÃO OU AI
         setEditingId(initialData._id || null);
         if (initialData.amount) setAmount(initialData.amount.toString());
-        if (initialData.description) setDescription(initialData.description || "");
+        if (initialData.description)
+          setDescription(initialData.description || "");
         if (initialData.type) setType(initialData.type);
-        
-        // Categoria
-        const catExists = CATEGORIES.find((c) => c.id === initialData.category);
-        setCategory(catExists && initialData.category ? initialData.category : "Outros");
+        if (initialData.category) setCategory(initialData.category);
 
-        // Pagamento
-        const payExists = PAYMENT_METHODS.find((p) => p.id === initialData.paymentMethod);
-        setPaymentMethod(payExists && initialData.paymentMethod ? initialData.paymentMethod : "Pix");
+        const payExists = PAYMENT_METHODS.find(
+          (p) => p.id === initialData.paymentMethod,
+        );
+        setPaymentMethod(
+          payExists && initialData.paymentMethod
+            ? initialData.paymentMethod
+            : "Pix",
+        );
 
-        // Data
         if (initialData.date) {
-            // Garante YYYY-MM-DD
-            const d = new Date(initialData.date);
-            if (!isNaN(d.getTime())) {
-                setDate(d.toISOString().split("T")[0]);
-            }
+          const d = new Date(initialData.date);
+          if (!isNaN(d.getTime())) setDate(d.toISOString().split("T")[0]);
         }
-
-        // Status (Apenas se vier definido, senão mantém padrão)
         if (initialData.status) setStatus(initialData.status);
-
-        // Contato (Se vier populado)
         if (initialData.contactId) {
-            setContactName(initialData.contactId.name);
-            setSelectedContactId(initialData.contactId._id);
+          setContactName(initialData.contactId.name);
+          setSelectedContactId(initialData.contactId._id);
         } else {
-            setContactName("");
-            setSelectedContactId(null);
+          setContactName("");
+          setSelectedContactId(null);
         }
-
-        // Resetar recorrência ao editar
         setIsRecurring(false);
         setInstallments("2");
-
       } else {
-        // MODO CRIAÇÃO (LIMPO)
         resetForm();
       }
     }
   }, [initialData, isOpen]);
 
-  // Fecha dropdowns ao clicar fora
+  // Click Outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) setShowSuggestions(false);
-      if (categoryRef.current && !categoryRef.current.contains(event.target as Node)) setIsCategoryOpen(false);
-      if (paymentRef.current && !paymentRef.current.contains(event.target as Node)) setIsPaymentOpen(false);
-      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) setIsCalendarOpen(false);
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(event.target as Node)
+      )
+        setShowSuggestions(false);
+      if (
+        categoryRef.current &&
+        !categoryRef.current.contains(event.target as Node)
+      )
+        setIsCategoryOpen(false);
+      if (
+        paymentRef.current &&
+        !paymentRef.current.contains(event.target as Node)
+      )
+        setIsPaymentOpen(false);
+      if (
+        calendarRef.current &&
+        !calendarRef.current.contains(event.target as Node)
+      )
+        setIsCalendarOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Busca contatos
+  // Busca Contatos
   useEffect(() => {
     if (!isOpen) return;
     setCalendarViewDate(date ? new Date(date + "T12:00:00") : new Date());
@@ -196,25 +247,20 @@ export function NewTransactionModal({
     const fetchContacts = async () => {
       const contactType = type === "INCOME" ? "CLIENT" : "SUPPLIER";
       try {
-        const res = await fetch(`/api/contacts?userId=${userId}&type=${contactType}`);
+        const res = await fetch(
+          `/api/contacts?userId=${userId}&type=${contactType}&limit=1000`,
+        );
         if (res.ok) {
           const data = await res.json();
-          setContacts(data);
+          setContacts(data.data || []);
         }
       } catch (error) {
         console.error("Erro ao buscar contatos");
       }
     };
-    
-    // Só limpa se não estiver editando ou se mudou o tipo
-    if (!editingId) {
-       // setContactName(""); 
-       // setSelectedContactId(null);
-    }
     fetchContacts();
-  }, [type, userId, isOpen, date, editingId]);
+  }, [type, userId, isOpen, date]);
 
-  // ... (generateCalendarDays, changeMonth, handleSelectDate iguais ao anterior) ...
   const generateCalendarDays = () => {
     const year = calendarViewDate.getFullYear();
     const month = calendarViewDate.getMonth();
@@ -227,8 +273,13 @@ export function NewTransactionModal({
   };
 
   const changeMonth = (offset: number) => {
-    const newDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() + offset, 1);
-    setCalendarViewDate(newDate);
+    setCalendarViewDate(
+      new Date(
+        calendarViewDate.getFullYear(),
+        calendarViewDate.getMonth() + offset,
+        1,
+      ),
+    );
   };
 
   const handleSelectDate = (day: Date) => {
@@ -239,7 +290,7 @@ export function NewTransactionModal({
   };
 
   const filteredContacts = contacts.filter((c) =>
-    c.name.toLowerCase().includes(contactName.toLowerCase())
+    c.name.toLowerCase().includes(contactName.toLowerCase()),
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -249,13 +300,16 @@ export function NewTransactionModal({
     try {
       let finalContactId = selectedContactId;
 
-      // Se digitou um nome novo, cria o contato
       if (contactName && !selectedContactId) {
         const contactType = type === "INCOME" ? "CLIENT" : "SUPPLIER";
         const createRes = await fetch("/api/contacts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, name: contactName, type: contactType }),
+          body: JSON.stringify({
+            userId,
+            name: contactName,
+            type: contactType,
+          }),
         });
 
         if (createRes.ok) {
@@ -278,17 +332,13 @@ export function NewTransactionModal({
         installments: isRecurring ? parseInt(installments) : 1,
       };
 
-      let url = "/api/transactions";
-      let method = "POST";
-
-      // LÓGICA DE EDIÇÃO
-      if (editingId) {
-        url = `/api/transactions/${editingId}`;
-        method = "PUT";
-      }
+      const url = editingId
+        ? `/api/transactions/${editingId}`
+        : "/api/transactions";
+      const method = editingId ? "PUT" : "POST";
 
       const res = await fetch(url, {
-        method: method,
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -313,7 +363,7 @@ export function NewTransactionModal({
     setDescription("");
     setContactName("");
     setSelectedContactId(null);
-    setCategory("Outros");
+    setCategory("");
     setPaymentMethod("Pix");
     setDate(new Date().toISOString().split("T")[0]);
     setStatus("PAID");
@@ -323,51 +373,68 @@ export function NewTransactionModal({
 
   if (!isOpen) return null;
 
-  const currentCategory = CATEGORIES.find((c) => c.id === category) || CATEGORIES[0];
-  const CategoryIcon = currentCategory.icon;
-  const currentPayment = PAYMENT_METHODS.find((p) => p.id === paymentMethod) || PAYMENT_METHODS[0];
+  const currentCategoryObj = categories.find((c) => c.name === category);
+  const CategoryIcon = currentCategoryObj
+    ? ICON_MAP[currentCategoryObj.icon] || Tag
+    : Tag;
+  const categoryColor = currentCategoryObj?.color || "text-slate-500";
+  const categoryBg = currentCategoryObj?.bg || "bg-slate-100";
+
+  const currentPayment =
+    PAYMENT_METHODS.find((p) => p.id === paymentMethod) || PAYMENT_METHODS[0];
   const PaymentIcon = currentPayment.icon;
-  const formattedDateDisplay = new Date(date + "T12:00:00").toLocaleDateString("pt-BR", {
-    day: "2-digit", month: "short", year: "numeric",
-  });
+  const formattedDateDisplay = new Date(date + "T12:00:00").toLocaleDateString(
+    "pt-BR",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    },
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar flex flex-col">
         <div className="flex justify-between items-center mb-4 shrink-0">
           <h2 className="text-xl font-bold text-slate-800">
-            {/* Título Dinâmico */}
-            {editingId ? "Editar Movimentação" : initialData && !editingId ? "IA: Conferir e Salvar" : "Nova Movimentação"}
+            {editingId
+              ? "Editar Movimentação"
+              : initialData && !editingId
+                ? "IA: Conferir e Salvar"
+                : "Nova Movimentação"}
           </h2>
-          <button onClick={onClose} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-400 transition-colors">
+          <button
+            onClick={onClose}
+            className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-400 transition-colors"
+          >
             <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 pb-4">
+          {/* TABS TIPO */}
           <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 rounded-2xl">
             <button
               type="button"
               onClick={() => setType("INCOME")}
-              className={`py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-                type === "INCOME" ? "bg-white shadow-md text-emerald-600 transform scale-[1.02]" : "text-slate-400 hover:text-slate-600"
-              }`}
+              className={`py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${type === "INCOME" ? "bg-white shadow-md text-emerald-600 transform scale-[1.02]" : "text-slate-400 hover:text-slate-600"}`}
             >
               <ArrowUpCircle size={18} /> Entrada
             </button>
             <button
               type="button"
               onClick={() => setType("EXPENSE")}
-              className={`py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-                type === "EXPENSE" ? "bg-white shadow-md text-rose-600 transform scale-[1.02]" : "text-slate-400 hover:text-slate-600"
-              }`}
+              className={`py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${type === "EXPENSE" ? "bg-white shadow-md text-rose-600 transform scale-[1.02]" : "text-slate-400 hover:text-slate-600"}`}
             >
               <ArrowDownCircle size={18} /> Saída
             </button>
           </div>
 
+          {/* VALOR */}
           <div className="text-center py-2">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Valor da transação</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Valor da transação
+            </span>
             <div className="flex justify-center items-center gap-1 mt-1">
               <span className="text-2xl font-medium text-slate-400">R$</span>
               <input
@@ -383,33 +450,25 @@ export function NewTransactionModal({
             </div>
           </div>
 
+          {/* STATUS */}
           <div className="flex gap-3">
             <button
               type="button"
               onClick={() => setStatus("PAID")}
-              className={`flex-1 py-3 px-4 rounded-xl border-2 text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-                status === "PAID"
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                  : "border-slate-100 text-slate-400 bg-slate-50 hover:bg-slate-100"
-              }`}
+              className={`flex-1 py-3 px-4 rounded-xl border-2 text-sm font-bold flex items-center justify-center gap-2 transition-all ${status === "PAID" ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-100 text-slate-400 bg-slate-50 hover:bg-slate-100"}`}
             >
-              <Check size={16} />
-              {type === "INCOME" ? "Recebido" : "Pago"}
+              <Check size={16} /> {type === "INCOME" ? "Recebido" : "Pago"}
             </button>
             <button
               type="button"
               onClick={() => setStatus("PENDING")}
-              className={`flex-1 py-3 px-4 rounded-xl border-2 text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-                status === "PENDING"
-                  ? "border-amber-400 bg-amber-50 text-amber-700"
-                  : "border-slate-100 text-slate-400 bg-slate-50 hover:bg-slate-100"
-              }`}
+              className={`flex-1 py-3 px-4 rounded-xl border-2 text-sm font-bold flex items-center justify-center gap-2 transition-all ${status === "PENDING" ? "border-amber-400 bg-amber-50 text-amber-700" : "border-slate-100 text-slate-400 bg-slate-50 hover:bg-slate-100"}`}
             >
-              <CalendarClock size={16} />
-              Pendente
+              <CalendarClock size={16} /> Pendente
             </button>
           </div>
 
+          {/* CONTATO */}
           <div className="relative" ref={wrapperRef}>
             <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
               {type === "INCOME" ? "Quem pagou?" : "Para quem?"}
@@ -432,7 +491,6 @@ export function NewTransactionModal({
                 <Search size={20} />
               </div>
             </div>
-
             {showSuggestions && contactName && (
               <div className="absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 max-h-48 overflow-y-auto animate-in slide-in-from-top-2 custom-scrollbar">
                 {filteredContacts.length > 0 ? (
@@ -448,22 +506,32 @@ export function NewTransactionModal({
                       className="w-full text-left px-5 py-3 hover:bg-indigo-50 text-sm text-slate-700 font-medium flex items-center justify-between group"
                     >
                       {contact.name}
-                      <Check size={16} className="text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <Check
+                        size={16}
+                        className="text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                      />
                     </button>
                   ))
                 ) : (
                   <div className="px-5 py-4 text-sm text-slate-500 flex items-center gap-2">
-                    <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg"><UserPlus size={16} /></div>
-                    <span>Cadastrar <strong>{contactName}</strong> automaticamente.</span>
+                    <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg">
+                      <UserPlus size={16} />
+                    </div>
+                    <span>
+                      Cadastrar <strong>{contactName}</strong> automaticamente.
+                    </span>
                   </div>
                 )}
               </div>
             )}
           </div>
 
+          {/* DATA E DETALHES */}
           <div className="grid grid-cols-2 gap-4 relative">
             <div ref={calendarRef} className="relative">
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Data</label>
+              <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
+                Data
+              </label>
               <button
                 type="button"
                 onClick={() => setIsCalendarOpen(!isCalendarOpen)}
@@ -474,30 +542,52 @@ export function NewTransactionModal({
                   {formattedDateDisplay}
                 </span>
               </button>
-
               {isCalendarOpen && (
                 <div className="absolute bottom-full mb-2 left-0 w-[300px] bg-white rounded-3xl shadow-2xl border border-slate-100 p-4 z-40 animate-in zoom-in-95 origin-bottom-left">
                   <div className="flex items-center justify-between mb-4">
-                    <button type="button" onClick={() => changeMonth(-1)} className="p-1 hover:bg-slate-100 rounded-full text-slate-500"><ChevronLeft size={20} /></button>
-                    <span className="font-bold text-slate-700 capitalize">{MONTHS[calendarViewDate.getMonth()]} {calendarViewDate.getFullYear()}</span>
-                    <button type="button" onClick={() => changeMonth(1)} className="p-1 hover:bg-slate-100 rounded-full text-slate-500"><ChevronRight size={20} /></button>
+                    <button
+                      type="button"
+                      onClick={() => changeMonth(-1)}
+                      className="p-1 hover:bg-slate-100 rounded-full text-slate-500"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <span className="font-bold text-slate-700 capitalize">
+                      {MONTHS[calendarViewDate.getMonth()]}{" "}
+                      {calendarViewDate.getFullYear()}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => changeMonth(1)}
+                      className="p-1 hover:bg-slate-100 rounded-full text-slate-500"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
                   </div>
                   <div className="grid grid-cols-7 gap-1 mb-2 text-center">
-                    {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => (<span key={i} className="text-[10px] font-bold text-slate-400">{d}</span>))}
+                    {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => (
+                      <span
+                        key={i}
+                        className="text-[10px] font-bold text-slate-400"
+                      >
+                        {d}
+                      </span>
+                    ))}
                   </div>
                   <div className="grid grid-cols-7 gap-1">
                     {generateCalendarDays().map((day, idx) => {
                       if (!day) return <div key={idx} />;
-                      const isSelected = day.toISOString().split("T")[0] === date;
-                      const isToday = day.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
+                      const isSelected =
+                        day.toISOString().split("T")[0] === date;
+                      const isToday =
+                        day.toISOString().split("T")[0] ===
+                        new Date().toISOString().split("T")[0];
                       return (
                         <button
                           key={idx}
                           type="button"
                           onClick={() => handleSelectDate(day)}
-                          className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                            isSelected ? "bg-indigo-600 text-white shadow-md shadow-indigo-200" : isToday ? "bg-indigo-50 text-indigo-600 border border-indigo-200" : "text-slate-600 hover:bg-slate-100"
-                          }`}
+                          className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${isSelected ? "bg-indigo-600 text-white shadow-md shadow-indigo-200" : isToday ? "bg-indigo-50 text-indigo-600 border border-indigo-200" : "text-slate-600 hover:bg-slate-100"}`}
                         >
                           {day.getDate()}
                         </button>
@@ -507,9 +597,10 @@ export function NewTransactionModal({
                 </div>
               )}
             </div>
-
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Detalhes</label>
+              <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
+                Detalhes
+              </label>
               <input
                 type="text"
                 placeholder="Ex: Aluguel"
@@ -520,9 +611,12 @@ export function NewTransactionModal({
             </div>
           </div>
 
+          {/* CATEGORIA E PAGAMENTO */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2">
             <div className="relative" ref={categoryRef}>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Categoria</label>
+              <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
+                Categoria
+              </label>
               <button
                 type="button"
                 onClick={() => {
@@ -533,21 +627,70 @@ export function NewTransactionModal({
                 className="w-full p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between focus:ring-2 focus:ring-indigo-500 outline-none active:bg-slate-100 transition-colors"
               >
                 <div className="flex items-center gap-2 overflow-hidden">
-                  <div className={`p-1.5 rounded-lg ${currentCategory.bg} ${currentCategory.color}`}><CategoryIcon size={16} /></div>
-                  <span className="text-sm font-bold text-slate-700 truncate">{category}</span>
+                  <div
+                    className={`p-1.5 rounded-lg ${categoryBg} ${categoryColor}`}
+                  >
+                    <CategoryIcon size={16} />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700 truncate">
+                    {category || "Selecione..."}
+                  </span>
                 </div>
                 <ChevronDown size={16} className="text-slate-400" />
               </button>
-
               {isCategoryOpen && (
                 <div className="absolute bottom-full mb-2 w-full bg-white rounded-2xl shadow-xl border border-slate-100 max-h-60 overflow-y-auto z-30 animate-in zoom-in-95 origin-bottom custom-scrollbar">
-                  {CATEGORIES.map((cat) => (
-                    <button key={cat.id} type="button" onClick={() => { setCategory(cat.id); setIsCategoryOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0">
-                      <div className={`p-1.5 rounded-lg ${cat.bg} ${cat.color}`}><cat.icon size={16} /></div>
-                      <span className={`text-sm font-medium ${category === cat.id ? "text-indigo-600" : "text-slate-600"}`}>{cat.id}</span>
-                      {category === cat.id && (<Check size={14} className="ml-auto text-indigo-600" />)}
-                    </button>
-                  ))}
+                  {categories.length > 0 ? (
+                    categories.map((cat) => {
+                      const IconComp = ICON_MAP[cat.icon] || Tag;
+                      return (
+                        <button
+                          key={cat._id}
+                          type="button"
+                          onClick={() => {
+                            setCategory(cat.name);
+                            setIsCategoryOpen(false);
+                          }}
+                          className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                        >
+                          <div
+                            className={`p-1.5 rounded-lg ${cat.bg} ${cat.color}`}
+                          >
+                            <IconComp size={16} />
+                          </div>
+                          <span
+                            className={`text-sm font-medium ${category === cat.name ? "text-indigo-600" : "text-slate-600"}`}
+                          >
+                            {cat.name}
+                          </span>
+                          {category === cat.name && (
+                            <Check
+                              size={14}
+                              className="ml-auto text-indigo-600"
+                            />
+                          )}
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="p-4 text-center text-xs text-slate-400">
+                      Nenhuma categoria encontrada.
+                    </div>
+                  )}
+                  {/* BOTÃO NOVA CATEGORIA */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCreateCategoryOpen(true);
+                      setIsCategoryOpen(false);
+                    }}
+                    className="w-full px-4 py-3 flex items-center gap-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 transition-colors border-t border-indigo-100 sticky bottom-0"
+                  >
+                    <PlusCircle size={16} />
+                    <span className="text-sm font-bold">
+                      Criar ou Editar Categoria
+                    </span>
+                  </button>
                 </div>
               )}
             </div>
@@ -566,19 +709,38 @@ export function NewTransactionModal({
                 className="w-full p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between focus:ring-2 focus:ring-indigo-500 outline-none active:bg-slate-100 transition-colors"
               >
                 <div className="flex items-center gap-2 overflow-hidden">
-                  <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><PaymentIcon size={16} /></div>
-                  <span className="text-sm font-bold text-slate-700 truncate">{paymentMethod}</span>
+                  <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                    <PaymentIcon size={16} />
+                  </div>
+                  <span className="text-sm font-bold text-slate-700 truncate">
+                    {paymentMethod}
+                  </span>
                 </div>
                 <ChevronDown size={16} className="text-slate-400" />
               </button>
-
               {isPaymentOpen && (
                 <div className="absolute bottom-full mb-2 w-full bg-white rounded-2xl shadow-xl border border-slate-100 max-h-60 overflow-y-auto z-30 animate-in zoom-in-95 origin-bottom custom-scrollbar">
                   {PAYMENT_METHODS.map((method) => (
-                    <button key={method.id} type="button" onClick={() => { setPaymentMethod(method.id); setIsPaymentOpen(false); }} className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0">
-                      <div className="p-1.5 bg-slate-100 text-slate-600 rounded-lg"><method.icon size={16} /></div>
-                      <span className={`text-sm font-medium whitespace-nowrap ${paymentMethod === method.id ? "text-indigo-600" : "text-slate-600"}`}>{method.id}</span>
-                      {paymentMethod === method.id && (<Check size={14} className="ml-auto text-indigo-600" />)}
+                    <button
+                      key={method.id}
+                      type="button"
+                      onClick={() => {
+                        setPaymentMethod(method.id);
+                        setIsPaymentOpen(false);
+                      }}
+                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                    >
+                      <div className="p-1.5 bg-slate-100 text-slate-600 rounded-lg">
+                        <method.icon size={16} />
+                      </div>
+                      <span
+                        className={`text-sm font-medium whitespace-nowrap ${paymentMethod === method.id ? "text-indigo-600" : "text-slate-600"}`}
+                      >
+                        {method.id}
+                      </span>
+                      {paymentMethod === method.id && (
+                        <Check size={14} className="ml-auto text-indigo-600" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -586,46 +748,42 @@ export function NewTransactionModal({
             </div>
           </div>
 
-          {/* Recorrência só aparece se for NOVO (não edição) para simplificar a lógica */}
           {!editingId && (
             <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-indigo-900 font-bold text-sm">
-                    <Repeat size={18} />
-                    Repetir este lançamento?
+                  <Repeat size={18} /> Repetir este lançamento?
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
-                    <input
+                  <input
                     type="checkbox"
                     checked={isRecurring}
                     onChange={(e) => setIsRecurring(e.target.checked)}
                     className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                 </label>
-                </div>
-
-                {isRecurring && (
+              </div>
+              {isRecurring && (
                 <div className="animate-in slide-in-from-top-2 fade-in">
-                    <label className="block text-xs font-bold text-indigo-400 uppercase mb-1 ml-1">
+                  <label className="block text-xs font-bold text-indigo-400 uppercase mb-1 ml-1">
                     Repetir por quantos meses?
-                    </label>
-                    <div className="flex items-center gap-2">
+                  </label>
+                  <div className="flex items-center gap-2">
                     <input
-                        type="number"
-                        min="2"
-                        max="60"
-                        value={installments}
-                        onChange={(e) => setInstallments(e.target.value)}
-                        className="w-20 p-2 bg-white border border-indigo-200 rounded-xl text-center font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500"
+                      type="number"
+                      min="2"
+                      max="60"
+                      value={installments}
+                      onChange={(e) => setInstallments(e.target.value)}
+                      className="w-20 p-2 bg-white border border-indigo-200 rounded-xl text-center font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500"
                     />
-                    <span className="text-sm text-indigo-600 font-medium">Meses (Vezes)</span>
-                    </div>
-                    <p className="text-[10px] text-indigo-400 mt-2 leading-tight">
-                    Isso criará automaticamente {installments} lançamentos futuros com vencimento no mesmo dia dos próximos meses.
-                    </p>
+                    <span className="text-sm text-indigo-600 font-medium">
+                      Meses (Vezes)
+                    </span>
+                  </div>
                 </div>
-                )}
+              )}
             </div>
           )}
 
@@ -633,14 +791,35 @@ export function NewTransactionModal({
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-4 rounded-2xl font-bold text-white shadow-xl flex items-center justify-center gap-2 transform active:scale-[0.98] transition-all ${
-                type === "INCOME" ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200" : "bg-rose-500 hover:bg-rose-600 shadow-rose-200"
-              }`}
+              className={`w-full py-4 rounded-2xl font-bold text-white shadow-xl flex items-center justify-center gap-2 transform active:scale-[0.98] transition-all ${type === "INCOME" ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200" : "bg-rose-500 hover:bg-rose-600 shadow-rose-200"}`}
             >
-              {loading ? "Salvando..." : (<><Check size={20} /> Confirmar {editingId ? "Edição" : (type === "INCOME" ? "Recebimento" : "Pagamento")}</>)}
+              {loading ? (
+                "Salvando..."
+              ) : (
+                <>
+                  <Check size={20} /> Confirmar{" "}
+                  {editingId
+                    ? "Edição"
+                    : type === "INCOME"
+                      ? "Recebimento"
+                      : "Pagamento"}
+                </>
+              )}
             </button>
           </div>
         </form>
+
+        {/* MODAL DE CRIAR CATEGORIA */}
+        <CategoryModal
+          isOpen={isCreateCategoryOpen}
+          onClose={() => setIsCreateCategoryOpen(false)}
+          onSuccess={() => {
+            fetchCategories(); // Recarrega a lista para mostrar a nova
+            setIsCreateCategoryOpen(false);
+          }}
+          userId={userId}
+          type={type}
+        />
       </div>
     </div>
   );
