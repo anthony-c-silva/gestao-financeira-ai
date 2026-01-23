@@ -3,6 +3,17 @@ import connectDB from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import Contact from "@/models/Contact";
 
+/** Adiciona N meses à data, mantendo o dia quando possível (ex.: 31/jan → 28/fev). */
+function addMonths(date: Date, n: number): Date {
+  const res = new Date(date);
+  const day = res.getDate();
+  res.setDate(1);
+  res.setMonth(res.getMonth() + n);
+  const lastDay = new Date(res.getFullYear(), res.getMonth() + 1, 0).getDate();
+  res.setDate(Math.min(day, lastDay));
+  return res;
+}
+
 // BUSCAR TRANSAÇÕES
 export async function GET(req: Request) {
   try {
@@ -45,50 +56,76 @@ export async function POST(req: Request) {
       );
     }
 
-    // Lógica de Recorrência
-    const isRecurring = body.isRecurring === true;
-    const installmentsCount = body.installments
-      ? parseInt(body.installments)
-      : 1;
+    if (!body.date) {
+      return NextResponse.json(
+        { message: "Data da transação obrigatória" },
+        { status: 400 }
+      );
+    }
 
-    // Geramos um ID simples e aleatório para agrupar as parcelas
+    const baseDate = new Date(body.date);
+    if (Number.isNaN(baseDate.getTime())) {
+      return NextResponse.json(
+        { message: "Data da transação inválida" },
+        { status: 400 }
+      );
+    }
+
+    const isRecurring = body.isRecurring === true;
+
+    let installmentsCount = 1;
+    if (isRecurring) {
+      const raw = body.installments != null ? parseInt(String(body.installments), 10) : NaN;
+      if (!Number.isInteger(raw) || raw < 2 || raw > 60) {
+        return NextResponse.json(
+          { message: "Recorrência deve estar entre 2 e 60 meses" },
+          { status: 400 }
+        );
+      }
+      installmentsCount = raw;
+    }
+
     const recurrenceId = isRecurring
-      ? Math.random().toString(36).substring(7)
+      ? Math.random().toString(36).substring(2, 10)
       : null;
 
-    const transactionsToCreate = [];
-    const baseDate = new Date(body.date);
+    type TransactionDoc = {
+      userId: unknown;
+      contactId?: unknown;
+      type: string;
+      amount: number;
+      description: string;
+      category: string;
+      paymentMethod: string;
+      date: Date;
+      status: "PENDING" | "PAID";
+      recurrenceId?: string;
+      installment: number;
+      totalInstallments: number;
+    };
+    const transactionsToCreate: TransactionDoc[] = [];
 
-    // Loop para criar as parcelas
     for (let i = 0; i < installmentsCount; i++) {
-      const newDate = new Date(baseDate);
-      // Adiciona 'i' meses à data original (ex: hoje, mês que vem, outro mês...)
-      newDate.setMonth(newDate.getMonth() + i);
+      const parcelDate = addMonths(baseDate, i);
 
       transactionsToCreate.push({
         userId: body.userId,
-        contactId: body.contactId,
+        contactId: body.contactId ?? undefined,
         type: body.type,
         amount: body.amount,
-        description: body.description,
-        category: body.category,
-        paymentMethod: body.paymentMethod,
-        date: newDate,
-        // A primeira parcela mantém o status escolhido (ex: PAGO)
-        // As futuras (i > 0) nascem sempre como PENDENTE
-        status: i === 0 ? body.status : "PENDING",
-        recurrenceId: recurrenceId,
+        description: body.description ?? "",
+        category: body.category ?? "",
+        paymentMethod: body.paymentMethod ?? "",
+        date: parcelDate,
+        status: i === 0 ? (body.status === "PAID" ? "PAID" : "PENDING") : "PENDING",
+        recurrenceId: recurrenceId ?? undefined,
         installment: i + 1,
         totalInstallments: installmentsCount,
       });
     }
 
-    // Salva tudo de uma vez no banco
-    const createdTransactions = await Transaction.insertMany(
-      transactionsToCreate
-    );
+    const createdTransactions = await Transaction.insertMany(transactionsToCreate);
 
-    // Retorna apenas a primeira para o front-end não bugar
     return NextResponse.json(createdTransactions[0], { status: 201 });
   } catch (error) {
     console.error("Erro ao criar transação:", error);
