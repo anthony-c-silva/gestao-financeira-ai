@@ -55,7 +55,6 @@ import {
   Cell,
 } from "recharts";
 
-// CORES PADRÃO (Fallback caso a categoria não tenha cor ou não seja encontrada)
 const DEFAULT_COLORS = [
   "#6366f1",
   "#10b981",
@@ -65,23 +64,6 @@ const DEFAULT_COLORS = [
   "#ec4899",
   "#06b6d4",
 ];
-
-// MAPA DE CORES: Traduz classes Tailwind (Salvas no Banco) para HEX (Usado no Gráfico)
-const getColorFromClass = (className: string | undefined) => {
-  if (!className) return "#94a3b8"; // Slate padrão
-  if (className.includes("orange")) return "#f97316";
-  if (className.includes("blue")) return "#3b82f6";
-  if (className.includes("red")) return "#ef4444";
-  if (className.includes("purple")) return "#a855f7";
-  if (className.includes("yellow")) return "#eab308";
-  if (className.includes("emerald")) return "#10b981";
-  if (className.includes("cyan")) return "#06b6d4";
-  if (className.includes("indigo")) return "#6366f1";
-  if (className.includes("pink")) return "#ec4899";
-  if (className.includes("slate")) return "#64748b";
-  if (className.includes("gray")) return "#6b7280";
-  return "#cbd5e1";
-};
 
 interface UserData {
   _id: string;
@@ -97,7 +79,7 @@ interface Category {
   _id: string;
   name: string;
   type: "INCOME" | "EXPENSE";
-  color: string; // Ex: "text-red-500"
+  color: string;
   bg: string;
 }
 
@@ -134,7 +116,6 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Estados de Modais
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -142,7 +123,6 @@ export default function Dashboard() {
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] =
     useState(false);
 
-  // Estado do Dropdown de Perfil
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -154,12 +134,10 @@ export default function Dashboard() {
 
   const [isInputMode, setIsInputMode] = useState(false);
 
-  // Estados MODO TEXTO (Escrever IA)
   const [isTextMode, setIsTextMode] = useState(false);
   const [aiText, setAiText] = useState("");
   const [isAiProcessing, setIsAiProcessing] = useState(false);
 
-  // Cálculos Gerais
   const income = transactions
     .filter((t) => t.type === "INCOME" && t.status === "PAID")
     .reduce((acc, curr) => acc + curr.amount, 0);
@@ -177,10 +155,8 @@ export default function Dashboard() {
     }
   };
 
-  // CORREÇÃO AQUI: Removemos "&type=EXPENSE" para buscar TODAS as categorias
   const fetchCategories = async (userId: string) => {
     try {
-      // Agora trazemos receitas E despesas. Assim o gráfico acha a cor de "Salários" e "Serviços"
       const res = await fetch(`/api/categories?userId=${userId}`);
       if (res.ok) setCategories(await res.json());
     } catch (error) {
@@ -338,7 +314,6 @@ export default function Dashboard() {
           const parsedUser = JSON.parse(storedUser);
           setUser(parsedUser);
           if (parsedUser._id) {
-            // Busca Transações E Categorias (para o gráfico)
             await Promise.all([
               fetchTransactions(parsedUser._id),
               fetchCategories(parsedUser._id),
@@ -382,7 +357,6 @@ export default function Dashboard() {
     return base + suf;
   };
 
-  // --- HOME VIEW ---
   const HomeView = () => {
     const recentActivities = [...transactions]
       .sort((a, b) => {
@@ -504,7 +478,6 @@ export default function Dashboard() {
     );
   };
 
-  // --- REPORTS VIEW ---
   const ReportsView = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -535,7 +508,7 @@ export default function Dashboard() {
     });
     const barChartData = Array.from(dailyMap.values()).slice(-15);
 
-    // LÓGICA DE DADOS PARA PIZZA (COM CORES REAIS)
+    // LÓGICA DE DADOS PARA PIZZA (COM CORES REAIS HEX)
     const categoryMap: { [key: string]: number } = {};
     transactions.forEach((t) => {
       if (t.type === "EXPENSE" && t.status === "PAID") {
@@ -545,11 +518,10 @@ export default function Dashboard() {
 
     const pieChartData = Object.keys(categoryMap)
       .map((key) => {
-        // Tenta encontrar a categoria na lista carregada para pegar a cor
-        // Como agora carregamos TODAS as categorias, ele vai achar "Salários" e "Serviços"
         const catObj = categories.find((c) => c.name === key);
-        // Traduz a classe Tailwind (ex: text-red-500) para Hex
-        const colorHex = getColorFromClass(catObj?.color);
+        // Agora catObj.color JÁ É HEX (ou undefined se for antigo)
+        // Se não tiver cor definida, usamos uma cor da lista padrão
+        const colorHex = catObj?.color || null;
 
         return {
           name: key,
@@ -805,7 +777,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28">
-      {/* HEADER */}
       <header className="bg-white px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm border-b border-slate-100">
         <div className="flex items-center gap-3">
           <div className="relative" ref={profileMenuRef}>
@@ -881,7 +852,6 @@ export default function Dashboard() {
         </button>
       </header>
 
-      {/* CONTEÚDO PRINCIPAL */}
       <main className="p-4 sm:p-6 max-w-2xl mx-auto">
         {currentTab === "HOME" && <HomeView />}
         {currentTab === "FLOW" && (
@@ -898,10 +868,8 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* BOTÕES FLUTUANTES + MODO TEXTO */}
       {currentTab !== "CONTACTS" && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 w-full justify-center">
-          {/* MODO TEXTO ATIVO: Mostra barra de digitação */}
           {isTextMode ? (
             <div className="bg-white p-2 rounded-2xl shadow-2xl border border-indigo-100 flex items-center gap-2 w-full max-w-[350px] animate-in slide-in-from-bottom-2 zoom-in-95">
               <form
@@ -937,7 +905,6 @@ export default function Dashboard() {
               </button>
             </div>
           ) : (
-            // MODO PADRÃO: Mostra Botões (Voz, Teclado, +)
             <div className="pointer-events-auto flex items-center gap-3 animate-in fade-in zoom-in duration-300">
               <VoiceInput
                 onSuccess={handleAiSuccess}
@@ -945,7 +912,6 @@ export default function Dashboard() {
                 userId={user._id}
               />
 
-              {/* BOTÃO DE ESCREVER (NOVO) */}
               {!isInputMode && (
                 <button
                   onClick={() => setIsTextMode(true)}
@@ -969,7 +935,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* NAVEGAÇÃO INFERIOR */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-3 z-20 pb-safe">
         <div className="flex justify-around items-center max-w-2xl mx-auto">
           <button
@@ -1012,7 +977,6 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      {/* MODAIS GLOBAIS */}
       <NewTransactionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

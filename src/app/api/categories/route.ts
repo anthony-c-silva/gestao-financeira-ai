@@ -7,7 +7,6 @@ interface CategoryQuery {
   type?: string;
 }
 
-// LISTAR CATEGORIAS (COM AUTO-CORREÇÃO PARA USUÁRIOS ANTIGOS)
 export async function GET(req: Request) {
   try {
     await connectDB();
@@ -22,105 +21,102 @@ export async function GET(req: Request) {
       );
     }
 
-    // 1. Verifica se o usuário já tem categorias cadastradas
     const count = await Category.countDocuments({ userId });
 
-    // 2. SE NÃO TIVER (Usuário Antigo), CRIA AS PADRÕES AGORA (Lazy Migration)
     if (count === 0) {
+      // DEFINIÇÃO DE CORES HEXADECIMAIS PADRÃO
       const defaultCategories = [
         // DESPESAS
         {
           name: "Alimentação",
           type: "EXPENSE",
           icon: "Utensils",
-          color: "text-orange-500",
-          bg: "bg-orange-100",
-        },
+          color: "#f97316",
+          bg: "#ffedd5",
+        }, // Orange
         {
           name: "Transporte",
           type: "EXPENSE",
           icon: "Car",
-          color: "text-blue-500",
-          bg: "bg-blue-100",
-        },
+          color: "#3b82f6",
+          bg: "#dbeafe",
+        }, // Blue
         {
           name: "Combustível",
           type: "EXPENSE",
           icon: "Fuel",
-          color: "text-red-500",
-          bg: "bg-red-100",
-        },
+          color: "#ef4444",
+          bg: "#fee2e2",
+        }, // Red
         {
           name: "Aluguel",
           type: "EXPENSE",
           icon: "Home",
-          color: "text-purple-500",
-          bg: "bg-purple-100",
-        },
+          color: "#a855f7",
+          bg: "#f3e8ff",
+        }, // Purple
         {
           name: "Oficina",
           type: "EXPENSE",
           icon: "Wrench",
-          color: "text-slate-600",
-          bg: "bg-slate-200",
-        },
+          color: "#475569",
+          bg: "#e2e8f0",
+        }, // Slate
         {
           name: "Contas Fixas",
           type: "EXPENSE",
           icon: "Zap",
-          color: "text-yellow-500",
-          bg: "bg-yellow-100",
-        },
+          color: "#eab308",
+          bg: "#fef9c3",
+        }, // Yellow
         {
           name: "Outros",
           type: "EXPENSE",
           icon: "MoreHorizontal",
-          color: "text-slate-500",
-          bg: "bg-slate-100",
-        },
+          color: "#64748b",
+          bg: "#f1f5f9",
+        }, // Gray
 
         // RECEITAS
         {
           name: "Vendas",
           type: "INCOME",
           icon: "Briefcase",
-          color: "text-emerald-500",
-          bg: "bg-emerald-100",
-        },
+          color: "#10b981",
+          bg: "#d1fae5",
+        }, // Emerald
         {
           name: "Serviços",
           type: "INCOME",
           icon: "Wrench",
-          color: "text-cyan-500",
-          bg: "bg-cyan-100",
-        },
+          color: "#06b6d4",
+          bg: "#cffafe",
+        }, // Cyan
         {
           name: "Salários",
           type: "INCOME",
           icon: "Users",
-          color: "text-indigo-500",
-          bg: "bg-indigo-100",
-        },
+          color: "#6366f1",
+          bg: "#e0e7ff",
+        }, // Indigo
         {
           name: "Outros",
           type: "INCOME",
           icon: "MoreHorizontal",
-          color: "text-slate-500",
-          bg: "bg-slate-100",
-        },
+          color: "#64748b",
+          bg: "#f1f5f9",
+        }, // Gray
       ];
 
       const categoriesToCreate = defaultCategories.map((cat) => ({
         ...cat,
-        userId, // Vincula ao usuário antigo que fez a requisição
+        userId,
         isDefault: true,
       }));
 
       await Category.insertMany(categoriesToCreate);
-      // O código segue abaixo para buscar o que acabou de criar
     }
 
-    // 3. Busca normal (agora garantimos que sempre haverá dados)
     const query: CategoryQuery = { userId };
     if (type) query.type = type;
 
@@ -128,12 +124,10 @@ export async function GET(req: Request) {
 
     return NextResponse.json(categories, { status: 200 });
   } catch (error) {
-    console.error("Erro ao buscar categorias:", error);
     return NextResponse.json({ message: "Erro interno" }, { status: 500 });
   }
 }
 
-// CRIAR NOVA CATEGORIA (Mantém igual)
 export async function POST(req: Request) {
   try {
     await connectDB();
@@ -160,8 +154,8 @@ export async function POST(req: Request) {
       userId: body.userId,
       name: body.name,
       type: body.type,
-      color: body.color || "text-slate-500",
-      bg: body.bg || "bg-slate-100",
+      color: body.color || "#64748b",
+      bg: body.bg || "#f1f5f9",
       icon: body.icon || "Tag",
     });
 

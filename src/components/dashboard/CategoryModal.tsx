@@ -49,16 +49,17 @@ export const AVAILABLE_ICONS = [
   { name: "MoreHorizontal", icon: MoreHorizontal },
 ];
 
+// CORES EM HEX (Fundo Claro / Texto Escuro)
 const COLORS = [
-  { name: "Cinza", bg: "bg-slate-100", text: "text-slate-600" },
-  { name: "Vermelho", bg: "bg-red-100", text: "text-red-600" },
-  { name: "Laranja", bg: "bg-orange-100", text: "text-orange-600" },
-  { name: "Amarelo", bg: "bg-yellow-100", text: "text-yellow-600" },
-  { name: "Verde", bg: "bg-emerald-100", text: "text-emerald-600" },
-  { name: "Ciano", bg: "bg-cyan-100", text: "text-cyan-600" },
-  { name: "Azul", bg: "bg-blue-100", text: "text-blue-600" },
-  { name: "Roxo", bg: "bg-purple-100", text: "text-purple-600" },
-  { name: "Rosa", bg: "bg-pink-100", text: "text-pink-600" },
+  { name: "Cinza", bg: "#f1f5f9", text: "#64748b" },
+  { name: "Vermelho", bg: "#fee2e2", text: "#ef4444" },
+  { name: "Laranja", bg: "#ffedd5", text: "#f97316" },
+  { name: "Amarelo", bg: "#fef9c3", text: "#eab308" },
+  { name: "Verde", bg: "#d1fae5", text: "#10b981" },
+  { name: "Ciano", bg: "#cffafe", text: "#06b6d4" },
+  { name: "Azul", bg: "#dbeafe", text: "#3b82f6" },
+  { name: "Roxo", bg: "#f3e8ff", text: "#a855f7" },
+  { name: "Rosa", bg: "#fce7f3", text: "#ec4899" },
 ];
 
 const ICON_MAP = AVAILABLE_ICONS.reduce(
@@ -130,14 +131,13 @@ export function CategoryModal({
     setEditingId(cat._id);
     setName(cat.name);
     setSelectedIcon(cat.icon);
+    // Encontra a cor baseada no Hex salvo
     const colorObj = COLORS.find((c) => c.text === cat.color) || COLORS[0];
     setSelectedColor(colorObj);
     setError(null);
   };
 
-  const handleDeleteRequest = (id: string) => {
-    setDeleteId(id);
-  };
+  const handleDeleteRequest = (id: string) => setDeleteId(id);
 
   const confirmDelete = async () => {
     if (!deleteId) return;
@@ -252,8 +252,13 @@ export function CategoryModal({
                   {editingId ? "Editar Nome" : "Nova Categoria"}
                 </label>
                 <div className="flex items-center gap-3">
+                  {/* Visualização da Cor: Usamos style em vez de className */}
                   <div
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${selectedColor.bg} ${selectedColor.text}`}
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors"
+                    style={{
+                      backgroundColor: selectedColor.bg,
+                      color: selectedColor.text,
+                    }}
                   >
                     {(() => {
                       const Icon =
@@ -282,7 +287,8 @@ export function CategoryModal({
                       key={color.name}
                       type="button"
                       onClick={() => setSelectedColor(color)}
-                      className={`w-8 h-8 rounded-full border-2 transition-all ${color.bg} ${selectedColor.name === color.name ? "border-slate-800 scale-110" : "border-transparent hover:scale-105"}`}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${selectedColor.name === color.name ? "border-slate-800 scale-110" : "border-transparent hover:scale-105"}`}
+                      style={{ backgroundColor: color.bg }} // Cor de fundo real
                     />
                   ))}
                 </div>
@@ -364,8 +370,13 @@ export function CategoryModal({
                         className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-indigo-100 transition-colors group"
                       >
                         <div className="flex items-center gap-3">
+                          {/* Renderização com Style Hex */}
                           <div
-                            className={`p-2 rounded-lg ${cat.bg} ${cat.color}`}
+                            className="p-2 rounded-lg"
+                            style={{
+                              backgroundColor: cat.bg,
+                              color: cat.color,
+                            }}
                           >
                             <IconComp size={16} />
                           </div>
@@ -380,7 +391,6 @@ export function CategoryModal({
                         </div>
 
                         {!cat.isDefault && (
-                          // AQUI FOI A ALTERAÇÃO: Removida a opacidade condicional. Sempre visível.
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => handleEdit(cat)}

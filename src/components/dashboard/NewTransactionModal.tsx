@@ -19,13 +19,11 @@ import {
   FileText,
   CalendarClock,
   PlusCircle,
-  Tag, // Novo ícone
+  Tag,
 } from "lucide-react";
 
-// Importa o novo Modal de Categorias e a lista de ícones para o mapa
 import { CategoryModal, AVAILABLE_ICONS } from "./CategoryModal";
 
-// Cria o Mapa de Ícones dinâmico baseado no arquivo do Modal
 const ICON_MAP = AVAILABLE_ICONS.reduce(
   (acc, curr) => {
     acc[curr.name] = curr.icon;
@@ -103,7 +101,7 @@ export function NewTransactionModal({
 }: NewTransactionModalProps) {
   const [loading, setLoading] = useState(false);
 
-  // Estados do Formulário
+  // Estados
   const [editingId, setEditingId] = useState<string | null>(null);
   const [type, setType] = useState<"INCOME" | "EXPENSE">("EXPENSE");
   const [amount, setAmount] = useState("");
@@ -117,13 +115,13 @@ export function NewTransactionModal({
   const [isRecurring, setIsRecurring] = useState(false);
   const [installments, setInstallments] = useState("2");
 
-  // UI States
+  // UI
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarViewDate, setCalendarViewDate] = useState(new Date());
 
-  // Dados Dinâmicos
+  // Dados
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [contactName, setContactName] = useState("");
@@ -131,8 +129,6 @@ export function NewTransactionModal({
     null,
   );
   const [showSuggestions, setShowSuggestions] = useState(false);
-
-  // NOVO: Estado para abrir o modal de criar categoria
   const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -147,17 +143,13 @@ export function NewTransactionModal({
     return "text-5xl";
   };
 
-  // Função para recarregar categorias
   const fetchCategories = async () => {
     try {
       const res = await fetch(`/api/categories?userId=${userId}&type=${type}`);
       if (res.ok) {
         const data = await res.json();
         setCategories(data);
-
-        // Se a categoria selecionada não existir mais (ou mudou tipo), reseta ou seleciona a primeira
         if (!editingId && !initialData && data.length > 0) {
-          // Lógica opcional: selecionar o primeiro ou manter vazio
           if (!category) setCategory(data[0].name);
         }
       }
@@ -166,12 +158,10 @@ export function NewTransactionModal({
     }
   };
 
-  // Recarrega categorias quando abre, muda tipo ou cria nova
   useEffect(() => {
     if (isOpen) fetchCategories();
   }, [type, userId, isOpen]);
 
-  // Configuração Inicial
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
@@ -211,7 +201,6 @@ export function NewTransactionModal({
     }
   }, [initialData, isOpen]);
 
-  // Click Outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -239,7 +228,6 @@ export function NewTransactionModal({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Busca Contatos
   useEffect(() => {
     if (!isOpen) return;
     setCalendarViewDate(date ? new Date(date + "T12:00:00") : new Date());
@@ -377,8 +365,8 @@ export function NewTransactionModal({
   const CategoryIcon = currentCategoryObj
     ? ICON_MAP[currentCategoryObj.icon] || Tag
     : Tag;
-  const categoryColor = currentCategoryObj?.color || "text-slate-500";
-  const categoryBg = currentCategoryObj?.bg || "bg-slate-100";
+  const categoryColor = currentCategoryObj?.color || "#64748b";
+  const categoryBg = currentCategoryObj?.bg || "#f1f5f9";
 
   const currentPayment =
     PAYMENT_METHODS.find((p) => p.id === paymentMethod) || PAYMENT_METHODS[0];
@@ -412,7 +400,6 @@ export function NewTransactionModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 pb-4">
-          {/* TABS TIPO */}
           <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 rounded-2xl">
             <button
               type="button"
@@ -430,7 +417,6 @@ export function NewTransactionModal({
             </button>
           </div>
 
-          {/* VALOR */}
           <div className="text-center py-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               Valor da transação
@@ -450,7 +436,6 @@ export function NewTransactionModal({
             </div>
           </div>
 
-          {/* STATUS */}
           <div className="flex gap-3">
             <button
               type="button"
@@ -468,7 +453,6 @@ export function NewTransactionModal({
             </button>
           </div>
 
-          {/* CONTATO */}
           <div className="relative" ref={wrapperRef}>
             <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
               {type === "INCOME" ? "Quem pagou?" : "Para quem?"}
@@ -526,7 +510,6 @@ export function NewTransactionModal({
             )}
           </div>
 
-          {/* DATA E DETALHES */}
           <div className="grid grid-cols-2 gap-4 relative">
             <div ref={calendarRef} className="relative">
               <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
@@ -611,7 +594,6 @@ export function NewTransactionModal({
             </div>
           </div>
 
-          {/* CATEGORIA E PAGAMENTO */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2">
             <div className="relative" ref={categoryRef}>
               <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
@@ -628,7 +610,11 @@ export function NewTransactionModal({
               >
                 <div className="flex items-center gap-2 overflow-hidden">
                   <div
-                    className={`p-1.5 rounded-lg ${categoryBg} ${categoryColor}`}
+                    className="p-1.5 rounded-lg"
+                    style={{
+                      backgroundColor: categoryBg,
+                      color: categoryColor,
+                    }}
                   >
                     <CategoryIcon size={16} />
                   </div>
@@ -654,7 +640,11 @@ export function NewTransactionModal({
                           className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
                         >
                           <div
-                            className={`p-1.5 rounded-lg ${cat.bg} ${cat.color}`}
+                            className="p-1.5 rounded-lg"
+                            style={{
+                              backgroundColor: cat.bg,
+                              color: cat.color,
+                            }}
                           >
                             <IconComp size={16} />
                           </div>
@@ -677,7 +667,6 @@ export function NewTransactionModal({
                       Nenhuma categoria encontrada.
                     </div>
                   )}
-                  {/* BOTÃO NOVA CATEGORIA */}
                   <button
                     type="button"
                     onClick={() => {
@@ -688,7 +677,7 @@ export function NewTransactionModal({
                   >
                     <PlusCircle size={16} />
                     <span className="text-sm font-bold">
-                      Criar ou Editar Categoria
+                      Criar Nova Categoria
                     </span>
                   </button>
                 </div>
@@ -809,12 +798,11 @@ export function NewTransactionModal({
           </div>
         </form>
 
-        {/* MODAL DE CRIAR CATEGORIA */}
         <CategoryModal
           isOpen={isCreateCategoryOpen}
           onClose={() => setIsCreateCategoryOpen(false)}
           onSuccess={() => {
-            fetchCategories(); // Recarrega a lista para mostrar a nova
+            fetchCategories();
             setIsCreateCategoryOpen(false);
           }}
           userId={userId}
