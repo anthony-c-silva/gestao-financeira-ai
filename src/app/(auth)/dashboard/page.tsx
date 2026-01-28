@@ -71,7 +71,6 @@ interface CustomPieLabelProps {
   name?: string | number;
   percent?: number;
   value?: number;
-  [key: string]: any;
 }
 
 interface UserData {
