@@ -45,6 +45,9 @@ export interface TransactionData {
     _id: string;
     name: string;
   };
+  // Adicionado para suportar a lógica de recorrência se vier do backend
+  recurrenceId?: string;
+  totalInstallments?: number;
 }
 
 interface NewTransactionModalProps {
@@ -53,6 +56,8 @@ interface NewTransactionModalProps {
   onSuccess: () => void;
   userId: string;
   initialData?: TransactionData | null;
+  // NOVA PROP: Necessária para saber se edita uma ou várias
+  recurrenceAction?: "SINGLE" | "FUTURE" | "ALL" | null;
 }
 
 interface Contact {
@@ -98,6 +103,7 @@ export function NewTransactionModal({
   onSuccess,
   userId,
   initialData,
+  recurrenceAction, // Recebendo a prop
 }: NewTransactionModalProps) {
   const [loading, setLoading] = useState(false);
 
@@ -240,7 +246,9 @@ export function NewTransactionModal({
         );
         if (res.ok) {
           const data = await res.json();
-          setContacts(data.data || []);
+          // Tratamento para paginação se houver, ou array direto
+          const contactsList = Array.isArray(data) ? data : data.data || [];
+          setContacts(contactsList);
         }
       } catch (error) {
         console.error("Erro ao buscar contatos");
@@ -320,10 +328,19 @@ export function NewTransactionModal({
         installments: isRecurring ? parseInt(installments) : 1,
       };
 
-      const url = editingId
-        ? `/api/transactions/${editingId}`
-        : "/api/transactions";
-      const method = editingId ? "PUT" : "POST";
+      // LÓGICA DE URL MODIFICADA PARA SUPORTAR RECORRÊNCIA
+      let url = "/api/transactions";
+      let method = "POST";
+
+      if (editingId) {
+        url = `/api/transactions/${editingId}`;
+        method = "PUT";
+
+        // Se houver uma ação de recorrência definida (SINGLE, FUTURE, ALL), adiciona na URL
+        if (recurrenceAction) {
+          url += `?action=${recurrenceAction}`;
+        }
+      }
 
       const res = await fetch(url, {
         method,

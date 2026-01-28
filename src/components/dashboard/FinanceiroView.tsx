@@ -14,10 +14,9 @@ import {
   Building2,
   Pencil,
   Trash2,
-  Repeat, // NOVO ÍCONE IMPORTADO
+  Repeat,
 } from "lucide-react";
 
-// ATUALIZAÇÃO 1: Adicionar campos de recorrência na interface
 interface Transaction {
   _id: string;
   type: "INCOME" | "EXPENSE";
@@ -32,7 +31,6 @@ interface Transaction {
     name: string;
     type: "CLIENT" | "SUPPLIER";
   };
-  // Novos campos opcionais
   recurrenceId?: string;
   installment?: number;
   totalInstallments?: number;
@@ -41,7 +39,8 @@ interface Transaction {
 interface FinanceiroViewProps {
   transactions: Transaction[];
   onMarkAsPaid: (t: Transaction) => void;
-  onDelete: (id: string) => void;
+  // CORREÇÃO CRÍTICA: onDelete espera a TRANSAÇÃO INTEIRA, não uma string
+  onDelete: (t: Transaction) => void;
   onEdit: (t: Transaction) => void;
 }
 
@@ -344,8 +343,6 @@ export function FinanceiroView({
             const displaySubtitle = t.contactId
               ? t.description || t.category
               : t.category;
-
-            // ATUALIZAÇÃO 2: Verificar se é recorrente
             const isRecurring = t.totalInstallments && t.totalInstallments > 1;
 
             return (
@@ -371,7 +368,6 @@ export function FinanceiroView({
                       {displayTitle}
                     </span>
 
-                    {/* BADGES */}
                     {isLate && (
                       <span className="bg-rose-100 text-rose-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
                         {viewType === "SAIDA" ? "ATRASADO" : "PENDENTE"}
@@ -383,7 +379,6 @@ export function FinanceiroView({
                       </span>
                     )}
 
-                    {/* ATUALIZAÇÃO 3: Badge de Recorrência Visual */}
                     {isRecurring && (
                       <span className="bg-indigo-100 text-indigo-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 flex items-center gap-1">
                         <Repeat size={10} /> {t.installment}/
@@ -418,8 +413,9 @@ export function FinanceiroView({
                     >
                       <Pencil size={16} />
                     </button>
+                    {/* AQUI ESTAVA O ERRO: Agora passamos 't' (Transação completa) */}
                     <button
-                      onClick={() => onDelete(t._id)}
+                      onClick={() => onDelete(t)}
                       className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                     >
                       <Trash2 size={16} />

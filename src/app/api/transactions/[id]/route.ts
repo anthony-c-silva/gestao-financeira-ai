@@ -2,58 +2,110 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 
-// ATUALIZAR (PUT)
+// PUT: Editar Transação (Com suporte a recorrência)
 export async function PUT(
   req: Request,
-  { params }: { params: Promise<{ id: string }> } // Correção de tipagem aqui
+  props: { params: Promise<{ id: string }> },
 ) {
   try {
     await connectDB();
 
-    // CORREÇÃO: Agora é necessário aguardar o params antes de usá-lo
-    const { id } = await params;
+    // CORREÇÃO NEXT.JS 15: Aguardar params antes de usar
+    const params = await props.params;
+    const { id } = params;
 
     const body = await req.json();
+    const { searchParams } = new URL(req.url);
+    const action = searchParams.get("action") || "SINGLE"; // SINGLE, FUTURE, ALL
 
-    const updatedTransaction = await Transaction.findByIdAndUpdate(
-      id,
-      { ...body },
-      { new: true } // Retorna o dado atualizado
-    );
+    // Se for edição simples (SINGLE), atualiza direto
+    if (action === "SINGLE") {
+      const updatedTransaction = await Transaction.findByIdAndUpdate(id, body, {
+        new: true,
+      });
+      return NextResponse.json(updatedTransaction);
+    }
 
-    if (!updatedTransaction) {
+    // Se for Lote (FUTURE ou ALL), precisamos do recurrenceId
+    const originalTransaction = await Transaction.findById(id);
+    if (!originalTransaction || !originalTransaction.recurrenceId) {
       return NextResponse.json(
-        { message: "Transação não encontrada" },
-        { status: 404 }
+        { message: "Transação não encontrada ou não é recorrente" },
+        { status: 404 },
       );
     }
 
-    return NextResponse.json(updatedTransaction, { status: 200 });
+    const query: {
+      userId: string;
+      recurrenceId: string;
+      date?: { $gte: string | Date };
+    } = {
+      userId: originalTransaction.userId,
+      recurrenceId: originalTransaction.recurrenceId,
+    };
+
+    if (action === "FUTURE") {
+      // Afeta a atual e as futuras baseadas na DATA
+      query.date = { $gte: originalTransaction.date };
+    }
+
+    // REMOVE A DATA DO BODY PARA EDIÇÃO EM LOTE
+    // (Não queremos que todas as parcelas fiquem com a mesma data de vencimento)
+    const { date, ...bulkUpdates } = body;
+
+    await Transaction.updateMany(query, { $set: bulkUpdates });
+
+    return NextResponse.json({ message: "Série atualizada com sucesso" });
   } catch (error) {
-    console.error("Erro ao atualizar:", error);
-    return NextResponse.json({ message: "Erro interno" }, { status: 500 });
+    return NextResponse.json({ message: "Erro ao atualizar" }, { status: 500 });
   }
 }
 
-// DELETAR (DELETE)
+// DELETE: Excluir Transação (Com suporte a recorrência)
 export async function DELETE(
   req: Request,
-  { params }: { params: Promise<{ id: string }> } // Correção de tipagem aqui
+  props: { params: Promise<{ id: string }> },
 ) {
   try {
     await connectDB();
 
-    // CORREÇÃO: Aguardando params aqui também
-    const { id } = await params;
+    // CORREÇÃO NEXT.JS 15: Aguardar params antes de usar
+    const params = await props.params;
+    const { id } = params;
 
-    await Transaction.findByIdAndDelete(id);
+    const { searchParams } = new URL(req.url);
+    const action = searchParams.get("action") || "SINGLE"; // SINGLE, FUTURE, ALL
 
-    return NextResponse.json(
-      { message: "Item removido com sucesso" },
-      { status: 200 }
-    );
+    if (action === "SINGLE") {
+      await Transaction.findByIdAndDelete(id);
+      return NextResponse.json({ message: "Transação excluída" });
+    }
+
+    const originalTransaction = await Transaction.findById(id);
+    if (!originalTransaction || !originalTransaction.recurrenceId) {
+      // Se não achou ou não é recorrente, deleta só ela mesmo por segurança
+      await Transaction.findByIdAndDelete(id);
+      return NextResponse.json({ message: "Transação excluída" });
+    }
+
+    const query: {
+      userId: string;
+      recurrenceId: string;
+      date?: { $gte: string | Date };
+    } = {
+      userId: originalTransaction.userId,
+      recurrenceId: originalTransaction.recurrenceId,
+    };
+
+    if (action === "FUTURE") {
+      query.date = { $gte: originalTransaction.date };
+    }
+
+    await Transaction.deleteMany(query);
+
+    return NextResponse.json({ message: "Série excluída com sucesso" });
   } catch (error) {
-    console.error("Erro ao deletar:", error);
+    console.error("Erro no DELETE:", error);
     return NextResponse.json({ message: "Erro ao deletar" }, { status: 500 });
   }
 }
