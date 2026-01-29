@@ -42,6 +42,7 @@ import { ContactsView } from "@/components/dashboard/ContactsView";
 import { DreReport } from "@/components/dashboard/DreReport";
 import { RecurrenceOptionsModal } from "@/components/dashboard/RecurrenceOptionsModal";
 import { Toast } from "@/components/ui/Toast";
+import { MonthSelector } from "@/components/dashboard/MonthSelector";
 
 import {
   BarChart,
@@ -118,6 +119,9 @@ export default function Dashboard() {
     "HOME" | "FLOW" | "REPORTS" | "CONTACTS"
   >("HOME");
 
+  // DATA GLOBAL SELECIONADA
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [summaryData, setSummaryData] = useState(null);
@@ -165,10 +169,22 @@ export default function Dashboard() {
   const [aiText, setAiText] = useState("");
   const [isAiProcessing, setIsAiProcessing] = useState(false);
 
-  const income = transactions
+  // FILTRAGEM MENSAL PARA OS CARDS E GRÁFICOS
+  const monthlyTransactions = transactions.filter((t) => {
+    const tDate = new Date(t.date);
+    const tDateAdjusted = new Date(
+      tDate.valueOf() + tDate.getTimezoneOffset() * 60000,
+    );
+    return (
+      tDateAdjusted.getMonth() === selectedDate.getMonth() &&
+      tDateAdjusted.getFullYear() === selectedDate.getFullYear()
+    );
+  });
+
+  const income = monthlyTransactions
     .filter((t) => t.type === "INCOME" && t.status === "PAID")
     .reduce((acc, curr) => acc + curr.amount, 0);
-  const expense = transactions
+  const expense = monthlyTransactions
     .filter((t) => t.type === "EXPENSE" && t.status === "PAID")
     .reduce((acc, curr) => acc + curr.amount, 0);
   const balance = income - expense;
@@ -449,11 +465,16 @@ export default function Dashboard() {
 
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <MonthSelector
+          currentDate={selectedDate}
+          onDateChange={setSelectedDate}
+        />
+
         <div className="bg-slate-800 p-6 rounded-3xl text-white shadow-xl shadow-slate-200 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/20 rounded-full -mr-10 -mt-10 blur-3xl"></div>
           <div className="flex justify-between items-start mb-2 relative z-10">
             <span className="text-slate-300 text-sm font-medium">
-              Saldo atual (Disponível)
+              Saldo do Mês (Realizado)
             </span>
             <button
               onClick={() => setShowValues(!showValues)}
@@ -559,7 +580,7 @@ export default function Dashboard() {
   };
 
   const ReportsView = () => {
-    const today = new Date();
+    const today = selectedDate;
     today.setHours(0, 0, 0, 0);
     const dailyMap = new Map<
       string,
@@ -570,7 +591,10 @@ export default function Dashboard() {
     );
     sortedTransactions.forEach((t) => {
       const dateObj = new Date(t.date);
-      if (dateObj <= new Date(today.getFullYear(), today.getMonth() + 1, 0)) {
+      if (
+        dateObj.getMonth() === today.getMonth() &&
+        dateObj.getFullYear() === today.getFullYear()
+      ) {
         const dateKey = dateObj.toLocaleDateString("pt-BR", {
           day: "2-digit",
           month: "2-digit",
@@ -586,7 +610,16 @@ export default function Dashboard() {
     });
     const barChartData = Array.from(dailyMap.values()).slice(-15);
     const categoryMap: { [key: string]: number } = {};
-    transactions.forEach((t) => {
+
+    const monthTrans = transactions.filter((t) => {
+      const d = new Date(t.date);
+      return (
+        d.getMonth() === today.getMonth() &&
+        d.getFullYear() === today.getFullYear()
+      );
+    });
+
+    monthTrans.forEach((t) => {
       if (t.type === "EXPENSE" && t.status === "PAID") {
         categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount;
       }
@@ -599,15 +632,21 @@ export default function Dashboard() {
       })
       .sort((a, b) => b.value - a.value)
       .slice(0, 6);
+
     const futureTransactions = transactions
       .filter((t) => {
         const tDate = new Date(t.date);
         const tDateAdjusted = new Date(
           tDate.valueOf() + tDate.getTimezoneOffset() * 60000,
         );
-        return t.status === "PENDING" && tDateAdjusted >= today;
+        return (
+          t.status === "PENDING" &&
+          tDateAdjusted.getMonth() === today.getMonth() &&
+          tDateAdjusted.getFullYear() === today.getFullYear()
+        );
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
     const futureIncome = futureTransactions
       .filter((t) => t.type === "INCOME")
       .reduce((acc, t) => acc + t.amount, 0);
@@ -639,6 +678,12 @@ export default function Dashboard() {
             <Download size={18} /> Exportar
           </button>
         </header>
+
+        <MonthSelector
+          currentDate={selectedDate}
+          onDateChange={setSelectedDate}
+        />
+
         <DreReport transactions={transactions} month={today} />
         <section className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
           <div className="flex justify-between items-center mb-6">
@@ -927,6 +972,7 @@ export default function Dashboard() {
             onMarkAsPaid={handleMarkAsPaid}
             onDelete={handleDeleteRequest}
             onEdit={handleEditRequest}
+            selectedDate={selectedDate}
           />
         )}
         {currentTab === "REPORTS" && <ReportsView />}
@@ -1082,11 +1128,13 @@ export default function Dashboard() {
         type={recurrenceAction || "DELETE"}
       />
 
+      {/* COMPONENTE EXPORTAR CONECTADO */}
       <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         transactions={transactions}
         userName={user.name}
+        currentDashboardDate={selectedDate} // PASSANDO A DATA!
       />
       <SettingsModal
         isOpen={isSettingsModalOpen}
