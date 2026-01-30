@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react"; // Importei os ícones do olho
 import { Toast } from "@/components/ui/Toast";
 
 export function LoginForm() {
@@ -12,7 +12,10 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Novo estado para controlar o erro visual (bordas vermelhas)
+  // Estado para controlar a visibilidade da senha
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Estado para erro visual
   const [hasError, setHasError] = useState(false);
 
   const [toast, setToast] = useState<{
@@ -20,14 +23,45 @@ export function LoginForm() {
     type: "success" | "error";
   } | null>(null);
 
+  // --- MÁSCARA DE CPF/CNPJ ---
+  const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, ""); // Remove tudo que não é número
+
+    // Limita tamanho máximo (CNPJ = 14 números)
+    if (value.length > 14) value = value.slice(0, 14);
+
+    // Aplica a máscara
+    if (value.length <= 11) {
+      // CPF
+      value = value.replace(/(\d{3})(\d)/, "$1.$2");
+      value = value.replace(/(\d{3})(\d)/, "$1.$2");
+      value = value.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    } else {
+      // CNPJ
+      value = value.replace(/^(\d{2})(\d)/, "$1.$2");
+      value = value.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+      value = value.replace(/\.(\d{3})(\d)/, ".$1/$2");
+      value = value.replace(/(\d{4})(\d)/, "$1-$2");
+    }
+
+    if (hasError) setHasError(false); // Limpa erro ao digitar
+    setDocument(value);
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (hasError) setHasError(false);
+    setPassword(e.target.value);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Limpa erro anterior ao tentar enviar
     setHasError(false);
 
-    if (!document || !password) {
-      setHasError(true); // Ativa borda vermelha e tremida
+    // Remove a máscara para validar se tem algo escrito
+    const rawDocument = document.replace(/\D/g, "");
+
+    if (!rawDocument || !password) {
+      setHasError(true);
       setToast({
         message: "Por favor, preencha todos os campos.",
         type: "error",
@@ -41,6 +75,7 @@ export function LoginForm() {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // Envia o documento original (com ou sem máscara), o backend limpa
         body: JSON.stringify({ document, password }),
       });
 
@@ -49,12 +84,9 @@ export function LoginForm() {
       if (res.ok) {
         localStorage.setItem("user", JSON.stringify(data.user));
         setToast({ message: "Login realizado com sucesso!", type: "success" });
-
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 1000);
+        setTimeout(() => router.push("/dashboard"), 1000);
       } else {
-        setHasError(true); // Ativa borda vermelha e tremida no erro da API
+        setHasError(true);
         setToast({
           message: data.message || "Credenciais inválidas.",
           type: "error",
@@ -67,13 +99,6 @@ export function LoginForm() {
     }
   };
 
-  // Função auxiliar para resetar o erro quando o usuário digita
-  const handleInputChange = (setter: (val: string) => void, value: string) => {
-    if (hasError) setHasError(false);
-    setter(value);
-  };
-
-  // Classes dinâmicas para o input (Normal vs Erro)
   const inputBaseClass =
     "w-full p-4 border rounded-2xl shadow-sm outline-none transition-all";
   const inputNormalClass =
@@ -120,24 +145,41 @@ export function LoginForm() {
           <input
             type="text"
             value={document}
-            onChange={(e) => handleInputChange(setDocument, e.target.value)}
+            onChange={handleDocumentChange}
             placeholder="000.000.000-00"
+            maxLength={18} // Limita caracteres da máscara de CNPJ
             className={`${inputBaseClass} ${hasError ? inputErrorClass : inputNormalClass}`}
           />
         </div>
+
         <div>
           <label
             className={`block text-xs font-bold uppercase mb-1 ml-1 ${hasError ? "text-rose-500" : "text-slate-500"}`}
           >
             Senha
           </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => handleInputChange(setPassword, e.target.value)}
-            placeholder="••••••••"
-            className={`${inputBaseClass} ${hasError ? inputErrorClass : inputNormalClass}`}
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"} // Alterna entre texto e senha
+              value={password}
+              onChange={handlePasswordChange}
+              placeholder="••••••••"
+              className={`${inputBaseClass} ${hasError ? inputErrorClass : inputNormalClass} pr-12`} // pr-12 para o texto não ficar por cima do ícone
+            />
+            {/* Botão de Espiar Senha */}
+            <button
+              type="button"
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-indigo-600 focus:outline-none cursor-pointer"
+              onMouseDown={() => setShowPassword(true)} // Ao clicar/segurar
+              onMouseUp={() => setShowPassword(false)} // Ao soltar
+              onMouseLeave={() => setShowPassword(false)} // Ao sair de cima
+              onTouchStart={() => setShowPassword(true)} // Para mobile (tocar)
+              onTouchEnd={() => setShowPassword(false)} // Para mobile (soltar)
+              title="Segure para ver a senha"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
         </div>
 
         <button
