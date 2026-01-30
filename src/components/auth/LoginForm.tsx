@@ -1,186 +1,176 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  BadgeDollarSign,
-  User,
-  Lock,
-  ArrowRight,
-  Loader2,
-  Eye,
-  EyeOff,
-} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
+import { Toast } from "@/components/ui/Toast";
 
-export default function LoginForm() {
+export function LoginForm() {
   const router = useRouter();
-  const [cpfCnpj, setCpfCnpj] = useState("");
+  const [document, setDocument] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Máscara APENAS VISUAL
-  const maskDocument = (value: string) => {
-    const v = value.replace(/\D/g, "");
-    if (v.length <= 11) {
-      return v
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d{1,2})$/, "$1-$2")
-        .substring(0, 14);
-    } else {
-      return v
-        .replace(/^(\d{2})(\d)/, "$1.$2")
-        .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-        .replace(/\.(\d{3})(\d)/, ".$1/$2")
-        .replace(/(\d{4})(\d)/, "$1-$2")
-        .substring(0, 18);
-    }
-  };
+  // Novo estado para controlar o erro visual (bordas vermelhas)
+  const [hasError, setHasError] = useState(false);
 
-  const handleChangeDocument = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = maskDocument(e.target.value);
-    setCpfCnpj(formatted);
-  };
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Limpa erro anterior ao tentar enviar
+    setHasError(false);
+
+    if (!document || !password) {
+      setHasError(true); // Ativa borda vermelha e tremida
+      setToast({
+        message: "Por favor, preencha todos os campos.",
+        type: "error",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // AQUI ESTÁ O SEGREDO: .replace(/\D/g, "")
-      // Removemos tudo que não é número antes de enviar para a API
-      const cleanDocument = cpfCnpj.replace(/\D/g, "");
-
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          document: cleanDocument, // Envia LIMPO (só números)
-          password: password,
-        }),
+        body: JSON.stringify({ document, password }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
         localStorage.setItem("user", JSON.stringify(data.user));
-        router.push("/dashboard");
+        setToast({ message: "Login realizado com sucesso!", type: "success" });
+
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 1000);
       } else {
-        alert(data.message || "Erro ao fazer login");
+        setHasError(true); // Ativa borda vermelha e tremida no erro da API
+        setToast({
+          message: data.message || "Credenciais inválidas.",
+          type: "error",
+        });
       }
     } catch (error) {
-      console.error("Erro de login:", error);
-      alert("Ocorreu um erro ao tentar entrar.");
+      setToast({ message: "Erro de conexão. Tente novamente.", type: "error" });
     } finally {
       setLoading(false);
     }
   };
 
+  // Função auxiliar para resetar o erro quando o usuário digita
+  const handleInputChange = (setter: (val: string) => void, value: string) => {
+    if (hasError) setHasError(false);
+    setter(value);
+  };
+
+  // Classes dinâmicas para o input (Normal vs Erro)
+  const inputBaseClass =
+    "w-full p-4 border rounded-2xl shadow-sm outline-none transition-all";
+  const inputNormalClass =
+    "bg-white border-slate-200 focus:ring-2 focus:ring-indigo-500 text-slate-800";
+  const inputErrorClass =
+    "bg-rose-50 border-rose-500 text-rose-900 placeholder-rose-300 focus:ring-2 focus:ring-rose-500 animate-shake";
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
-        <div className="p-8 pb-6 text-center">
-          <div className="mx-auto w-16 h-16 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
-            <BadgeDollarSign size={32} />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">
-            Finanças Simples
-          </h1>
-          <p className="text-gray-500 text-sm">
-            Gestão descomplicada para você
-          </p>
+    <div className="min-h-screen flex flex-col justify-center p-6 bg-slate-50">
+      <div className="mb-8 text-center">
+        <div className="w-20 h-20 bg-indigo-600 rounded-3xl mx-auto mb-4 flex items-center justify-center shadow-xl">
+          <svg
+            className="w-12 h-12 text-white"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+          Financeiro.AI
+        </h1>
+        <p className="text-sm text-slate-500 mt-2 font-medium">
+          Gestão inteligente para o seu negócio
+        </p>
+      </div>
+
+      <form
+        className="w-full max-w-sm mx-auto space-y-6"
+        onSubmit={handleSubmit}
+      >
+        <div>
+          <label
+            className={`block text-xs font-bold uppercase mb-1 ml-1 ${hasError ? "text-rose-500" : "text-slate-500"}`}
+          >
+            CPF ou CNPJ
+          </label>
+          <input
+            type="text"
+            value={document}
+            onChange={(e) => handleInputChange(setDocument, e.target.value)}
+            placeholder="000.000.000-00"
+            className={`${inputBaseClass} ${hasError ? inputErrorClass : inputNormalClass}`}
+          />
+        </div>
+        <div>
+          <label
+            className={`block text-xs font-bold uppercase mb-1 ml-1 ${hasError ? "text-rose-500" : "text-slate-500"}`}
+          >
+            Senha
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => handleInputChange(setPassword, e.target.value)}
+            placeholder="••••••••"
+            className={`${inputBaseClass} ${hasError ? inputErrorClass : inputNormalClass}`}
+          />
         </div>
 
-        <form onSubmit={handleLogin} className="px-8 pb-8 space-y-5">
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
-              CPF ou CNPJ
-            </label>
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-600 transition-colors">
-                <User size={18} />
-              </div>
-              <input
-                type="text"
-                required
-                value={cpfCnpj}
-                onChange={handleChangeDocument}
-                placeholder="000.000.000-00"
-                maxLength={18}
-                className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all bg-gray-50 focus:bg-white"
-              />
-            </div>
-          </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-[0.98] transition-all mt-2 flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+        >
+          {loading ? (
+            <>
+              <Loader2 size={24} className="animate-spin" /> Entrando...
+            </>
+          ) : (
+            "Entrar no Sistema"
+          )}
+        </button>
+      </form>
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
-              Senha
-            </label>
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-600 transition-colors">
-                <Lock size={18} />
-              </div>
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="block w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all bg-gray-50 focus:bg-white"
-              />
-              <button
-                type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-indigo-600 cursor-pointer focus:outline-none"
-                onMouseDown={() => setShowPassword(true)}
-                onMouseUp={() => setShowPassword(false)}
-                onMouseLeave={() => setShowPassword(false)}
-                onTouchStart={() => setShowPassword(true)}
-                onTouchEnd={() => setShowPassword(false)}
-                tabIndex={-1}
-              >
-                {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
-              </button>
-            </div>
-          </div>
-
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold py-3.5 px-4 rounded-xl shadow-lg shadow-indigo-500/30 transform transition hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" />
-                  Entrando...
-                </>
-              ) : (
-                <>
-                  Entrar no Sistema
-                  <ArrowRight size={18} />
-                </>
-              )}
-            </button>
-          </div>
-
-          <div className="flex flex-col items-center gap-3 mt-6 pt-4 border-t border-gray-100">
-            <Link
-              href="/register"
-              className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
-            >
-              Criar uma nova conta
-            </Link>
-            <Link
-              href="/recuperar-senha"
-              className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              Esqueci minha senha
-            </Link>
-          </div>
-        </form>
+      <div className="mt-8 flex flex-col gap-3 text-center">
+        <Link
+          href="/register"
+          className="text-indigo-600 font-bold hover:text-indigo-800 transition-colors"
+        >
+          Cadastre-se grátis
+        </Link>
       </div>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
