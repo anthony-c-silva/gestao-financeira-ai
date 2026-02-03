@@ -14,10 +14,67 @@ import {
   User,
   Briefcase,
   ChevronDown,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { BUSINESS_SIZES } from "@/constants/business";
 import { Toast } from "@/components/ui/Toast";
-import { Logo } from "@/components/ui/Logo";
+
+// --- FUNÇÕES DE VALIDAÇÃO ---
+const validateCPF = (cpf: string) => {
+  cpf = cpf.replace(/[^\d]+/g, "");
+  if (cpf.length !== 11 || !!cpf.match(/(\d)\1{10}/)) return false;
+  
+  let soma = 0;
+  let resto;
+  for (let i = 1; i <= 9; i++) soma = soma + parseInt(cpf.substring(i - 1, i)) * (11 - i);
+  resto = (soma * 10) % 11;
+  if ((resto === 10) || (resto === 11)) resto = 0;
+  if (resto !== parseInt(cpf.substring(9, 10))) return false;
+  
+  soma = 0;
+  for (let i = 1; i <= 10; i++) soma = soma + parseInt(cpf.substring(i - 1, i)) * (12 - i);
+  resto = (soma * 10) % 11;
+  if ((resto === 10) || (resto === 11)) resto = 0;
+  if (resto !== parseInt(cpf.substring(10, 11))) return false;
+  
+  return true;
+};
+
+const validateCNPJ = (cnpj: string) => {
+  cnpj = cnpj.replace(/[^\d]+/g, "");
+  if (cnpj.length !== 14) return false;
+  if (/^(\d)\1+$/.test(cnpj)) return false;
+
+  let tamanho = cnpj.length - 2;
+  let numeros = cnpj.substring(0, tamanho);
+  const digitos = cnpj.substring(tamanho);
+  let soma = 0;
+  let pos = tamanho - 7;
+  
+  for (let i = tamanho; i >= 1; i--) {
+    soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  
+  let resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+  if (resultado !== parseInt(digitos.charAt(0))) return false;
+  
+  tamanho = tamanho + 1;
+  numeros = cnpj.substring(0, tamanho);
+  soma = 0;
+  pos = tamanho - 7;
+  
+  for (let i = tamanho; i >= 1; i--) {
+    soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  
+  resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+  if (resultado !== parseInt(digitos.charAt(1))) return false;
+  
+  return true;
+};
 
 export function RegisterForm() {
   const router = useRouter();
@@ -30,13 +87,13 @@ export function RegisterForm() {
 
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
+  const [showPassword, setShowPassword] = useState(false);
 
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
   } | null>(null);
 
-  // --- CORREÇÃO: Converte o Objeto de constantes em Array para uso no select ---
   const businessOptions = Object.entries(BUSINESS_SIZES).map(([key, val]) => ({
     value: key,
     ...val
@@ -61,21 +118,25 @@ export function RegisterForm() {
     state: "",
   });
 
-  const formatDocument = (value: string) => {
-    const numbers = value.replace(/\D/g, "");
-    if (numbers.length <= 11) {
+  const formatDocument = (value: string, type: "PF" | "PJ") => {
+    let numbers = value.replace(/\D/g, "");
+    
+    if (type === "PF") {
+      if (numbers.length > 11) numbers = numbers.slice(0, 11);
       return numbers
         .replace(/(\d{3})(\d)/, "$1.$2")
         .replace(/(\d{3})(\d)/, "$1.$2")
         .replace(/(\d{3})(\d{1,2})/, "$1-$2")
         .replace(/(-\d{2})\d+?$/, "$1");
+    } else {
+      if (numbers.length > 14) numbers = numbers.slice(0, 14);
+      return numbers
+        .replace(/^(\d{2})(\d)/, "$1.$2")
+        .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+        .replace(/\.(\d{3})(\d)/, ".$1/$2")
+        .replace(/(\d{4})(\d)/, "$1-$2")
+        .replace(/(-\d{2})\d+?$/, "$1");
     }
-    return numbers
-      .replace(/^(\d{2})(\d)/, "$1.$2")
-      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-      .replace(/\.(\d{3})(\d)/, ".$1/$2")
-      .replace(/(\d{4})(\d)/, "$1-$2")
-      .replace(/(-\d{2})\d+?$/, "$1");
   };
 
   const formatPhone = (value: string) => {
@@ -132,7 +193,7 @@ export function RegisterForm() {
     const { name, value } = e.target;
     let formattedValue = value;
 
-    if (name === "document") formattedValue = formatDocument(value);
+    if (name === "document") formattedValue = formatDocument(value, personType);
     if (name === "phone") formattedValue = formatPhone(value);
     if (name === "cep") formattedValue = formatCEP(value);
 
@@ -157,14 +218,26 @@ export function RegisterForm() {
         });
         return;
       }
-      if (
-        personType === "PJ" &&
-        (!formData.companyName || !formData.businessSize)
-      ) {
-        setToast({ message: "Preencha os dados da empresa.", type: "error" });
-        return;
+
+      const cleanDoc = formData.document.replace(/\D/g, "");
+      
+      if (personType === "PF") {
+        if (!validateCPF(cleanDoc)) {
+          setToast({ message: "CPF inválido. Verifique os números.", type: "error" });
+          return;
+        }
+      } else {
+        if (personType === "PJ" && (!formData.companyName || !formData.businessSize)) {
+          setToast({ message: "Preencha os dados da empresa.", type: "error" });
+          return;
+        }
+        if (!validateCNPJ(cleanDoc)) {
+          setToast({ message: "CNPJ inválido. Verifique os números.", type: "error" });
+          return;
+        }
       }
     }
+
     if (currentStep === 2) {
       if (
         !formData.cep ||
@@ -182,6 +255,15 @@ export function RegisterForm() {
   };
 
   const handleBack = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
+
+  const handleTypeChange = (type: "PF" | "PJ") => {
+    setPersonType(type);
+    setFormData((prev) => ({ 
+      ...prev, 
+      type: type, 
+      document: "" 
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -243,21 +325,18 @@ export function RegisterForm() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col justify-center p-4 sm:p-6 bg-slate-50">
-      <div className="w-full max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-              <Logo/>
-          </div>
+    <div className="min-h-screen flex flex-col justify-center p-2 py-4 sm:p-6 bg-slate-50">
+      <div className="w-full max-w-3xl mx-auto">
+        <div className="text-center mb-4 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
             Crie sua conta
           </h1>
-          <p className="text-slate-500 mt-2">
+          <p className="text-slate-500 mt-1 sm:mt-2 text-sm sm:text-base">
             Comece a transformar suas finanças hoje
           </p>
         </div>
 
-        <div className="flex justify-center mb-8 gap-2">
+        <div className="flex justify-center mb-5 sm:mb-8 gap-2">
           {[1, 2, 3].map((step) => (
             <div
               key={step}
@@ -268,36 +347,35 @@ export function RegisterForm() {
 
         <form
           onSubmit={handleSubmit}
-          className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl shadow-indigo-100/50 border border-slate-100 relative overflow-hidden"
+          className="bg-white p-4 sm:p-8 rounded-3xl shadow-xl shadow-indigo-100/50 border border-slate-100 relative overflow-hidden"
         >
           {currentStep === 1 && (
-            <div className="space-y-5 animate-in slide-in-from-right-4 fade-in duration-300">
-              <div className="flex gap-4 p-1 bg-slate-100 rounded-xl mb-6">
+            <div className="space-y-3 sm:space-y-5 animate-in slide-in-from-right-4 fade-in duration-300">
+              
+              <div className="flex gap-2 sm:gap-4 p-1 bg-slate-100 rounded-xl mb-4 sm:mb-6">
                 <button
                   type="button"
-                  onClick={() => {
-                    setPersonType("PF");
-                    setFormData((prev) => ({ ...prev, type: "PF" }));
-                  }}
-                  className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${personType === "PF" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                  onClick={() => handleTypeChange("PF")}
+                  className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap ${personType === "PF" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
                 >
-                  <User size={18} /> Pessoa Física
+                  <User className="w-4 h-4 sm:w-[18px] sm:h-[18px]" /> 
+                  Pessoa Física
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setPersonType("PJ");
-                    setFormData((prev) => ({ ...prev, type: "PJ" }));
-                  }}
-                  className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${personType === "PJ" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                  onClick={() => handleTypeChange("PJ")}
+                  className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap ${personType === "PJ" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
                 >
-                  <Building2 size={18} /> Pessoa Jurídica
+                  <Building2 className="w-4 h-4 sm:w-[18px] sm:h-[18px]" /> 
+                  Pessoa Jurídica
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* VOLTANDO PARA O LAYOUT EMPILHADO NO MOBILE (grid-cols-1) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5 sm:mb-1 ml-1">
                     Nome Completo
                   </label>
                   <input
@@ -305,12 +383,13 @@ export function RegisterForm() {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium"
+                    className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium text-sm sm:text-base"
                     placeholder="Seu nome"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5 sm:mb-1 ml-1">
                     {personType === "PF" ? "CPF" : "CNPJ"}
                   </label>
                   <input
@@ -318,8 +397,8 @@ export function RegisterForm() {
                     name="document"
                     value={formData.document}
                     onChange={handleChange}
-                    maxLength={18}
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium"
+                    maxLength={personType === "PF" ? 14 : 18}
+                    className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium text-sm sm:text-base"
                     placeholder={
                       personType === "PF"
                         ? "000.000.000-00"
@@ -327,66 +406,60 @@ export function RegisterForm() {
                     }
                   />
                 </div>
-              </div>
 
-              {personType === "PJ" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
-                      Razão Social
-                    </label>
-                    <input
-                      type="text"
-                      name="companyName"
-                      value={formData.companyName}
-                      onChange={handleChange}
-                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium"
-                      placeholder="Nome da Empresa"
-                    />
-                  </div>
-                  <div className="relative" ref={businessSizeRef}>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
-                      Enquadramento
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setIsBusinessSizeOpen(!isBusinessSizeOpen)}
-                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium text-left flex justify-between items-center"
-                    >
-                      {/* CORREÇÃO: Usa o businessOptions para buscar o label */}
-                      {businessOptions.find(
-                        (s) => s.value === formData.businessSize,
-                      )?.label || "Selecione..."}
-                      <ChevronDown size={16} className="text-slate-400" />
-                    </button>
-                    {isBusinessSizeOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
-                        {/* CORREÇÃO: Usa o businessOptions para fazer o map */}
-                        {businessOptions.map((size) => (
-                          <button
-                            key={size.value}
-                            type="button"
-                            onClick={() => {
-                              setFormData((prev) => ({
-                                ...prev,
-                                businessSize: size.value,
-                              }));
-                              setIsBusinessSizeOpen(false);
-                            }}
-                            className="w-full text-left px-4 py-3 hover:bg-slate-50 text-sm text-slate-700 font-medium border-b border-slate-50 last:border-0"
-                          >
-                            {size.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+                {personType === "PJ" && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5 sm:mb-1 ml-1">
+                        Razão Social
+                      </label>
+                      <input
+                        type="text"
+                        name="companyName"
+                        value={formData.companyName}
+                        onChange={handleChange}
+                        className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium text-sm sm:text-base"
+                        placeholder="Nome da Empresa"
+                      />
+                    </div>
+                    <div className="relative" ref={businessSizeRef}>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5 sm:mb-1 ml-1">
+                        Enquadramento
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsBusinessSizeOpen(!isBusinessSizeOpen)}
+                        className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium text-left flex justify-between items-center text-sm sm:text-base"
+                      >
+                        <span className="truncate">
+                          {businessOptions.find((s) => s.value === formData.businessSize)?.label || "Selecione..."}
+                        </span>
+                        <ChevronDown size={16} className="text-slate-400 shrink-0" />
+                      </button>
+                      {/* ALTERAÇÃO: MENU ABRINDO PARA CIMA (bottom-full) */}
+                      {isBusinessSizeOpen && (
+                        <div className="absolute bottom-full mb-1 left-0 right-0 bg-white border border-slate-100 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
+                          {businessOptions.map((size) => (
+                            <button
+                              key={size.value}
+                              type="button"
+                              onClick={() => {
+                                setFormData((prev) => ({ ...prev, businessSize: size.value }));
+                                setIsBusinessSizeOpen(false);
+                              }}
+                              className="w-full text-left px-4 py-3 hover:bg-slate-50 text-sm text-slate-700 font-medium border-b border-slate-50 last:border-0"
+                            >
+                              {size.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5 sm:mb-1 ml-1">
                     E-mail
                   </label>
                   <input
@@ -394,12 +467,13 @@ export function RegisterForm() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium"
+                    className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium text-sm sm:text-base"
                     placeholder="seu@email.com"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5 sm:mb-1 ml-1">
                     Celular / WhatsApp
                   </label>
                   <input
@@ -408,19 +482,21 @@ export function RegisterForm() {
                     value={formData.phone}
                     onChange={handleChange}
                     maxLength={15}
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium"
+                    className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium text-sm sm:text-base"
                     placeholder="(00) 00000-0000"
                   />
                 </div>
+
               </div>
             </div>
           )}
 
           {currentStep === 2 && (
-            <div className="space-y-5 animate-in slide-in-from-right-4 fade-in duration-300">
-              <div className="flex gap-4">
-                <div className="w-40">
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+            <div className="space-y-3 sm:space-y-5 animate-in slide-in-from-right-4 fade-in duration-300">
+              
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <div className="w-full sm:w-40">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5 sm:mb-1 ml-1">
                     CEP
                   </label>
                   <div className="relative">
@@ -431,7 +507,7 @@ export function RegisterForm() {
                       onChange={handleChange}
                       onBlur={handleCepBlur}
                       maxLength={9}
-                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium"
+                      className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium text-sm sm:text-base"
                       placeholder="00000-000"
                     />
                     {loadingCep && (
@@ -445,7 +521,7 @@ export function RegisterForm() {
                   </div>
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5 sm:mb-1 ml-1">
                     Endereço
                   </label>
                   <input
@@ -453,15 +529,15 @@ export function RegisterForm() {
                     name="street"
                     value={formData.street}
                     onChange={handleChange}
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium"
+                    className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium text-sm sm:text-base"
                     placeholder="Rua, Av..."
                   />
                 </div>
               </div>
 
-              <div className="flex gap-4">
+              <div className="flex gap-3 sm:gap-4">
                 <div className="w-32">
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5 sm:mb-1 ml-1">
                     Número
                   </label>
                   <input
@@ -469,12 +545,12 @@ export function RegisterForm() {
                     name="number"
                     value={formData.number}
                     onChange={handleChange}
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium"
+                    className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium text-sm sm:text-base"
                     placeholder="123"
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5 sm:mb-1 ml-1">
                     Complemento
                   </label>
                   <input
@@ -482,15 +558,15 @@ export function RegisterForm() {
                     name="complement"
                     value={formData.complement}
                     onChange={handleChange}
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium"
+                    className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium text-sm sm:text-base"
                     placeholder="Apto 101"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5 sm:mb-1 ml-1">
                     Bairro
                   </label>
                   <input
@@ -498,12 +574,12 @@ export function RegisterForm() {
                     name="neighborhood"
                     value={formData.neighborhood}
                     onChange={handleChange}
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium"
+                    className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium text-sm sm:text-base"
                   />
                 </div>
-                <div className="flex gap-4">
+                <div className="flex gap-3 sm:gap-4">
                   <div className="flex-1">
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5 sm:mb-1 ml-1">
                       Cidade
                     </label>
                     <input
@@ -511,11 +587,11 @@ export function RegisterForm() {
                       name="city"
                       value={formData.city}
                       onChange={handleChange}
-                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium"
+                      className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium text-sm sm:text-base"
                     />
                   </div>
                   <div className="w-20">
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5 sm:mb-1 ml-1">
                       UF
                     </label>
                     <input
@@ -524,7 +600,7 @@ export function RegisterForm() {
                       value={formData.state}
                       onChange={handleChange}
                       maxLength={2}
-                      className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium uppercase text-center"
+                      className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 font-medium uppercase text-center text-sm sm:text-base"
                     />
                   </div>
                 </div>
@@ -533,40 +609,57 @@ export function RegisterForm() {
           )}
 
           {currentStep === 3 && (
-            <div className="space-y-5 animate-in slide-in-from-right-4 fade-in duration-300">
-              <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 mb-6">
-                <h3 className="text-indigo-900 font-bold flex items-center gap-2 mb-2">
+            <div className="space-y-3 sm:space-y-5 animate-in slide-in-from-right-4 fade-in duration-300">
+              <div className="bg-indigo-50 p-3 sm:p-4 rounded-2xl border border-indigo-100 mb-4 sm:mb-6">
+                <h3 className="text-indigo-900 font-bold flex items-center gap-2 mb-1 sm:mb-2">
                   <Briefcase size={20} /> Quase lá!
                 </h3>
-                <p className="text-sm text-indigo-700">
+                <p className="text-xs sm:text-sm text-indigo-700">
                   Defina uma senha segura para proteger os dados financeiros da
                   sua empresa.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5 sm:mb-1 ml-1">
                   Senha de Acesso
                 </label>
                 <div className="relative">
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className={`w-full p-3.5 bg-slate-50 border rounded-xl outline-none transition-all text-slate-800 font-medium pr-10 ${passwordStrength >= 3 ? "border-emerald-200 focus:ring-2 focus:ring-emerald-500" : "border-slate-200 focus:ring-2 focus:ring-indigo-500"}`}
+                    className={`w-full p-3 sm:p-3.5 bg-slate-50 border rounded-xl outline-none transition-all text-slate-800 font-medium pr-20 text-sm sm:text-base ${passwordStrength >= 3 ? "border-emerald-200 focus:ring-2 focus:ring-emerald-500" : "border-slate-200 focus:ring-2 focus:ring-indigo-500"}`}
                     placeholder="••••••••"
                   />
-                  {formData.password && (
-                    <div className="absolute right-3 top-3.5">
-                      {passwordStrength >= 3 ? (
-                        <CheckCircle2 size={20} className="text-emerald-500" />
-                      ) : (
-                        <div className="w-5 h-5 rounded-full border-2 border-slate-300" />
-                      )}
-                    </div>
-                  )}
+                  
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 gap-2">
+                    {formData.password && (
+                      <div className="flex items-center">
+                        {passwordStrength >= 3 ? (
+                          <CheckCircle2 size={18} className="text-emerald-500" />
+                        ) : (
+                          <div className="w-4 h-4 rounded-full border-2 border-slate-300" />
+                        )}
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      className="text-slate-400 hover:text-indigo-600 focus:outline-none cursor-pointer p-1"
+                      onMouseDown={() => setShowPassword(true)}
+                      onMouseUp={() => setShowPassword(false)}
+                      onMouseLeave={() => setShowPassword(false)}
+                      onTouchStart={() => setShowPassword(true)}
+                      onTouchEnd={() => setShowPassword(false)}
+                      title="Segure para ver a senha"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
                 </div>
+                
                 <div className="flex gap-1 mt-2 h-1">
                   {[1, 2, 3, 4].map((level) => (
                     <div
@@ -581,7 +674,7 @@ export function RegisterForm() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-0.5 sm:mb-1 ml-1">
                   Confirme a Senha
                 </label>
                 <div className="relative">
@@ -590,7 +683,7 @@ export function RegisterForm() {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className={`w-full p-3.5 bg-slate-50 border rounded-xl outline-none transition-all text-slate-800 font-medium pr-10 ${passwordsMatch ? "border-emerald-200 focus:ring-emerald-500" : "border-slate-200 focus:ring-indigo-500"}`}
+                    className={`w-full p-3 sm:p-3.5 bg-slate-50 border rounded-xl outline-none transition-all text-slate-800 font-medium pr-10 text-sm sm:text-base ${passwordsMatch ? "border-emerald-200 focus:ring-emerald-500" : "border-slate-200 focus:ring-indigo-500"}`}
                     placeholder="••••••••"
                   />
                   {formData.confirmPassword && (
@@ -607,7 +700,7 @@ export function RegisterForm() {
             </div>
           )}
 
-          <div className="pt-6 flex gap-3 mt-4 border-t border-slate-50">
+          <div className="pt-4 sm:pt-6 flex gap-3 mt-4 border-t border-slate-50">
             {currentStep > 1 && (
               <button
                 type="button"
