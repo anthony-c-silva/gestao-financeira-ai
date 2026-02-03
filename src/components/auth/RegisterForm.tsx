@@ -437,7 +437,7 @@ export function RegisterForm() {
                       <ChevronDown size={16} className="text-slate-400" />
                     </button>
                     {isBusinessSizeOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
+                      <div className="absolute bottom-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
                         {businessOptions.map((size) => (
                           <button
                             key={size.value}
