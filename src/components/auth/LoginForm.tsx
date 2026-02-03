@@ -78,7 +78,7 @@ export function LoginForm() {
   const inputErrorClass = "bg-rose-50 border-rose-500 text-rose-900 placeholder-rose-300 focus:ring-2 focus:ring-rose-500 animate-shake";
 
   return (
-    <div className="min-h-screen flex flex-col justify-center p-6 bg-slate-50">
+    <div className="min-h-screen flex flex-col justify-start p-6 bg-slate-50">
       <div className="mb-8 flex flex-col items-center">
           <Logo/>
       </div>
