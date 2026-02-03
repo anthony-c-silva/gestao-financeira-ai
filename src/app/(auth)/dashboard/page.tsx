@@ -43,6 +43,7 @@ import { DreReport } from "@/components/dashboard/DreReport";
 import { RecurrenceOptionsModal } from "@/components/dashboard/RecurrenceOptionsModal";
 import { Toast } from "@/components/ui/Toast";
 import { MonthSelector } from "@/components/dashboard/MonthSelector";
+import { FeedbackModal } from "@/components/ui/FeedbackModal";
 
 import {
   BarChart,
@@ -119,7 +120,6 @@ export default function Dashboard() {
     "HOME" | "FLOW" | "REPORTS" | "CONTACTS"
   >("HOME");
 
-  // DATA GLOBAL SELECIONADA
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -141,6 +141,9 @@ export default function Dashboard() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] =
     useState(false);
+  
+  // ESTADO NOVO: Controle do Modal de Sucesso de Exclusão
+  const [isDeleteSuccessOpen, setIsDeleteSuccessOpen] = useState(false);
 
   const [recurrenceAction, setRecurrenceAction] = useState<
     "EDIT" | "DELETE" | null
@@ -169,7 +172,6 @@ export default function Dashboard() {
   const [aiText, setAiText] = useState("");
   const [isAiProcessing, setIsAiProcessing] = useState(false);
 
-  // FILTRAGEM MENSAL PARA OS CARDS E GRÁFICOS
   const monthlyTransactions = transactions.filter((t) => {
     const tDate = new Date(t.date);
     const tDateAdjusted = new Date(
@@ -238,13 +240,15 @@ export default function Dashboard() {
     showToast("Perfil atualizado!", "success");
   };
 
+  // --- LÓGICA ATUALIZADA: Fecha modais anteriores antes de mostrar sucesso ---
   const handleDeleteAccount = async () => {
     if (!user) return;
     try {
       const res = await fetch(`/api/user/${user._id}`, { method: "DELETE" });
       if (res.ok) {
-        alert("Sua conta foi excluída. Esperamos vê-lo novamente!");
-        handleLogout();
+        setIsDeleteAccountModalOpen(false); // Fecha confirmação
+        setIsSettingsModalOpen(false);      // Fecha modal de configurações (Minha Conta)
+        setIsDeleteSuccessOpen(true);       // Abre sucesso
       } else {
         showToast("Erro ao excluir conta.", "error");
       }
@@ -1150,6 +1154,18 @@ export default function Dashboard() {
         onConfirm={handleDeleteAccount}
         title="Excluir Conta Permanentemente?"
         message="Tem certeza absoluta? Isso apagará TODOS os seus lançamentos, contatos e configurações. Não é possível recuperar depois."
+      />
+      
+      {/* MODAL DE SUCESSO DE EXCLUSÃO */}
+      <FeedbackModal
+        isOpen={isDeleteSuccessOpen}
+        onClose={() => {
+          setIsDeleteSuccessOpen(false);
+          handleLogout(); // Redireciona para o login ao fechar
+        }}
+        type="success"
+        title="Conta Excluída"
+        message="Sua conta foi excluída com sucesso. Esperamos vê-lo novamente em breve!"
       />
     </div>
   );

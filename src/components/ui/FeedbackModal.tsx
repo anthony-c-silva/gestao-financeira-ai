@@ -54,7 +54,8 @@ export function FeedbackModal({
   const Icon = currentStyle.Icon;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    // AJUSTE CRÍTICO: z-[9999] para ficar acima de todos os outros modais
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col items-center text-center">
         {/* Ícone Animado */}
         <div
@@ -65,14 +66,14 @@ export function FeedbackModal({
 
         {/* Textos */}
         <h3 className="text-xl font-bold text-slate-800 mb-2">{title}</h3>
-        <p className="text-slate-500 text-sm mb-6 leading-relaxed whitespace-pre-line">
+        <p className="text-slate-500 text-sm mb-6 leading-relaxed">
           {message}
         </p>
 
         {/* Botão de Ação */}
         <button
           onClick={onClose}
-          className={`w-full py-3.5 rounded-2xl font-bold text-white shadow-lg transition-transform active:scale-[0.98] ${currentStyle.button}`}
+          className={`w-full py-3.5 px-4 rounded-xl text-white font-bold shadow-lg transition-all active:scale-[0.98] ${currentStyle.button}`}
         >
           Entendido
         </button>
