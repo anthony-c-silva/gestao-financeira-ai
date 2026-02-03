@@ -45,7 +45,6 @@ export interface TransactionData {
     _id: string;
     name: string;
   };
-  // Adicionado para suportar a lógica de recorrência se vier do backend
   recurrenceId?: string;
   totalInstallments?: number;
 }
@@ -56,7 +55,6 @@ interface NewTransactionModalProps {
   onSuccess: () => void;
   userId: string;
   initialData?: TransactionData | null;
-  // NOVA PROP: Necessária para saber se edita uma ou várias
   recurrenceAction?: "SINGLE" | "FUTURE" | "ALL" | null;
 }
 
@@ -103,31 +101,31 @@ export function NewTransactionModal({
   onSuccess,
   userId,
   initialData,
-  recurrenceAction, // Recebendo a prop
+  recurrenceAction,
 }: NewTransactionModalProps) {
   const [loading, setLoading] = useState(false);
 
   // Estados
   const [editingId, setEditingId] = useState<string | null>(null);
   const [type, setType] = useState<"INCOME" | "EXPENSE">("EXPENSE");
-  const [amount, setAmount] = useState("");
+  
+  // MUDANÇA: Inicia com "0,00" para seguir o padrão bancário
+  const [amount, setAmount] = useState("0,00");
+  
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("Pix");
   const [status, setStatus] = useState<"PAID" | "PENDING">("PAID");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
-  // Recorrência
   const [isRecurring, setIsRecurring] = useState(false);
   const [installments, setInstallments] = useState("2");
 
-  // UI
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarViewDate, setCalendarViewDate] = useState(new Date());
 
-  // Dados
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [contactName, setContactName] = useState("");
@@ -142,10 +140,31 @@ export function NewTransactionModal({
   const paymentRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
 
+  // --- FUNÇÃO NOVA: Formatação de Moeda ---
+  const formatCurrency = (value: string) => {
+    // Remove tudo que não é número
+    const numericValue = value.replace(/\D/g, "");
+    
+    // Divide por 100 para considerar os centavos
+    const floatValue = Number(numericValue) / 100;
+    
+    // Formata para o padrão brasileiro (R$ 1.000,00)
+    return floatValue.toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAmount(formatCurrency(e.target.value));
+  };
+  // ----------------------------------------
+
   const getAmountSize = (value: string) => {
-    if (value.length > 10) return "text-2xl";
-    if (value.length > 7) return "text-3xl";
-    if (value.length > 5) return "text-4xl";
+    // Ajustado para lidar com a string formatada (que é mais longa)
+    if (value.length > 12) return "text-2xl"; // ex: 100.000,00
+    if (value.length > 9) return "text-3xl";  // ex: 10.000,00
+    if (value.length > 7) return "text-4xl";  // ex: 1.000,00
     return "text-5xl";
   };
 
@@ -172,7 +191,14 @@ export function NewTransactionModal({
     if (isOpen) {
       if (initialData) {
         setEditingId(initialData._id || null);
-        if (initialData.amount) setAmount(initialData.amount.toString());
+        
+        // MUDANÇA: Formata o valor inicial (vindo da IA ou Edição)
+        if (initialData.amount) {
+          setAmount(initialData.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
+        } else {
+          setAmount("0,00");
+        }
+
         if (initialData.description)
           setDescription(initialData.description || "");
         if (initialData.type) setType(initialData.type);
@@ -246,7 +272,6 @@ export function NewTransactionModal({
         );
         if (res.ok) {
           const data = await res.json();
-          // Tratamento para paginação se houver, ou array direto
           const contactsList = Array.isArray(data) ? data : data.data || [];
           setContacts(contactsList);
         }
@@ -314,11 +339,14 @@ export function NewTransactionModal({
         }
       }
 
+      // MUDANÇA: Converte a string formatada ("1.234,56") de volta para float (1234.56)
+      const cleanAmount = parseFloat(amount.replace(/\./g, "").replace(",", "."));
+
       const payload = {
         userId,
         contactId: finalContactId,
         type,
-        amount: parseFloat(amount.replace(",", ".")),
+        amount: cleanAmount,
         description,
         category,
         paymentMethod,
@@ -328,15 +356,12 @@ export function NewTransactionModal({
         installments: isRecurring ? parseInt(installments) : 1,
       };
 
-      // LÓGICA DE URL MODIFICADA PARA SUPORTAR RECORRÊNCIA
       let url = "/api/transactions";
       let method = "POST";
 
       if (editingId) {
         url = `/api/transactions/${editingId}`;
         method = "PUT";
-
-        // Se houver uma ação de recorrência definida (SINGLE, FUTURE, ALL), adiciona na URL
         if (recurrenceAction) {
           url += `?action=${recurrenceAction}`;
         }
@@ -364,7 +389,7 @@ export function NewTransactionModal({
 
   const resetForm = () => {
     setEditingId(null);
-    setAmount("");
+    setAmount("0,00"); // Reseta para formato padrão
     setDescription("");
     setContactName("");
     setSelectedContactId(null);
@@ -440,13 +465,15 @@ export function NewTransactionModal({
             </span>
             <div className="flex justify-center items-center gap-1 mt-1">
               <span className="text-2xl font-medium text-slate-400">R$</span>
+              
+              {/* INPUT ALTERADO PARA TEXT COM MÁSCARA */}
               <input
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="numeric"
                 required
                 placeholder="0,00"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={handleAmountChange}
                 className={`w-full max-w-[280px] ${getAmountSize(amount)} font-black text-slate-800 placeholder-slate-200 focus:outline-none bg-transparent text-center transition-all`}
                 autoFocus={!initialData}
               />
