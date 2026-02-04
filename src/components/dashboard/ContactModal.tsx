@@ -165,7 +165,7 @@ export function ContactModal({
               onClick={() => setFormData({ ...formData, type: "CLIENT" })}
               className={`flex-1 py-2 text-xs font-bold uppercase rounded-lg transition-all ${
                 formData.type === "CLIENT"
-                  ? "bg-white text-indigo-600 shadow-sm"
+                  ? "bg-white text-brand-900 shadow-sm"
                   : "text-slate-400"
               }`}
             >
@@ -197,7 +197,7 @@ export function ContactModal({
               className={`w-full p-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 transition-all text-sm font-bold text-slate-700 ${
                 error && error.includes("nome")
                   ? "border-rose-300 focus:ring-rose-200"
-                  : "border-slate-200 focus:ring-indigo-500"
+                  : "border-slate-200 focus:ring-brand-900"
               }`}
               placeholder={
                 formData.type === "CLIENT"
@@ -220,7 +220,7 @@ export function ContactModal({
                 className={`w-full p-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 transition-all text-sm ${
                   error && error.includes("telefone")
                     ? "border-rose-300 focus:ring-rose-200"
-                    : "border-slate-200 focus:ring-indigo-500"
+                    : "border-slate-200 focus:ring-brand-900"
                 }`}
                 placeholder="(00) 00000-0000"
               />
@@ -237,7 +237,7 @@ export function ContactModal({
                 className={`w-full p-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 transition-all text-sm ${
                   error && (error.includes("CPF") || error.includes("CNPJ"))
                     ? "border-rose-300 focus:ring-rose-200"
-                    : "border-slate-200 focus:ring-indigo-500"
+                    : "border-slate-200 focus:ring-brand-900"
                 }`}
                 placeholder="Documento"
               />
@@ -258,7 +258,7 @@ export function ContactModal({
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="flex-1 bg-indigo-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2"
+            className="flex-1 bg-brand-900 text-white font-bold py-3 rounded-xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-95 transition-all flex items-center justify-center gap-2"
           >
             {loading ? (
               "Salvando..."

@@ -71,7 +71,7 @@ function VerifyContent() {
         </p>
       </div>
 
-      <div className="bg-white p-8 rounded-3xl shadow-xl shadow-indigo-100/50 border border-slate-100">
+      <div className="bg-white p-8 rounded-3xl shadow-xl shadow-brand-100/50 border border-slate-100">
         <form onSubmit={handleVerify} className="space-y-6">
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1 text-center">
@@ -83,7 +83,7 @@ function VerifyContent() {
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
               placeholder="000000"
-              className="w-full p-4 text-center text-3xl tracking-[0.5em] font-bold bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-800"
+              className="w-full p-4 text-center text-3xl tracking-[0.5em] font-bold bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-900 outline-none transition-all text-slate-800"
               autoFocus
             />
           </div>
@@ -91,7 +91,7 @@ function VerifyContent() {
           <button
             type="submit"
             disabled={loading || code.length < 6}
-            className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-4 bg-brand-900 text-white font-bold rounded-2xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {loading ? <Loader2 className="animate-spin" /> : "Confirmar Código"}
           </button>

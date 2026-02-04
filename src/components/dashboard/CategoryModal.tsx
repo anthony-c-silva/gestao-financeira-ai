@@ -51,13 +51,17 @@ export const AVAILABLE_ICONS = [
 
 // CORES EM HEX (Fundo Claro / Texto Escuro)
 const COLORS = [
+  // --- NOVAS CORES DA MARCA ---
+  { name: "Verde Marca", bg: "#effdf6", text: "#1ba879" }, // Brand-50 / Brand-500
+  { name: "Azul Marca", bg: "#f0f1fa", text: "#000066" }, // Brand-50 / Brand-900
+  
   { name: "Cinza", bg: "#f1f5f9", text: "#64748b" },
   { name: "Vermelho", bg: "#fee2e2", text: "#ef4444" },
   { name: "Laranja", bg: "#ffedd5", text: "#f97316" },
   { name: "Amarelo", bg: "#fef9c3", text: "#eab308" },
   { name: "Verde", bg: "#d1fae5", text: "#10b981" },
   { name: "Ciano", bg: "#cffafe", text: "#06b6d4" },
-  { name: "Azul", bg: "#dbeafe", text: "#3b82f6" },
+  { name: "Azul Claro", bg: "#dbeafe", text: "#3b82f6" },
   { name: "Roxo", bg: "#f3e8ff", text: "#a855f7" },
   { name: "Rosa", bg: "#fce7f3", text: "#ec4899" },
 ];
@@ -272,7 +276,8 @@ export function CategoryModal({
                     placeholder="Ex: Academia"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="flex-1 min-w-0 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
+                    // CORRIGIDO: focus:ring-brand-900
+                    className="flex-1 min-w-0 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-900 font-bold text-slate-700"
                   />
                 </div>
               </div>
@@ -304,9 +309,10 @@ export function CategoryModal({
                       key={item.name}
                       type="button"
                       onClick={() => setSelectedIcon(item.name)}
+                      // CORRIGIDO: bg-brand-100 text-brand-900 ring-brand-900
                       className={`aspect-square flex items-center justify-center rounded-xl transition-all ${
                         selectedIcon === item.name
-                          ? "bg-indigo-100 text-indigo-600 ring-2 ring-indigo-500"
+                          ? "bg-brand-100 text-brand-900 ring-2 ring-brand-900"
                           : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                       }`}
                     >
@@ -319,9 +325,10 @@ export function CategoryModal({
               <button
                 type="submit"
                 disabled={loading || !name}
+                // CORRIGIDO: bg-brand-900 hover:bg-brand-700 shadow-brand-200
                 className={`w-full font-bold py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                   editingId
-                    ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200"
+                    ? "bg-brand-900 text-white hover:bg-brand-700 shadow-brand-200"
                     : "bg-slate-800 text-white hover:bg-slate-900 shadow-slate-300"
                 }`}
               >
@@ -367,7 +374,8 @@ export function CategoryModal({
                     return (
                       <div
                         key={cat._id}
-                        className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-indigo-100 transition-colors group"
+                        // CORRIGIDO: hover:border-brand-100
+                        className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-brand-100 transition-colors group"
                       >
                         <div className="flex items-center gap-3">
                           {/* Renderização com Style Hex */}
@@ -394,7 +402,8 @@ export function CategoryModal({
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => handleEdit(cat)}
-                              className="p-2 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors"
+                              // CORRIGIDO: hover:bg-brand-50 hover:text-brand-900
+                              className="p-2 text-slate-400 hover:bg-brand-50 hover:text-brand-900 rounded-lg transition-colors"
                               title="Editar"
                             >
                               <Edit2 size={16} />

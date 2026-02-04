@@ -53,7 +53,7 @@ export function DreReport({ transactions, month }: DreReportProps) {
           {" "}
           {/* min-w-0 ajuda no flexbox responsivo */}
           <h3 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2 whitespace-nowrap">
-            <Calculator size={20} className="text-indigo-600 shrink-0" />
+            <Calculator size={20} className="text-brand-900 shrink-0" />
             DRE Gerencial
           </h3>
           <p className="text-xs text-slate-500 uppercase tracking-wider font-bold mt-1 truncate">

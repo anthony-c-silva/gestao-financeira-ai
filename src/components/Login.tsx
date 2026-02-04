@@ -23,7 +23,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col justify-center p-6 bg-slate-50">
       <div className="mb-8 text-center">
-        <div className="w-20 h-20 bg-indigo-600 rounded-3xl mx-auto mb-4 flex items-center justify-center shadow-xl">
+        <div className="w-20 h-20 bg-brand-900 rounded-3xl mx-auto mb-4 flex items-center justify-center shadow-xl">
           <svg
             className="w-12 h-12 text-white"
             fill="none"
@@ -59,7 +59,7 @@ export default function Login() {
             value={document}
             onChange={(e) => setDocument(e.target.value)}
             placeholder="000.000.000-00"
-            className="w-full p-4 bg-white border border-slate-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-800"
+            className="w-full p-4 bg-white border border-slate-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-brand-900 outline-none transition-all text-slate-800"
           />
         </div>
         <div>
@@ -71,13 +71,13 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className="w-full p-4 bg-white border border-slate-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-800"
+            className="w-full p-4 bg-white border border-slate-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-brand-900 outline-none transition-all text-slate-800"
           />
         </div>
 
         <button
           type="submit"
-          className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-[0.98] transition-all mt-2"
+          className="w-full py-4 bg-brand-900 text-white font-bold rounded-2xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-[0.98] transition-all mt-2"
         >
           Entrar no Sistema
         </button>
@@ -86,7 +86,7 @@ export default function Login() {
       <div className="mt-8 flex flex-col gap-3 text-center">
         <Link
           href="/register"
-          className="text-indigo-600 font-bold text-sm hover:underline"
+          className="text-brand-900 font-bold text-sm hover:underline"
         >
           Criar uma nova conta
         </Link>

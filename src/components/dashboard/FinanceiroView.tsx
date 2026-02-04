@@ -169,12 +169,12 @@ export function FinanceiroView({
 
       <div className="flex justify-between items-center px-2">
         <h2 className="text-base sm:text-lg font-bold text-slate-700 flex items-center gap-2 capitalize">
-          <CalendarDays className="text-indigo-600" size={20} /> {getFilterTitle()}
+          <CalendarDays className="text-brand-900" size={20} /> {getFilterTitle()}
         </h2>
         <div className="flex bg-white rounded-lg border border-slate-200 p-0.5">
-          <button onClick={() => setFilterPeriod("DIA")} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${filterPeriod === "DIA" ? "bg-indigo-100 text-indigo-700" : "text-slate-400 hover:text-slate-600"}`}>Hoje</button>
-          <button onClick={() => setFilterPeriod("MES")} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${filterPeriod === "MES" ? "bg-indigo-100 text-indigo-700" : "text-slate-400 hover:text-slate-600"}`}>Mês</button>
-          <button onClick={() => setFilterPeriod("TODOS")} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${filterPeriod === "TODOS" ? "bg-indigo-100 text-indigo-700" : "text-slate-400 hover:text-slate-600"}`}>Tudo</button>
+          <button onClick={() => setFilterPeriod("DIA")} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${filterPeriod === "DIA" ? "bg-brand-100 text-brand-700" : "text-slate-400 hover:text-slate-600"}`}>Hoje</button>
+          <button onClick={() => setFilterPeriod("MES")} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${filterPeriod === "MES" ? "bg-brand-100 text-brand-700" : "text-slate-400 hover:text-slate-600"}`}>Mês</button>
+          <button onClick={() => setFilterPeriod("TODOS")} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${filterPeriod === "TODOS" ? "bg-brand-100 text-brand-700" : "text-slate-400 hover:text-slate-600"}`}>Tudo</button>
         </div>
       </div>
 
@@ -203,7 +203,7 @@ export function FinanceiroView({
 
       {activeStatusFilter !== "ALL" && (
         <div className="flex items-center justify-between bg-slate-100 px-4 py-2 rounded-lg border border-slate-200 animate-in fade-in slide-in-from-top-2">
-          <span className="text-xs font-bold text-slate-600">Exibindo apenas: <span className="text-indigo-600 uppercase">{activeStatusFilter === "VENCIDOS" ? getLabel("LATE") : activeStatusFilter === "A VENCER" ? getLabel("PENDING") : getLabel("DONE")}</span></span>
+          <span className="text-xs font-bold text-slate-600">Exibindo apenas: <span className="text-brand-900 uppercase">{activeStatusFilter === "VENCIDOS" ? getLabel("LATE") : activeStatusFilter === "A VENCER" ? getLabel("PENDING") : getLabel("DONE")}</span></span>
           <button onClick={() => setActiveStatusFilter("ALL")} className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-800 bg-white px-2 py-1 rounded shadow-sm"><FilterX size={12} /> Limpar Filtro</button>
         </div>
       )}
@@ -229,7 +229,7 @@ export function FinanceiroView({
                 <div className="flex flex-col gap-1 w-full sm:w-auto">
                   <div className="flex items-center justify-between sm:justify-start gap-2">
                     <span className="font-bold text-slate-800 text-sm sm:text-base truncate max-w-[180px] sm:max-w-xs flex items-center gap-1.5">
-                      {t.contactId && (t.contactId.type === "CLIENT" ? (<User size={14} className="text-indigo-500 shrink-0" />) : (<Building2 size={14} className="text-orange-500 shrink-0" />))}
+                      {t.contactId && (t.contactId.type === "CLIENT" ? (<User size={14} className="text-brand-900 shrink-0" />) : (<Building2 size={14} className="text-orange-500 shrink-0" />))}
                       {displayTitle}
                     </span>
                     
@@ -237,7 +237,7 @@ export function FinanceiroView({
                     {isToday && (<span className="bg-amber-100 text-amber-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0">HOJE</span>)}
                     
                     {isRecurring && (
-                        <span className="bg-indigo-100 text-indigo-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                        <span className="bg-brand-100 text-brand-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 flex items-center gap-1">
                             <Repeat size={10} /> {t.installment}/{t.totalInstallments}
                         </span>
                     )}
@@ -255,7 +255,7 @@ export function FinanceiroView({
                 <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-3 sm:gap-1 border-t sm:border-0 border-slate-50 pt-2 sm:pt-0 mt-1 sm:mt-0">
                   <span className={`text-base sm:text-lg font-black ${viewType === "SAIDA" ? "text-rose-600" : "text-emerald-600"}`}>{formatFull(t.amount)}</span>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => onEdit(t)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"><Pencil size={16} /></button>
+                    <button onClick={() => onEdit(t)} className="p-1.5 text-slate-400 hover:text-brand-900 hover:bg-brand-50 rounded-lg transition-colors"><Pencil size={16} /></button>
                     <button onClick={() => onDelete(t)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"><Trash2 size={16} /></button>
                     
                     {t.status === "PENDING" && (

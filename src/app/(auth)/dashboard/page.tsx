@@ -60,15 +60,14 @@ import {
 } from "recharts";
 
 const DEFAULT_COLORS = [
-  "#6366f1",
-  "#10b981",
-  "#f59e0b",
-  "#f43f5e",
-  "#8b5cf6",
-  "#ec4899",
-  "#06b6d4",
+  "#1ba879", // Verde Principal (Brand 500)
+  "#000066", // Azul Corporativo (Corporate 900)
+  "#42cc9f", // Verde Claro (Brand 400)
+  "#30306a", // Azul Médio (Corporate 800)
+  "#10b981", // Emerald (Sucesso/Manter)
+  "#f43f5e", // Rose (Despesa/Manter)
+  "#f59e0b", // Amber (Alerta)
 ];
-
 interface CustomPieLabelProps {
   name?: string | number;
   percent?: number;
@@ -475,7 +474,7 @@ export default function Dashboard() {
         />
 
         <div className="bg-slate-800 p-6 rounded-3xl text-white shadow-xl shadow-slate-200 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/20 rounded-full -mr-10 -mt-10 blur-3xl"></div>
+          <div className="absolute top-0 right-0 w-40 h-40 bg-brand-900/20 rounded-full -mr-10 -mt-10 blur-3xl"></div>
           <div className="flex justify-between items-start mb-2 relative z-10">
             <span className="text-slate-300 text-sm font-medium">
               Saldo do Mês (Realizado)
@@ -515,7 +514,7 @@ export default function Dashboard() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-slate-800 font-bold text-lg flex items-center gap-2">
-              <Wallet size={18} className="text-indigo-600" /> Últimas
+              <Wallet size={18} className="text-brand-900" /> Últimas
               Atividades
             </h3>
           </div>
@@ -677,7 +676,7 @@ export default function Dashboard() {
           </div>
           <button
             onClick={() => setIsExportModalOpen(true)}
-            className="p-3 bg-indigo-100 text-indigo-700 rounded-xl hover:bg-indigo-200 transition-colors shadow-sm flex items-center gap-2 font-bold text-xs"
+            className="p-3 bg-brand-100 text-brand-700 rounded-xl hover:bg-brand-200 transition-colors shadow-sm flex items-center gap-2 font-bold text-xs"
           >
             <Download size={18} /> Exportar
           </button>
@@ -812,10 +811,10 @@ export default function Dashboard() {
           </div>
         </section>
         <section className="bg-slate-800 rounded-3xl shadow-lg overflow-hidden text-white relative">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-900/20 rounded-full -mr-16 -mt-16 blur-3xl"></div>
           <div className="p-6 border-b border-white/10">
             <h2 className="font-bold text-white text-sm uppercase tracking-wider flex items-center gap-2">
-              <CalendarClock size={18} className="text-indigo-400" /> Previsão
+              <CalendarClock size={18} className="text-brand-400" /> Previsão
               de Lançamentos
             </h2>
             <p className="text-slate-400 text-xs mt-1">
@@ -901,7 +900,7 @@ export default function Dashboard() {
               className="flex items-center gap-3 group outline-none"
             >
               <div className="relative">
-                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md group-hover:bg-indigo-700 transition-colors">
+                <div className="w-10 h-10 bg-brand-900 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md group-hover:bg-brand-700 transition-colors">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100">
@@ -936,7 +935,7 @@ export default function Dashboard() {
                     setIsSettingsModalOpen(true);
                     setIsProfileMenuOpen(false);
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-colors font-medium"
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-600 hover:bg-brand-50 hover:text-brand-700 rounded-xl transition-colors font-medium"
                 >
                   <UserIcon size={16} /> Minha Conta
                 </button>
@@ -945,7 +944,7 @@ export default function Dashboard() {
                     setIsExportModalOpen(true);
                     setIsProfileMenuOpen(false);
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-colors font-medium"
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-600 hover:bg-brand-50 hover:text-brand-700 rounded-xl transition-colors font-medium"
                 >
                   <Download size={16} /> Exportar Dados
                 </button>
@@ -988,7 +987,7 @@ export default function Dashboard() {
       {currentTab !== "CONTACTS" && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 w-full justify-center">
           {isTextMode ? (
-            <div className="bg-white p-2 rounded-2xl shadow-2xl border border-indigo-100 flex items-center gap-2 w-full max-w-[350px] animate-in slide-in-from-bottom-2 zoom-in-95">
+            <div className="bg-white p-2 rounded-2xl shadow-2xl border border-brand-100 flex items-center gap-2 w-full max-w-[350px] animate-in slide-in-from-bottom-2 zoom-in-95">
               <form
                 onSubmit={handleTextAiSubmit}
                 className="flex-1 flex items-center gap-2"
@@ -999,13 +998,13 @@ export default function Dashboard() {
                   placeholder="Ex: Almoço 30 reais no débito"
                   value={aiText}
                   onChange={(e) => setAiText(e.target.value)}
-                  className="w-full bg-slate-50 text-slate-800 text-sm font-medium px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 border border-transparent focus:border-indigo-200 transition-all placeholder:text-slate-400"
+                  className="w-full bg-slate-50 text-slate-800 text-sm font-medium px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-brand-900 border border-transparent focus:border-brand-200 transition-all placeholder:text-slate-400"
                   disabled={isAiProcessing}
                 />
                 <button
                   type="submit"
                   disabled={!aiText.trim() || isAiProcessing}
-                  className="bg-indigo-600 text-white p-3 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md shadow-indigo-200"
+                  className="bg-brand-900 text-white p-3 rounded-xl hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md shadow-brand-200"
                 >
                   {isAiProcessing ? (
                     <Loader2 size={20} className="animate-spin" />
@@ -1031,7 +1030,7 @@ export default function Dashboard() {
               {!isInputMode && (
                 <button
                   onClick={() => setIsTextMode(true)}
-                  className="bg-white text-indigo-600 h-[56px] w-[56px] rounded-full shadow-lg border border-indigo-100 flex items-center justify-center hover:bg-indigo-50 active:scale-95 transition-all"
+                  className="bg-white text-brand-900 h-[56px] w-[56px] rounded-full shadow-lg border border-brand-100 flex items-center justify-center hover:bg-brand-50 active:scale-95 transition-all"
                   title="Digitar comando"
                 >
                   <Keyboard size={24} />
@@ -1040,7 +1039,7 @@ export default function Dashboard() {
               {!isInputMode && (
                 <button
                   onClick={handleOpenModalManual}
-                  className="bg-indigo-600 text-white px-6 py-3 rounded-full shadow-xl shadow-indigo-300 flex items-center gap-2 font-bold hover:bg-indigo-700 active:scale-95 transition-all transform hover:-translate-y-1 h-[56px]"
+                  className="bg-brand-900 text-white px-6 py-3 rounded-full shadow-xl shadow-brand-300 flex items-center gap-2 font-bold hover:bg-brand-700 active:scale-95 transition-all transform hover:-translate-y-1 h-[56px]"
                 >
                   <Plus size={20} /> Registrar
                 </button>
@@ -1054,14 +1053,14 @@ export default function Dashboard() {
         <div className="flex justify-around items-center max-w-2xl mx-auto">
           <button
             onClick={() => setCurrentTab("HOME")}
-            className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "HOME" ? "text-indigo-600" : "text-slate-300 hover:text-slate-500"}`}
+            className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "HOME" ? "text-brand-900" : "text-slate-300 hover:text-slate-500"}`}
           >
             <Home size={24} strokeWidth={currentTab === "HOME" ? 2.5 : 2} />
             <span className="text-[10px] font-bold">Início</span>
           </button>
           <button
             onClick={() => setCurrentTab("FLOW")}
-            className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "FLOW" ? "text-indigo-600" : "text-slate-300 hover:text-slate-500"}`}
+            className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "FLOW" ? "text-brand-900" : "text-slate-300 hover:text-slate-500"}`}
           >
             <BarChart3
               size={24}
@@ -1071,7 +1070,7 @@ export default function Dashboard() {
           </button>
           <button
             onClick={() => setCurrentTab("REPORTS")}
-            className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "REPORTS" ? "text-indigo-600" : "text-slate-300 hover:text-slate-500"}`}
+            className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "REPORTS" ? "text-brand-900" : "text-slate-300 hover:text-slate-500"}`}
           >
             <PieIcon
               size={24}
@@ -1081,7 +1080,7 @@ export default function Dashboard() {
           </button>
           <button
             onClick={() => setCurrentTab("CONTACTS")}
-            className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "CONTACTS" ? "text-indigo-600" : "text-slate-300 hover:text-slate-500"}`}
+            className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "CONTACTS" ? "text-brand-900" : "text-slate-300 hover:text-slate-500"}`}
           >
             <Users
               size={24}

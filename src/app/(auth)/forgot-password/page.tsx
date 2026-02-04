@@ -135,7 +135,7 @@ function ForgotPasswordContent() {
         </p>
       </div>
 
-      <div className="bg-white p-8 rounded-3xl shadow-xl shadow-indigo-100/50 border border-slate-100 relative overflow-hidden">
+      <div className="bg-white p-8 rounded-3xl shadow-xl shadow-brand-100/50 border border-slate-100 relative overflow-hidden">
         
         {step === "SUCCESS" ? (
           <div className="flex flex-col items-center justify-center py-8 animate-in zoom-in duration-500">
@@ -169,7 +169,7 @@ function ForgotPasswordContent() {
                       value={document}
                       onChange={handleDocumentChange}
                       placeholder="000.000.000-00"
-                      className="w-full p-4 pl-12 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-800 font-medium"
+                      className="w-full p-4 pl-12 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-900 outline-none transition-all text-slate-800 font-medium"
                     />
                   </div>
                 </div>
@@ -188,7 +188,7 @@ function ForgotPasswordContent() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Confirme seu e-mail"
-                      className="w-full p-4 pl-12 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-800 font-medium"
+                      className="w-full p-4 pl-12 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-900 outline-none transition-all text-slate-800 font-medium"
                       autoComplete="email"
                     />
                   </div>
@@ -197,7 +197,7 @@ function ForgotPasswordContent() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-brand-900 text-white font-bold rounded-2xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
                   {loading ? <Loader2 className="animate-spin" /> : <>Enviar Código <ArrowRight size={20} /></>}
                 </button>
@@ -218,7 +218,7 @@ function ForgotPasswordContent() {
                       value={code}
                       onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                       placeholder="000000"
-                      className="w-full p-4 pl-12 text-lg tracking-widest font-bold bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-800"
+                      className="w-full p-4 pl-12 text-lg tracking-widest font-bold bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-900 outline-none transition-all text-slate-800"
                       autoComplete="one-time-code"
                       inputMode="numeric"
                       autoFocus
@@ -238,12 +238,12 @@ function ForgotPasswordContent() {
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Nova senha segura"
-                      className="w-full p-4 pl-12 pr-12 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-800 font-medium"
+                      className="w-full p-4 pl-12 pr-12 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-900 outline-none transition-all text-slate-800 font-medium"
                       autoComplete="new-password"
                     />
                     <button
                       type="button"
-                      className="absolute inset-y-0 right-0 pr-4 text-slate-400 hover:text-indigo-600"
+                      className="absolute inset-y-0 right-0 pr-4 text-slate-400 hover:text-brand-900"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -254,7 +254,7 @@ function ForgotPasswordContent() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-brand-900 text-white font-bold rounded-2xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
                   {loading ? <Loader2 className="animate-spin" /> : "Redefinir Senha"}
                 </button>
@@ -273,7 +273,7 @@ function ForgotPasswordContent() {
       </div>
 
       <div className="mt-8 text-center">
-        <Link href="/login" className="inline-flex items-center gap-2 text-slate-500 font-bold hover:text-indigo-600 transition-colors text-sm">
+        <Link href="/login" className="inline-flex items-center gap-2 text-slate-500 font-bold hover:text-brand-900 transition-colors text-sm">
           <ArrowLeft size={16} /> Cancelar e voltar
         </Link>
       </div>

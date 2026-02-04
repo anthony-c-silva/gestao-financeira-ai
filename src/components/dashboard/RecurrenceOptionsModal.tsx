@@ -24,7 +24,7 @@ export function RecurrenceOptionsModal({
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-3">
             <div
-              className={`p-3 rounded-full ${type === "DELETE" ? "bg-rose-100 text-rose-600" : "bg-indigo-100 text-indigo-600"}`}
+              className={`p-3 rounded-full ${type === "DELETE" ? "bg-rose-100 text-rose-600" : "bg-brand-100 text-brand-900"}`}
             >
               {type === "DELETE" ? (
                 <AlertTriangle size={24} />
@@ -53,16 +53,16 @@ export function RecurrenceOptionsModal({
           {/* Opção 1: Apenas Esta */}
           <button
             onClick={() => onConfirm("SINGLE")}
-            className="w-full flex items-center gap-4 p-4 rounded-2xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all group text-left"
+            className="w-full flex items-center gap-4 p-4 rounded-2xl border border-slate-200 hover:border-brand-900 hover:bg-brand-50 transition-all group text-left"
           >
-            <div className="bg-slate-100 text-slate-500 group-hover:bg-indigo-200 group-hover:text-indigo-700 p-2 rounded-lg transition-colors">
+            <div className="bg-slate-100 text-slate-500 group-hover:bg-brand-200 group-hover:text-brand-700 p-2 rounded-lg transition-colors">
               <CheckCircle2 size={20} />
             </div>
             <div>
-              <span className="block text-sm font-bold text-slate-700 group-hover:text-indigo-900">
+              <span className="block text-sm font-bold text-slate-700 group-hover:text-brand-900">
                 Apenas esta
               </span>
-              <span className="block text-xs text-slate-400 group-hover:text-indigo-600">
+              <span className="block text-xs text-slate-400 group-hover:text-brand-900">
                 Altera somente o item selecionado.
               </span>
             </div>
@@ -71,16 +71,16 @@ export function RecurrenceOptionsModal({
           {/* Opção 2: Desta em diante */}
           <button
             onClick={() => onConfirm("FUTURE")}
-            className="w-full flex items-center gap-4 p-4 rounded-2xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all group text-left"
+            className="w-full flex items-center gap-4 p-4 rounded-2xl border border-slate-200 hover:border-brand-900 hover:bg-brand-50 transition-all group text-left"
           >
-            <div className="bg-slate-100 text-slate-500 group-hover:bg-indigo-200 group-hover:text-indigo-700 p-2 rounded-lg transition-colors">
+            <div className="bg-slate-100 text-slate-500 group-hover:bg-brand-200 group-hover:text-brand-700 p-2 rounded-lg transition-colors">
               <Layers size={20} />
             </div>
             <div>
-              <span className="block text-sm font-bold text-slate-700 group-hover:text-indigo-900">
+              <span className="block text-sm font-bold text-slate-700 group-hover:text-brand-900">
                 Desta em diante
               </span>
-              <span className="block text-xs text-slate-400 group-hover:text-indigo-600">
+              <span className="block text-xs text-slate-400 group-hover:text-brand-900">
                 Altera esta e todas as próximas parcelas.
               </span>
             </div>
@@ -89,16 +89,16 @@ export function RecurrenceOptionsModal({
           {/* Opção 3: Todas */}
           <button
             onClick={() => onConfirm("ALL")}
-            className="w-full flex items-center gap-4 p-4 rounded-2xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all group text-left"
+            className="w-full flex items-center gap-4 p-4 rounded-2xl border border-slate-200 hover:border-brand-900 hover:bg-brand-50 transition-all group text-left"
           >
-            <div className="bg-slate-100 text-slate-500 group-hover:bg-indigo-200 group-hover:text-indigo-700 p-2 rounded-lg transition-colors">
+            <div className="bg-slate-100 text-slate-500 group-hover:bg-brand-200 group-hover:text-brand-700 p-2 rounded-lg transition-colors">
               <Calendar size={20} />
             </div>
             <div>
-              <span className="block text-sm font-bold text-slate-700 group-hover:text-indigo-900">
+              <span className="block text-sm font-bold text-slate-700 group-hover:text-brand-900">
                 Todas da série
               </span>
-              <span className="block text-xs text-slate-400 group-hover:text-indigo-600">
+              <span className="block text-xs text-slate-400 group-hover:text-brand-900">
                 Altera todas (passadas e futuras).
               </span>
             </div>

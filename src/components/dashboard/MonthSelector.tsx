@@ -34,19 +34,19 @@ export function MonthSelector({ currentDate, onDateChange }: MonthSelectorProps)
     <div className="flex items-center justify-between bg-white p-2 rounded-2xl shadow-sm border border-slate-100 mb-6">
       <button 
         onClick={handlePrevMonth}
-        className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-indigo-600 transition-colors"
+        className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-brand-900 transition-colors"
       >
         <ChevronLeft size={20} />
       </button>
 
       <div className="flex items-center gap-2 text-slate-700 font-bold text-sm sm:text-base">
-        <CalendarDays size={18} className="text-indigo-500" />
+        <CalendarDays size={18} className="text-brand-900" />
         <span>{displayDate}</span>
       </div>
 
       <button 
         onClick={handleNextMonth}
-        className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-indigo-600 transition-colors"
+        className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-brand-900 transition-colors"
       >
         <ChevronRight size={20} />
       </button>

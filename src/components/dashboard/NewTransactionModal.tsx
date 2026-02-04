@@ -32,6 +32,19 @@ const ICON_MAP = AVAILABLE_ICONS.reduce(
   {} as { [key: string]: React.ElementType },
 );
 
+// --- CORES DA MARCA NOS PAGAMENTOS ---
+// Pix/Dinheiro = Verde (Emerald)
+// Cartões = Azul (Brand)
+// Boleto = Laranja (Amber)
+const PAYMENT_STYLES: { [key: string]: { bg: string; text: string } } = {
+  "Pix": { bg: "bg-emerald-100", text: "text-emerald-600" },
+  "Dinheiro": { bg: "bg-emerald-50", text: "text-emerald-700" },
+  "Cartão Crédito": { bg: "bg-brand-100", text: "text-brand-900" },
+  "Cartão Débito": { bg: "bg-brand-50", text: "text-brand-700" },
+  "Boleto": { bg: "bg-amber-100", text: "text-amber-600" },
+  "default": { bg: "bg-slate-100", text: "text-slate-600" },
+};
+
 export interface TransactionData {
   _id?: string;
   amount?: number;
@@ -108,10 +121,7 @@ export function NewTransactionModal({
   // Estados
   const [editingId, setEditingId] = useState<string | null>(null);
   const [type, setType] = useState<"INCOME" | "EXPENSE">("EXPENSE");
-  
-  // MUDANÇA: Inicia com "0,00" para seguir o padrão bancário
   const [amount, setAmount] = useState("0,00");
-  
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("Pix");
@@ -140,15 +150,10 @@ export function NewTransactionModal({
   const paymentRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
 
-  // --- FUNÇÃO NOVA: Formatação de Moeda ---
+  // --- LÓGICA DE MÁSCARA DE MOEDA (BANCÁRIA) ---
   const formatCurrency = (value: string) => {
-    // Remove tudo que não é número
     const numericValue = value.replace(/\D/g, "");
-    
-    // Divide por 100 para considerar os centavos
     const floatValue = Number(numericValue) / 100;
-    
-    // Formata para o padrão brasileiro (R$ 1.000,00)
     return floatValue.toLocaleString("pt-BR", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -158,13 +163,11 @@ export function NewTransactionModal({
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setAmount(formatCurrency(e.target.value));
   };
-  // ----------------------------------------
 
   const getAmountSize = (value: string) => {
-    // Ajustado para lidar com a string formatada (que é mais longa)
-    if (value.length > 12) return "text-2xl"; // ex: 100.000,00
-    if (value.length > 9) return "text-3xl";  // ex: 10.000,00
-    if (value.length > 7) return "text-4xl";  // ex: 1.000,00
+    if (value.length > 12) return "text-2xl";
+    if (value.length > 9) return "text-3xl";
+    if (value.length > 7) return "text-4xl";
     return "text-5xl";
   };
 
@@ -192,9 +195,13 @@ export function NewTransactionModal({
       if (initialData) {
         setEditingId(initialData._id || null);
         
-        // MUDANÇA: Formata o valor inicial (vindo da IA ou Edição)
+        // Formata valor inicial vindo do banco/IA
         if (initialData.amount) {
-          setAmount(initialData.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 }));
+          setAmount(
+            initialData.amount.toLocaleString("pt-BR", {
+              minimumFractionDigits: 2,
+            }),
+          );
         } else {
           setAmount("0,00");
         }
@@ -339,8 +346,10 @@ export function NewTransactionModal({
         }
       }
 
-      // MUDANÇA: Converte a string formatada ("1.234,56") de volta para float (1234.56)
-      const cleanAmount = parseFloat(amount.replace(/\./g, "").replace(",", "."));
+      // Converte a string formatada ("1.234,56") para float (1234.56)
+      const cleanAmount = parseFloat(
+        amount.replace(/\./g, "").replace(",", "."),
+      );
 
       const payload = {
         userId,
@@ -389,7 +398,7 @@ export function NewTransactionModal({
 
   const resetForm = () => {
     setEditingId(null);
-    setAmount("0,00"); // Reseta para formato padrão
+    setAmount("0,00");
     setDescription("");
     setContactName("");
     setSelectedContactId(null);
@@ -413,6 +422,10 @@ export function NewTransactionModal({
   const currentPayment =
     PAYMENT_METHODS.find((p) => p.id === paymentMethod) || PAYMENT_METHODS[0];
   const PaymentIcon = currentPayment.icon;
+  // Pega o estilo correto (Verde ou Azul)
+  const paymentStyle =
+    PAYMENT_STYLES[paymentMethod] || PAYMENT_STYLES["default"];
+
   const formattedDateDisplay = new Date(date + "T12:00:00").toLocaleDateString(
     "pt-BR",
     {
@@ -466,7 +479,7 @@ export function NewTransactionModal({
             <div className="flex justify-center items-center gap-1 mt-1">
               <span className="text-2xl font-medium text-slate-400">R$</span>
               
-              {/* INPUT ALTERADO PARA TEXT COM MÁSCARA */}
+              {/* INPUT COM MÁSCARA */}
               <input
                 type="text"
                 inputMode="numeric"
@@ -513,9 +526,10 @@ export function NewTransactionModal({
                   setShowSuggestions(true);
                 }}
                 onFocus={() => setShowSuggestions(true)}
-                className="w-full p-4 pl-12 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 font-bold transition-all"
+                // AZUL DA MARCA NO FOCUS
+                className="w-full p-4 pl-12 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-900 outline-none text-slate-700 font-bold transition-all"
               />
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-brand-900 transition-colors">
                 <Search size={20} />
               </div>
             </div>
@@ -531,18 +545,18 @@ export function NewTransactionModal({
                         setSelectedContactId(contact._id);
                         setShowSuggestions(false);
                       }}
-                      className="w-full text-left px-5 py-3 hover:bg-indigo-50 text-sm text-slate-700 font-medium flex items-center justify-between group"
+                      className="w-full text-left px-5 py-3 hover:bg-brand-50 text-sm text-slate-700 font-medium flex items-center justify-between group"
                     >
                       {contact.name}
                       <Check
                         size={16}
-                        className="text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="text-brand-900 opacity-0 group-hover:opacity-100 transition-opacity"
                       />
                     </button>
                   ))
                 ) : (
                   <div className="px-5 py-4 text-sm text-slate-500 flex items-center gap-2">
-                    <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg">
+                    <div className="p-1.5 bg-brand-100 text-brand-900 rounded-lg">
                       <UserPlus size={16} />
                     </div>
                     <span>
@@ -562,10 +576,10 @@ export function NewTransactionModal({
               <button
                 type="button"
                 onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-                className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between outline-none text-slate-700 font-bold text-sm focus:ring-2 focus:ring-indigo-500 active:scale-[0.98] transition-all"
+                className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between outline-none text-slate-700 font-bold text-sm focus:ring-2 focus:ring-brand-900 active:scale-[0.98] transition-all"
               >
                 <span className="flex items-center gap-2">
-                  <CalendarIcon size={18} className="text-indigo-500" />
+                  <CalendarIcon size={18} className="text-brand-900" />
                   {formattedDateDisplay}
                 </span>
               </button>
@@ -614,7 +628,8 @@ export function NewTransactionModal({
                           key={idx}
                           type="button"
                           onClick={() => handleSelectDate(day)}
-                          className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${isSelected ? "bg-indigo-600 text-white shadow-md shadow-indigo-200" : isToday ? "bg-indigo-50 text-indigo-600 border border-indigo-200" : "text-slate-600 hover:bg-slate-100"}`}
+                          // AZUL DA MARCA NO CALENDÁRIO
+                          className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${isSelected ? "bg-brand-900 text-white shadow-md shadow-brand-200" : isToday ? "bg-brand-50 text-brand-900 border border-brand-200" : "text-slate-600 hover:bg-slate-100"}`}
                         >
                           {day.getDate()}
                         </button>
@@ -633,7 +648,7 @@ export function NewTransactionModal({
                 placeholder="Ex: Aluguel"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 font-medium text-sm"
+                className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-900 outline-none text-slate-700 font-medium text-sm"
               />
             </div>
           </div>
@@ -650,7 +665,7 @@ export function NewTransactionModal({
                   setIsPaymentOpen(false);
                   setIsCalendarOpen(false);
                 }}
-                className="w-full p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between focus:ring-2 focus:ring-indigo-500 outline-none active:bg-slate-100 transition-colors"
+                className="w-full p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between focus:ring-2 focus:ring-brand-900 outline-none active:bg-slate-100 transition-colors"
               >
                 <div className="flex items-center gap-2 overflow-hidden">
                   <div
@@ -693,14 +708,14 @@ export function NewTransactionModal({
                             <IconComp size={16} />
                           </div>
                           <span
-                            className={`text-sm font-medium ${category === cat.name ? "text-indigo-600" : "text-slate-600"}`}
+                            className={`text-sm font-medium ${category === cat.name ? "text-brand-900" : "text-slate-600"}`}
                           >
                             {cat.name}
                           </span>
                           {category === cat.name && (
                             <Check
                               size={14}
-                              className="ml-auto text-indigo-600"
+                              className="ml-auto text-brand-900"
                             />
                           )}
                         </button>
@@ -717,7 +732,7 @@ export function NewTransactionModal({
                       setIsCreateCategoryOpen(true);
                       setIsCategoryOpen(false);
                     }}
-                    className="w-full px-4 py-3 flex items-center gap-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 transition-colors border-t border-indigo-100 sticky bottom-0"
+                    className="w-full px-4 py-3 flex items-center gap-3 bg-brand-50 hover:bg-brand-100 text-brand-900 transition-colors border-t border-brand-100 sticky bottom-0"
                   >
                     <PlusCircle size={16} />
                     <span className="text-sm font-bold">
@@ -739,10 +754,11 @@ export function NewTransactionModal({
                   setIsCategoryOpen(false);
                   setIsCalendarOpen(false);
                 }}
-                className="w-full p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between focus:ring-2 focus:ring-indigo-500 outline-none active:bg-slate-100 transition-colors"
+                className="w-full p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between focus:ring-2 focus:ring-brand-900 outline-none active:bg-slate-100 transition-colors"
               >
                 <div className="flex items-center gap-2 overflow-hidden">
-                  <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                  {/* ÍCONE DE PAGAMENTO COM COR CERTA */}
+                  <div className={`p-1.5 rounded-lg ${paymentStyle.bg} ${paymentStyle.text}`}>
                     <PaymentIcon size={16} />
                   </div>
                   <span className="text-sm font-bold text-slate-700 truncate">
@@ -753,38 +769,42 @@ export function NewTransactionModal({
               </button>
               {isPaymentOpen && (
                 <div className="absolute bottom-full mb-2 w-full bg-white rounded-2xl shadow-xl border border-slate-100 max-h-60 overflow-y-auto z-30 animate-in zoom-in-95 origin-bottom custom-scrollbar">
-                  {PAYMENT_METHODS.map((method) => (
-                    <button
-                      key={method.id}
-                      type="button"
-                      onClick={() => {
-                        setPaymentMethod(method.id);
-                        setIsPaymentOpen(false);
-                      }}
-                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
-                    >
-                      <div className="p-1.5 bg-slate-100 text-slate-600 rounded-lg">
-                        <method.icon size={16} />
-                      </div>
-                      <span
-                        className={`text-sm font-medium whitespace-nowrap ${paymentMethod === method.id ? "text-indigo-600" : "text-slate-600"}`}
+                  {PAYMENT_METHODS.map((method) => {
+                    // SELECIONA ESTILO CORRETO
+                    const style = PAYMENT_STYLES[method.id] || PAYMENT_STYLES["default"];
+                    return (
+                      <button
+                        key={method.id}
+                        type="button"
+                        onClick={() => {
+                          setPaymentMethod(method.id);
+                          setIsPaymentOpen(false);
+                        }}
+                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
                       >
-                        {method.id}
-                      </span>
-                      {paymentMethod === method.id && (
-                        <Check size={14} className="ml-auto text-indigo-600" />
-                      )}
-                    </button>
-                  ))}
+                        <div className={`p-1.5 rounded-lg ${style.bg} ${style.text}`}>
+                          <method.icon size={16} />
+                        </div>
+                        <span
+                          className={`text-sm font-medium whitespace-nowrap ${paymentMethod === method.id ? "text-brand-900" : "text-slate-600"}`}
+                        >
+                          {method.id}
+                        </span>
+                        {paymentMethod === method.id && (
+                          <Check size={14} className="ml-auto text-brand-900" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
           </div>
 
           {!editingId && (
-            <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 flex flex-col gap-3">
+            <div className="bg-brand-50 p-4 rounded-2xl border border-brand-100 flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-indigo-900 font-bold text-sm">
+                <div className="flex items-center gap-2 text-brand-900 font-bold text-sm">
                   <Repeat size={18} /> Repetir este lançamento?
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -794,12 +814,12 @@ export function NewTransactionModal({
                     onChange={(e) => setIsRecurring(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-900"></div>
                 </label>
               </div>
               {isRecurring && (
                 <div className="animate-in slide-in-from-top-2 fade-in">
-                  <label className="block text-xs font-bold text-indigo-400 uppercase mb-1 ml-1">
+                  <label className="block text-xs font-bold text-brand-400 uppercase mb-1 ml-1">
                     Repetir por quantos meses?
                   </label>
                   <div className="flex items-center gap-2">
@@ -809,9 +829,9 @@ export function NewTransactionModal({
                       max="60"
                       value={installments}
                       onChange={(e) => setInstallments(e.target.value)}
-                      className="w-20 p-2 bg-white border border-indigo-200 rounded-xl text-center font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-20 p-2 bg-white border border-brand-200 rounded-xl text-center font-bold text-brand-700 outline-none focus:ring-2 focus:ring-brand-900"
                     />
-                    <span className="text-sm text-indigo-600 font-medium">
+                    <span className="text-sm text-brand-900 font-medium">
                       Meses (Vezes)
                     </span>
                   </div>

@@ -199,13 +199,13 @@ export function SettingsModal({
         <div className="flex px-6 border-b border-slate-50">
           <button 
             onClick={() => setActiveTab("PROFILE")}
-            className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === "PROFILE" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400 hover:text-slate-600"}`}
+            className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === "PROFILE" ? "border-brand-900 text-brand-900" : "border-transparent text-slate-400 hover:text-slate-600"}`}
           >
             Perfil & Dados
           </button>
           <button 
             onClick={() => setActiveTab("SECURITY")}
-            className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === "SECURITY" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400 hover:text-slate-600"}`}
+            className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === "SECURITY" ? "border-brand-900 text-brand-900" : "border-transparent text-slate-400 hover:text-slate-600"}`}
           >
             Segurança
           </button>
@@ -217,7 +217,7 @@ export function SettingsModal({
             {activeTab === "PROFILE" && (
               <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
                 <div className="flex flex-col items-center mb-6">
-                  <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xl font-bold mb-2">
+                  <div className="w-20 h-20 bg-brand-100 text-brand-900 rounded-full flex items-center justify-center text-2xl font-bold mb-2">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
                   <p className="text-sm text-slate-500">{user.email}</p>
@@ -234,7 +234,7 @@ export function SettingsModal({
                     type="text"
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium text-slate-700"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-900 text-sm font-medium text-slate-700"
                   />
                 </div>
 
@@ -248,7 +248,7 @@ export function SettingsModal({
                       value={formData.companyName}
                       onChange={e => setFormData({...formData, companyName: e.target.value})}
                       placeholder="Ex: Minha Empresa LTDA"
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium text-slate-700"
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-900 text-sm font-medium text-slate-700"
                     />
                   </div>
                 )}
@@ -259,7 +259,7 @@ export function SettingsModal({
                     type="text"
                     value={formData.phone}
                     onChange={e => setFormData({...formData, phone: e.target.value})}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium text-slate-700"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-900 text-sm font-medium text-slate-700"
                   />
                 </div>
 
@@ -272,7 +272,7 @@ export function SettingsModal({
                     <button
                       type="button"
                       onClick={() => setIsBusinessSizeOpen(!isBusinessSizeOpen)}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium text-slate-800 flex justify-between items-center text-left"
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-900 text-sm font-medium text-slate-800 flex justify-between items-center text-left"
                     >
                       <span>{getBusinessLabel()}</span>
                       <ChevronDown size={16} className={`text-slate-400 transition-transform ${isBusinessSizeOpen ? "rotate-180" : ""}`} />
@@ -291,7 +291,7 @@ export function SettingsModal({
                               <p className="font-bold">{key} - {value.label.split("-")[1]}</p>
                               <p className="text-[10px] text-slate-400">{value.description}</p>
                             </div>
-                            {formData.businessSize === key && <Check size={16} className="text-indigo-600" />}
+                            {formData.businessSize === key && <Check size={16} className="text-brand-900" />}
                           </button>
                         ))}
                       </div>
@@ -306,7 +306,7 @@ export function SettingsModal({
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                 <div className="space-y-4">
                   <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                    <Lock size={16} className="text-indigo-600"/> Alterar Senha
+                    <Lock size={16} className="text-brand-900"/> Alterar Senha
                   </h3>
                   
                   <div>
@@ -317,12 +317,12 @@ export function SettingsModal({
                         value={formData.password}
                         onChange={e => setFormData({...formData, password: e.target.value})}
                         placeholder="••••••••"
-                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-900 text-sm"
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-3 text-slate-400 hover:text-indigo-600"
+                            className="absolute right-3 top-3 text-slate-400 hover:text-brand-900"
                         >
                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
@@ -354,12 +354,12 @@ export function SettingsModal({
                         value={formData.confirmPassword}
                         onChange={e => setFormData({...formData, confirmPassword: e.target.value})}
                         placeholder="••••••••"
-                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-900 text-sm"
                         />
                         <button
                             type="button"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-3 top-3 text-slate-400 hover:text-indigo-600"
+                            className="absolute right-3 top-3 text-slate-400 hover:text-brand-900"
                         >
                             {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
@@ -401,7 +401,7 @@ export function SettingsModal({
                 form="settings-form"
                 type="submit"
                 disabled={loading}
-                className="py-3 px-6 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-70 flex items-center gap-2 text-sm"
+                className="py-3 px-6 bg-brand-900 text-white rounded-xl font-bold shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-95 transition-all disabled:opacity-70 flex items-center gap-2 text-sm"
             >
                 {loading ? "Salvando..." : <><Save size={18} /> Salvar Alterações</>}
             </button>

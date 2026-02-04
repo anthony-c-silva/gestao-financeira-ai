@@ -199,7 +199,7 @@ export function ExportModal({
       <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 animate-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <Download size={20} className="text-indigo-600" /> Exportar Dados
+            <Download size={20} className="text-brand-900" /> Exportar Dados
           </h2>
           <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full">
             <X size={20} />
@@ -214,7 +214,7 @@ export function ExportModal({
               onClick={() => setScope("MONTH")}
               className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
                 scope === "MONTH"
-                  ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                  ? "border-brand-900 bg-brand-50 text-brand-700"
                   : "border-slate-100 bg-white text-slate-600 hover:border-slate-200"
               }`}
             >
@@ -232,7 +232,7 @@ export function ExportModal({
               onClick={() => setScope("ALL")}
               className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
                 scope === "ALL"
-                  ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                  ? "border-brand-900 bg-brand-50 text-brand-700"
                   : "border-slate-100 bg-white text-slate-600 hover:border-slate-200"
               }`}
             >

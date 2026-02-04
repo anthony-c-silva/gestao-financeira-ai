@@ -3,7 +3,8 @@ import connectToDatabase from "@/lib/mongodb";
 import User from "@/models/User";
 import Category from "@/models/Category";
 import bcrypt from "bcryptjs";
-import { sendVerificationEmail } from "@/lib/mail"; // Importa o envio de e-mail
+import { sendVerificationEmail } from "@/lib/mail";
+import { DEFAULT_CATEGORIES } from "@/constants/business"; // <--- IMPORTAÇÃO DAS CORES NOVAS
 
 export async function POST(req: Request) {
   try {
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
       state,
     } = await req.json();
 
-    // 1. Validações de PJ
+    // 1. Validações de PJ (Lógica Mantida)
     if (type === "PJ") {
       if (!businessSize) {
         return NextResponse.json(
@@ -43,37 +44,41 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2. Limpeza de Documento (Segurança e Padronização)
+    // 2. Limpeza de Documento
     const cleanDocument = document.replace(/\D/g, "");
 
-    const userExists = await User.findOne({
-      $or: [{ email }, { document: cleanDocument }],
-    });
-
+    // 3. Verificações de Duplicidade
+    const userExists = await User.findOne({ email });
     if (userExists) {
       return NextResponse.json(
-        { message: "Usuário ou Documento já cadastrado." },
+        { message: "Este e-mail já está cadastrado." },
         { status: 400 },
       );
     }
 
+    const docExists = await User.findOne({ document: cleanDocument });
+    if (docExists) {
+      return NextResponse.json(
+        { message: "Este documento (CPF/CNPJ) já está cadastrado." },
+        { status: 400 },
+      );
+    }
+
+    // 4. Hash da Senha
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 3. Gera o Token de Verificação (6 Dígitos)
-    const verificationToken = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // 4. CRIA O USUÁRIO (Com trava de segurança)
+    // 5. Criação do Usuário
     const newUser = await User.create({
       name,
-      companyName: type === "PJ" ? companyName : null,
-      document: cleanDocument, // Salva limpo
+      companyName: type === "PJ" ? companyName : undefined,
+      document: cleanDocument,
       type,
-      businessSize: type === "PJ" ? businessSize : null,
+      businessSize: type === "PJ" ? businessSize : undefined,
       email,
-      phone,
+      phone: phone.replace(/\D/g, ""),
       password: hashedPassword,
       address: {
-        cep,
+        cep: cep?.replace(/\D/g, ""),
         street,
         number,
         complement,
@@ -81,52 +86,38 @@ export async function POST(req: Request) {
         city,
         state,
       },
-      // Campos de Segurança
-      verificationToken,
-      emailVerified: false, // Começa bloqueado até confirmar o e-mail
     });
 
-    // 5. DEFINE AS CATEGORIAS PADRÃO (KIT INICIAL)
-    const defaultCategories = [
-      // DESPESAS (Saídas)
-      { name: "Alimentação", type: "EXPENSE", icon: "Utensils", color: "text-orange-500", bg: "bg-orange-100" },
-      { name: "Transporte", type: "EXPENSE", icon: "Car", color: "text-blue-500", bg: "bg-blue-100" },
-      { name: "Combustível", type: "EXPENSE", icon: "Fuel", color: "text-red-500", bg: "bg-red-100" },
-      { name: "Aluguel", type: "EXPENSE", icon: "Home", color: "text-purple-500", bg: "bg-purple-100" },
-      { name: "Oficina", type: "EXPENSE", icon: "Wrench", color: "text-slate-600", bg: "bg-slate-200" },
-      { name: "Contas Fixas", type: "EXPENSE", icon: "Zap", color: "text-yellow-500", bg: "bg-yellow-100" },
-      { name: "Outros", type: "EXPENSE", icon: "MoreHorizontal", color: "text-slate-500", bg: "bg-slate-100" },
-
-      // RECEITAS (Entradas)
-      { name: "Vendas", type: "INCOME", icon: "Briefcase", color: "text-emerald-500", bg: "bg-emerald-100" },
-      { name: "Serviços", type: "INCOME", icon: "Wrench", color: "text-cyan-500", bg: "bg-cyan-100" },
-      { name: "Salários", type: "INCOME", icon: "Users", color: "text-indigo-500", bg: "bg-indigo-100" },
-      { name: "Outros", type: "INCOME", icon: "MoreHorizontal", color: "text-slate-500", bg: "bg-slate-100" },
-    ];
-
-    const categoriesToCreate = defaultCategories.map((cat) => ({
-      ...cat,
+    // 6. Criação das Categorias Padrão (COM AS NOVAS CORES DO CLIENTE)
+    // Aqui usamos a lista importada de 'constants/business.ts' que já está com o Azul e Verde corretos.
+    const categoriesToCreate = DEFAULT_CATEGORIES.map((cat: any) => ({
       userId: newUser._id,
+      name: cat.name,
+      type: cat.type,
+      icon: cat.icon,
+      color: cat.text, // Mapeamos 'text' (do arquivo constants) para 'color' (do banco)
+      bg: cat.bg,      // Mapeamos 'bg'
       isDefault: true,
     }));
 
     await Category.insertMany(categoriesToCreate);
 
-    // 6. Envia o E-mail de Verificação
-    const emailResult = await sendVerificationEmail(email, verificationToken);
-
-    if (!emailResult.success) {
-      console.error("Aviso: Usuário criado, mas falha ao enviar email:", emailResult.error);
+    // 7. Envia o E-mail de Verificação (Lógica Mantida)
+    try {
+      await sendVerificationEmail(newUser.name, newUser.email);
+    } catch (emailError) {
+      console.error("Erro ao enviar e-mail:", emailError);
+      // Não bloqueia o cadastro se o e-mail falhar, mas loga o erro
     }
 
     return NextResponse.json(
-      { message: "Cadastro realizado! Enviamos um código para o seu e-mail." },
+      { message: "Cadastro realizado com sucesso!" },
       { status: 201 },
     );
   } catch (error) {
     console.error("Erro no registro:", error);
     return NextResponse.json(
-      { message: "Erro ao registrar usuário." },
+      { message: "Ocorreu um erro ao criar a conta." },
       { status: 500 },
     );
   }

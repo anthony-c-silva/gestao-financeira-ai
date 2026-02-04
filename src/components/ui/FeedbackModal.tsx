@@ -43,9 +43,9 @@ export function FeedbackModal({
       Icon: AlertCircle,
     },
     info: {
-      iconBg: "bg-indigo-100",
-      iconColor: "text-indigo-600",
-      button: "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200",
+      iconBg: "bg-brand-100",
+      iconColor: "text-brand-900",
+      button: "bg-brand-900 hover:bg-brand-700 shadow-brand-200",
       Icon: Info,
     },
   };

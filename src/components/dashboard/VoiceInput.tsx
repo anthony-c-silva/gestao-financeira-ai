@@ -139,8 +139,8 @@ export function VoiceInput({ onSuccess, onModeChange, userId }: VoiceInputProps)
         isListening
           ? "bg-rose-500 text-white animate-pulse scale-105 shadow-rose-300"
           : isProcessing
-          ? "bg-indigo-400 text-white cursor-wait"
-          : "bg-white text-indigo-600 hover:bg-indigo-50 border border-indigo-100 shadow-sm"
+          ? "bg-brand-400 text-white cursor-wait"
+          : "bg-white text-brand-900 hover:bg-brand-50 border border-brand-100 shadow-sm"
       }`}
     >
       {isProcessing ? (

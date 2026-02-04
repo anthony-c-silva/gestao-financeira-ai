@@ -74,7 +74,7 @@ export function LoginForm() {
   };
 
   const inputBaseClass = "w-full p-4 border rounded-2xl shadow-sm outline-none transition-all";
-  const inputNormalClass = "bg-white border-slate-200 focus:ring-2 focus:ring-indigo-500 text-slate-800";
+  const inputNormalClass = "bg-white border-slate-200 focus:ring-2 focus:ring-brand-900 text-slate-800";
   const inputErrorClass = "bg-rose-50 border-rose-500 text-rose-900 placeholder-rose-300 focus:ring-2 focus:ring-rose-500 animate-shake";
 
   return (
@@ -111,7 +111,7 @@ export function LoginForm() {
             />
             <button
               type="button"
-              className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-indigo-600 focus:outline-none cursor-pointer"
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-brand-900 focus:outline-none cursor-pointer"
               onMouseDown={() => setShowPassword(true)}
               onMouseUp={() => setShowPassword(false)}
               onMouseLeave={() => setShowPassword(false)}
@@ -126,7 +126,7 @@ export function LoginForm() {
           <div className="flex justify-end mt-2">
             <Link 
               href={`/forgot-password?doc=${encodeURIComponent(document)}`}
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+              className="text-xs font-bold text-brand-900 hover:text-brand-800 transition-colors"
             >
               Esqueci minha senha
             </Link>
@@ -136,7 +136,7 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-[0.98] transition-all mt-2 flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          className="w-full py-4 bg-brand-900 text-white font-bold rounded-2xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-[0.98] transition-all mt-2 flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {loading ? <Loader2 size={24} className="animate-spin" /> : "Entrar no Sistema"}
         </button>
@@ -145,7 +145,7 @@ export function LoginForm() {
       <div className="mt-8 flex flex-col gap-3 text-center">
         <p className="text-slate-500 text-sm">
           Não tem conta?{" "}
-          <Link href="/register" className="text-indigo-600 font-bold hover:text-indigo-800 transition-colors">
+          <Link href="/register" className="text-brand-900 font-bold hover:text-brand-800 transition-colors">
             Cadastre-se grátis
           </Link>
         </p>

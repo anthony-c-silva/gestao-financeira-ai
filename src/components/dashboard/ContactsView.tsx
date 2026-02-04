@@ -178,7 +178,7 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
             setEditingContact(null);
             setIsModalOpen(true);
           }}
-          className="p-3 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95"
+          className="p-3 bg-brand-900 text-white rounded-xl shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all active:scale-95"
         >
           <UserPlus size={20} />
         </button>
@@ -191,7 +191,7 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
             onClick={() => setFilterType("CLIENT")}
             className={`flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
               filterType === "CLIENT"
-                ? "bg-indigo-50 text-indigo-600"
+                ? "bg-brand-50 text-brand-900"
                 : "text-slate-400 hover:text-slate-600"
             }`}
           >
@@ -219,7 +219,7 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
             placeholder="Buscar por nome..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+            className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-900 text-sm"
           />
         </div>
       </div>
@@ -257,14 +257,14 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
                   setEditingContact(contactData);
                   setIsModalOpen(true);
                 }}
-                className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-indigo-200 transition-colors cursor-pointer group relative"
+                className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-brand-200 transition-colors cursor-pointer group relative"
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-3">
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
                         contact.type === "CLIENT"
-                          ? "bg-indigo-600"
+                          ? "bg-brand-900"
                           : "bg-rose-500"
                       }`}
                     >
@@ -279,7 +279,7 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
                   </div>
                   <Edit2
                     size={16}
-                    className="text-slate-300 group-hover:text-indigo-500 transition-colors"
+                    className="text-slate-300 group-hover:text-brand-900 transition-colors"
                   />
                 </div>
 
