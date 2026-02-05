@@ -18,9 +18,6 @@ export const Logo = () => {
           priority
         />
       </div>
-
-      <p className="text-xs sm:text-sm font-medium text-slate-500 tracking-widest uppercase text-center">
-    Inteligência que antecipa</p>
     </div>
   );
 };

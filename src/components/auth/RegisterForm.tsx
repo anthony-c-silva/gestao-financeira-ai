@@ -14,8 +14,8 @@ import {
   User,
   Briefcase,
   ChevronDown,
-  Eye,     // Importado
-  EyeOff   // Importado
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { BUSINESS_SIZES } from "@/constants/business";
 import { Toast } from "@/components/ui/Toast";
@@ -45,34 +45,6 @@ const validateCNPJ = (cnpj: string) => {
   cnpj = cnpj.replace(/[^\d]+/g, "");
   if (cnpj.length !== 14) return false;
   if (/^(\d)\1+$/.test(cnpj)) return false;
-
-  let tamanho = cnpj.length - 2;
-  let numeros = cnpj.substring(0, tamanho);
-  const digitos = cnpj.substring(tamanho);
-  let soma = 0;
-  let pos = tamanho - 7;
-  
-  for (let i = tamanho; i >= 1; i--) {
-    soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
-    if (pos < 2) pos = 9;
-  }
-  
-  let resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
-  if (resultado !== parseInt(digitos.charAt(0))) return false;
-  
-  tamanho = tamanho + 1;
-  numeros = cnpj.substring(0, tamanho);
-  soma = 0;
-  pos = tamanho - 7;
-  
-  for (let i = tamanho; i >= 1; i--) {
-    soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
-    if (pos < 2) pos = 9;
-  }
-  
-  resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
-  if (resultado !== parseInt(digitos.charAt(1))) return false;
-  
   return true;
 };
 
@@ -88,8 +60,10 @@ export function RegisterForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
 
-  // Estado para controlar a visibilidade da senha (apenas no primeiro campo)
   const [showPassword, setShowPassword] = useState(false);
+
+  // ESTADO PARA CONTROLE DE ERROS NOS CAMPOS
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
 
   const [toast, setToast] = useState<{
     message: string;
@@ -183,6 +157,14 @@ export function RegisterForm() {
           city: data.localidade,
           state: data.uf,
         }));
+        // Limpa erros desses campos se foram preenchidos automaticamente
+        setFieldErrors(prev => ({
+          ...prev,
+          street: false,
+          neighborhood: false,
+          city: false,
+          state: false
+        }));
       }
     } catch (error) {
       console.error("Erro ao buscar CEP");
@@ -200,6 +182,11 @@ export function RegisterForm() {
     if (name === "cep") formattedValue = formatCEP(value);
 
     setFormData((prev) => ({ ...prev, [name]: formattedValue }));
+    
+    // LIMPA O ERRO ASSIM QUE O USUÁRIO DIGITA
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: false }));
+    }
   };
 
   const passwordsMatch =
@@ -207,13 +194,22 @@ export function RegisterForm() {
   const passwordStrength = checkPasswordStrength(formData.password);
 
   const handleNext = () => {
+    const newErrors: Record<string, boolean> = {};
+
     if (currentStep === 1) {
-      if (
-        !formData.name ||
-        !formData.document ||
-        !formData.email ||
-        !formData.phone
-      ) {
+      // Validação de campos vazios
+      if (!formData.name) newErrors.name = true;
+      if (!formData.document) newErrors.document = true;
+      if (!formData.email) newErrors.email = true;
+      if (!formData.phone) newErrors.phone = true;
+      
+      if (personType === "PJ") {
+         if (!formData.companyName) newErrors.companyName = true;
+         if (!formData.businessSize) newErrors.businessSize = true;
+      }
+
+      if (Object.keys(newErrors).length > 0) {
+        setFieldErrors(newErrors);
         setToast({
           message: "Preencha todos os campos obrigatórios.",
           type: "error",
@@ -221,19 +217,17 @@ export function RegisterForm() {
         return;
       }
 
+      // Validação de Documento
       const cleanDoc = formData.document.replace(/\D/g, "");
-      
       if (personType === "PF") {
         if (!validateCPF(cleanDoc)) {
+          setFieldErrors({ document: true });
           setToast({ message: "CPF inválido. Verifique os números.", type: "error" });
           return;
         }
       } else {
-        if (personType === "PJ" && (!formData.companyName || !formData.businessSize)) {
-          setToast({ message: "Preencha os dados da empresa.", type: "error" });
-          return;
-        }
         if (!validateCNPJ(cleanDoc)) {
+          setFieldErrors({ document: true });
           setToast({ message: "CNPJ inválido. Verifique os números.", type: "error" });
           return;
         }
@@ -241,18 +235,22 @@ export function RegisterForm() {
     }
 
     if (currentStep === 2) {
-      if (
-        !formData.cep ||
-        !formData.street ||
-        !formData.number ||
-        !formData.neighborhood ||
-        !formData.city ||
-        !formData.state
-      ) {
+      if (!formData.cep) newErrors.cep = true;
+      if (!formData.street) newErrors.street = true;
+      if (!formData.number) newErrors.number = true;
+      if (!formData.neighborhood) newErrors.neighborhood = true;
+      if (!formData.city) newErrors.city = true;
+      if (!formData.state) newErrors.state = true;
+
+      if (Object.keys(newErrors).length > 0) {
+        setFieldErrors(newErrors);
         setToast({ message: "Preencha o endereço completo.", type: "error" });
         return;
       }
     }
+    
+    // Limpa erros ao avançar
+    setFieldErrors({});
     setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
   };
 
@@ -265,6 +263,7 @@ export function RegisterForm() {
       type: type, 
       document: "" 
     }));
+    setFieldErrors({}); // Limpa erros ao trocar tipo
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -326,6 +325,14 @@ export function RegisterForm() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Helper para classes de input com erro
+  const getInputClass = (fieldName: string) => `
+    w-full p-2.5 bg-slate-50 border rounded-xl outline-none transition-all font-medium text-slate-800 text-sm
+    ${fieldErrors[fieldName] 
+      ? "border-rose-400 focus:ring-2 focus:ring-rose-200" 
+      : "border-slate-200 focus:ring-2 focus:ring-brand-900"}
+  `;
+
   return (
     <div className="min-h-screen flex flex-col justify-start p-2 py-4 sm:p-6 bg-slate-50">
       <div className="w-full max-w-3xl mx-auto">
@@ -383,7 +390,7 @@ export function RegisterForm() {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none text-slate-800 font-medium"
+                    className={getInputClass("name")}
                     placeholder="Seu nome"
                   />
                 </div>
@@ -397,7 +404,7 @@ export function RegisterForm() {
                     value={formData.document}
                     onChange={handleChange}
                     maxLength={personType === "PF" ? 14 : 18}
-                    className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none text-slate-800 font-medium"
+                    className={getInputClass("document")}
                     placeholder={
                       personType === "PF"
                         ? "000.000.000-00"
@@ -418,7 +425,7 @@ export function RegisterForm() {
                       name="companyName"
                       value={formData.companyName}
                       onChange={handleChange}
-                      className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none text-slate-800 font-medium"
+                      className={getInputClass("companyName")}
                       placeholder="Nome da Empresa"
                     />
                   </div>
@@ -429,7 +436,11 @@ export function RegisterForm() {
                     <button
                       type="button"
                       onClick={() => setIsBusinessSizeOpen(!isBusinessSizeOpen)}
-                      className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none text-slate-800 font-medium text-left flex justify-between items-center"
+                      className={`w-full p-2.5 bg-slate-50 border rounded-xl outline-none font-medium text-left flex justify-between items-center text-sm
+                        ${fieldErrors.businessSize 
+                          ? "border-rose-400 text-slate-800" 
+                          : "border-slate-200 text-slate-800 focus:ring-2 focus:ring-brand-900"}
+                      `}
                     >
                       {businessOptions.find(
                         (s) => s.value === formData.businessSize,
@@ -437,7 +448,7 @@ export function RegisterForm() {
                       <ChevronDown size={16} className="text-slate-400" />
                     </button>
                     {isBusinessSizeOpen && (
-                      <div className="absolute bottom-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto">
+                      <div className="absolute left-0 right-0 bg-white border border-slate-100 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto bottom-full mb-1 md:bottom-auto md:top-full md:mt-1">
                         {businessOptions.map((size) => (
                           <button
                             key={size.value}
@@ -447,9 +458,10 @@ export function RegisterForm() {
                                 ...prev,
                                 businessSize: size.value,
                               }));
+                              setFieldErrors((prev) => ({ ...prev, businessSize: false }));
                               setIsBusinessSizeOpen(false);
                             }}
-                            className="w-full text-left px-4 py-3 hover:bg-slate-50 text-sm text-slate-700 font-medium border-b border-slate-50 last:border-0"
+                            className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-sm text-slate-700 font-medium border-b border-slate-50 last:border-0"
                           >
                             {size.label}
                           </button>
@@ -470,7 +482,7 @@ export function RegisterForm() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none text-slate-800 font-medium"
+                    className={getInputClass("email")}
                     placeholder="seu@email.com"
                   />
                 </div>
@@ -484,7 +496,7 @@ export function RegisterForm() {
                     value={formData.phone}
                     onChange={handleChange}
                     maxLength={15}
-                    className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none text-slate-800 font-medium"
+                    className={getInputClass("phone")}
                     placeholder="(00) 00000-0000"
                   />
                 </div>
@@ -508,11 +520,11 @@ export function RegisterForm() {
                       onChange={handleChange}
                       onBlur={handleCepBlur}
                       maxLength={9}
-                      className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none text-slate-800 font-medium"
+                      className={getInputClass("cep")}
                       placeholder="00000-000"
                     />
                     {loadingCep && (
-                      <div className="absolute right-3 top-3.5">
+                      <div className="absolute right-3 top-2.5">
                         <Loader2
                           size={18}
                           className="animate-spin text-brand-900"
@@ -530,7 +542,7 @@ export function RegisterForm() {
                     name="street"
                     value={formData.street}
                     onChange={handleChange}
-                    className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none text-slate-800 font-medium"
+                    className={getInputClass("street")}
                     placeholder="Rua, Av..."
                   />
                 </div>
@@ -546,7 +558,7 @@ export function RegisterForm() {
                     name="number"
                     value={formData.number}
                     onChange={handleChange}
-                    className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none text-slate-800 font-medium"
+                    className={getInputClass("number")}
                     placeholder="123"
                   />
                 </div>
@@ -559,7 +571,7 @@ export function RegisterForm() {
                     name="complement"
                     value={formData.complement}
                     onChange={handleChange}
-                    className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none text-slate-800 font-medium"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none text-slate-800 font-medium text-sm"
                     placeholder="Apto 101"
                   />
                 </div>
@@ -575,7 +587,7 @@ export function RegisterForm() {
                     name="neighborhood"
                     value={formData.neighborhood}
                     onChange={handleChange}
-                    className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none text-slate-800 font-medium"
+                    className={getInputClass("neighborhood")}
                   />
                 </div>
                 <div className="flex gap-3 sm:gap-4">
@@ -588,7 +600,7 @@ export function RegisterForm() {
                       name="city"
                       value={formData.city}
                       onChange={handleChange}
-                      className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none text-slate-800 font-medium"
+                      className={getInputClass("city")}
                     />
                   </div>
                   <div className="w-20">
@@ -601,7 +613,7 @@ export function RegisterForm() {
                       value={formData.state}
                       onChange={handleChange}
                       maxLength={2}
-                      className="w-full p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none text-slate-800 font-medium uppercase text-center"
+                      className={`${getInputClass("state")} uppercase text-center`}
                     />
                   </div>
                 </div>
@@ -631,14 +643,11 @@ export function RegisterForm() {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    // AJUSTE: pr-20 para dar espaço para os dois ícones (Check + Olho)
-                    className={`w-full p-3 sm:p-3.5 bg-slate-50 border rounded-xl outline-none transition-all text-slate-800 font-medium pr-20 ${passwordStrength >= 3 ? "border-emerald-200 focus:ring-2 focus:ring-emerald-500" : "border-slate-200 focus:ring-2 focus:ring-brand-900"}`}
+                    className={`w-full p-2.5 bg-slate-50 border rounded-xl outline-none transition-all text-slate-800 font-medium pr-20 text-sm ${passwordStrength >= 3 ? "border-emerald-200 focus:ring-2 focus:ring-emerald-500" : "border-slate-200 focus:ring-2 focus:ring-brand-900"}`}
                     placeholder="••••••••"
                   />
                   
-                  {/* --- ÍCONES NO INPUT DE SENHA --- */}
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 gap-2">
-                    {/* 1. Indicador de Força/Validação */}
                     {formData.password && (
                       <div className="flex items-center">
                         {passwordStrength >= 3 ? (
@@ -649,7 +658,6 @@ export function RegisterForm() {
                       </div>
                     )}
 
-                    {/* 2. Botão Espiar Senha (Clique e Segure) */}
                     <button
                       type="button"
                       className="text-slate-400 hover:text-brand-900 focus:outline-none cursor-pointer p-1"
@@ -663,7 +671,6 @@ export function RegisterForm() {
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
-                  {/* ------------------------------- */}
                 </div>
                 
                 <div className="flex gap-1 mt-2 h-1">
@@ -689,11 +696,11 @@ export function RegisterForm() {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className={`w-full p-3 sm:p-3.5 bg-slate-50 border rounded-xl outline-none transition-all text-slate-800 font-medium pr-10 ${passwordsMatch ? "border-emerald-200 focus:ring-emerald-500" : "border-slate-200 focus:ring-brand-900"}`}
+                    className={`w-full p-2.5 bg-slate-50 border rounded-xl outline-none transition-all text-slate-800 font-medium pr-10 text-sm ${passwordsMatch ? "border-emerald-200 focus:ring-emerald-500" : "border-slate-200 focus:ring-brand-900"}`}
                     placeholder="••••••••"
                   />
                   {formData.confirmPassword && (
-                    <div className="absolute right-3 top-3.5">
+                    <div className="absolute right-3 top-2.5">
                       {passwordsMatch ? (
                         <Check size={20} className="text-emerald-500" />
                       ) : (

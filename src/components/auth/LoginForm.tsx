@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { Toast } from "@/components/ui/Toast";
-import { Logo } from "@/components/ui/Logo"; // Importando a Logo
+import { Logo } from "@/components/ui/Logo";
 
 export function LoginForm() {
   const router = useRouter();
@@ -32,21 +32,19 @@ export function LoginForm() {
       value = value.replace(/(\d{4})(\d)/, "$1-$2");
     }
 
-    if (hasError) setHasError(false);
     setDocument(value);
+    setHasError(false); // Limpa erro ao digitar
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    setHasError(false); // Limpa erro ao digitar
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setHasError(false);
-
-    if (!document || !password) {
-      setHasError(true);
-      setToast({ message: "Por favor, preencha todos os campos.", type: "error" });
-      return;
-    }
-
     setLoading(true);
+    setHasError(false);
 
     try {
       const res = await fetch("/api/login", {
@@ -57,101 +55,115 @@ export function LoginForm() {
 
       const data = await res.json();
 
-      if (res.ok) {
-        localStorage.setItem("user", JSON.stringify(data.user));
-        setToast({ message: "Login realizado com sucesso!", type: "success" });
-        setTimeout(() => router.push("/dashboard"), 1000);
-      } else {
+      if (!res.ok) {
         setHasError(true);
-        // Se o erro for de verificação de email, podemos tratar aqui no futuro
-        setToast({ message: data.message || "Credenciais inválidas.", type: "error" });
+        setToast({ message: data.message || "Erro ao entrar.", type: "error" });
+        setLoading(false);
+        return;
       }
+
+      router.push("/dashboard");
     } catch (error) {
+      setHasError(true);
       setToast({ message: "Erro de conexão.", type: "error" });
-    } finally {
       setLoading(false);
     }
   };
 
-  const inputBaseClass = "w-full p-4 border rounded-2xl shadow-sm outline-none transition-all";
-  const inputNormalClass = "bg-white border-slate-200 focus:ring-2 focus:ring-brand-900 text-slate-800";
-  const inputErrorClass = "bg-rose-50 border-rose-500 text-rose-900 placeholder-rose-300 focus:ring-2 focus:ring-rose-500 animate-shake";
+  // Helper para classes de input (Padronizado com o Cadastro)
+  const getInputClass = () => `
+    w-full p-2.5 pl-4 bg-slate-50 border rounded-xl outline-none transition-all font-medium text-slate-800 text-sm
+    ${hasError 
+      ? "border-rose-400 focus:ring-2 focus:ring-rose-200" 
+      : "border-slate-200 focus:ring-2 focus:ring-brand-900"}
+  `;
 
   return (
-    <div className="min-h-screen flex flex-col justify-start p-6 bg-slate-50">
-      <div className="mb-8 flex flex-col items-center">
-          <Logo/>
-      </div>
-
-      <form className="w-full max-w-sm mx-auto space-y-6" onSubmit={handleSubmit}>
-        <div>
-          <label className={`block text-xs font-bold uppercase mb-1 ml-1 ${hasError ? "text-rose-500" : "text-slate-500"}`}>
-            CPF ou CNPJ
-          </label>
-          <input
-            type="text"
-            value={document}
-            onChange={handleDocumentChange}
-            placeholder="000.000.000-00"
-            className={`${inputBaseClass} ${hasError ? inputErrorClass : inputNormalClass}`}
-          />
-        </div>
+    // LAYOUT CENTRALIZADO (justify-center items-center)
+    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-slate-50">
+      
+      {/* Container com largura limitada (Compacto) */}
+      <div className="w-full max-w-sm animate-in fade-in zoom-in-95 duration-300">
         
-        <div>
-          <label className={`block text-xs font-bold uppercase mb-1 ml-1 ${hasError ? "text-rose-500" : "text-slate-500"}`}>
-            Senha
-          </label>
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => { if(hasError) setHasError(false); setPassword(e.target.value); }}
-              placeholder="••••••••"
-              className={`${inputBaseClass} ${hasError ? inputErrorClass : inputNormalClass} pr-12`}
-            />
-            <button
-              type="button"
-              className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-brand-900 focus:outline-none cursor-pointer"
-              onMouseDown={() => setShowPassword(true)}
-              onMouseUp={() => setShowPassword(false)}
-              onMouseLeave={() => setShowPassword(false)}
-              onTouchStart={() => setShowPassword(true)}
-              onTouchEnd={() => setShowPassword(false)}
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          </div>
+        <Logo />
+
+        <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl shadow-brand-100/50 border border-slate-100 space-y-4">
           
-          {/* LINK NOVO: ESQUECI MINHA SENHA */}
-          <div className="flex justify-end mt-2">
-            <Link 
-              href={`/forgot-password?doc=${encodeURIComponent(document)}`}
-              className="text-xs font-bold text-brand-900 hover:text-brand-800 transition-colors"
-            >
-              Esqueci minha senha
-            </Link>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+              CPF ou CNPJ
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="000.000.000-00"
+              value={document}
+              onChange={handleDocumentChange}
+              className={getInputClass()}
+            />
           </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
+              Senha
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={handlePasswordChange}
+                className={`${getInputClass()} pr-10`} // pr-10 para o ícone não ficar em cima do texto
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-brand-900 transition-colors focus:outline-none"
+                onClick={() => setShowPassword(!showPassword)}
+                title={showPassword ? "Ocultar senha" : "Ver senha"}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            
+            {/* Link Esqueci Minha Senha */}
+            <div className="flex justify-end mt-2">
+              <Link 
+                href={`/forgot-password?doc=${encodeURIComponent(document)}`}
+                className="text-xs font-bold text-brand-900 hover:text-brand-700 transition-colors"
+              >
+                Esqueci minha senha
+              </Link>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            // Botão Compacto (py-3.5 e rounded-xl)
+            className="w-full py-3.5 bg-brand-900 text-white font-bold rounded-xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-[0.98] transition-all flex justify-center items-center gap-2 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {loading ? <Loader2 size={20} className="animate-spin" /> : "Entrar no Sistema"}
+          </button>
+        </form>
+
+        <div className="mt-8 text-center">
+          <p className="text-slate-500 text-sm">
+            Não tem conta?{" "}
+            <Link href="/register" className="text-brand-900 font-bold hover:text-brand-700 transition-colors">
+              Criar agora
+            </Link>
+          </p>
         </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-4 bg-brand-900 text-white font-bold rounded-2xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-[0.98] transition-all mt-2 flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-        >
-          {loading ? <Loader2 size={24} className="animate-spin" /> : "Entrar no Sistema"}
-        </button>
-      </form>
-
-      <div className="mt-8 flex flex-col gap-3 text-center">
-        <p className="text-slate-500 text-sm">
-          Não tem conta?{" "}
-          <Link href="/register" className="text-brand-900 font-bold hover:text-brand-800 transition-colors">
-            Cadastre-se grátis
-          </Link>
-        </p>
       </div>
 
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(null)} 
+        />
+      )}
     </div>
   );
 }
