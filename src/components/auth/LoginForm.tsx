@@ -163,7 +163,7 @@ export function LoginForm() {
             disabled={loading}
             className="w-full py-3.5 bg-brand-900 text-white font-bold rounded-xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-[0.98] transition-all flex justify-center items-center gap-2 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {loading ? <Loader2 size={20} className="animate-spin" /> : "Entrar no Sistema"}
+            {loading ? <Loader2 size={20} className="animate-spin" /> : "Entrar"}
           </button>
         </form>
 
