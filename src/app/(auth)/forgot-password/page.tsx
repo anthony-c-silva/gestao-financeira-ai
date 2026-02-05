@@ -122,12 +122,6 @@ function ForgotPasswordContent() {
 
   return (
     <div className="w-full max-w-sm mx-auto">
-      
-      {/* Logo Centralizada */}
-      <div className="mb-6 flex justify-center animate-in fade-in slide-in-from-top-4 duration-500">
-        <Logo />
-      </div>
-
       <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl shadow-brand-100/50 border border-slate-100 relative overflow-hidden animate-in fade-in zoom-in-95 duration-500">
         
         {/* Cabeçalho do Card */}
