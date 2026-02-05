@@ -48,7 +48,6 @@ export function LoginForm() {
 
     setLoading(true);
 
-    // CORREÇÃO DE LOGICA: Remove pontos e traços antes de enviar
     const cleanDocument = document.replace(/\D/g, "");
 
     try {
@@ -56,46 +55,56 @@ export function LoginForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          document: cleanDocument, // Envia limpo
+          document: cleanDocument,
           password 
         }),
       });
 
       const data = await res.json();
 
-      if (res.ok) {
-        // Salva dados básicos (opcional, pois o cookie é o principal)
-        localStorage.setItem("user", JSON.stringify(data.user));
-        setToast({ message: "Login realizado com sucesso!", type: "success" });
-        
-        // Pequeno delay para garantir que o cookie foi setado antes do redirect
-        setTimeout(() => router.push("/dashboard"), 500);
-      } else {
+      if (!res.ok) {
+        // SE O ERRO FOR EMAIL NÃO VERIFICADO, REDIRECIONA PARA VERIFICAR
+        if (res.status === 403 && data.code === "EMAIL_NOT_VERIFIED") {
+          setToast({ message: "Verifique seu e-mail para continuar.", type: "error" });
+          // Usa o email retornado pela API para montar a URL
+          setTimeout(() => {
+            router.push(`/verify?email=${encodeURIComponent(data.email)}`);
+          }, 1500);
+          setLoading(false);
+          return;
+        }
+
         setHasError(true);
-        setToast({ message: data.message || "Credenciais inválidas.", type: "error" });
+        setToast({ message: data.message || "Erro ao entrar.", type: "error" });
+        setLoading(false);
+        return;
       }
+
+      // Sucesso no login
+      localStorage.setItem("user", JSON.stringify(data.user));
+      setToast({ message: "Login realizado com sucesso!", type: "success" });
+      setTimeout(() => router.push("/dashboard"), 500);
+
     } catch (error) {
       setToast({ message: "Erro de conexão.", type: "error" });
     } finally {
-      setLoading(false);
+      // setLoading(false) é chamado dentro dos ifs de erro ou sucesso
+      // Mas por segurança, se cair aqui no catch e não tiver saído:
+      if (!loading) setLoading(false); 
     }
   };
 
-  // Estilos padronizados (Small & Compact)
   const inputBaseClass = "w-full p-2.5 bg-slate-50 border rounded-xl outline-none transition-all font-medium text-slate-800 text-sm";
   const inputNormalClass = "border-slate-200 focus:ring-2 focus:ring-brand-900";
   const inputErrorClass = "border-rose-400 focus:ring-2 focus:ring-rose-200";
 
   return (
-    // Layout Centralizado
     <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-slate-50">
       
-      {/* Container Limitado */}
       <div className="w-full max-w-sm animate-in fade-in zoom-in-95 duration-300">
         
         <Logo />
 
-        {/* Cartão Branco (Consistência com Cadastro) */}
         <form 
           className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl shadow-brand-100/50 border border-slate-100 space-y-4" 
           onSubmit={handleSubmit}
@@ -139,7 +148,6 @@ export function LoginForm() {
               </button>
             </div>
             
-            {/* Link Esqueci Minha Senha */}
             <div className="flex justify-end mt-2">
               <Link 
                 href={`/forgot-password?doc=${encodeURIComponent(document)}`}

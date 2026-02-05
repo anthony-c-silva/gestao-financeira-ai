@@ -1,30 +1,18 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, model, models } from "mongoose";
 
-const UserSchema = new mongoose.Schema(
+const UserSchema = new Schema(
   {
     name: {
       type: String,
-      required: [true, "Por favor, insira um nome."],
+      required: [true, "O nome é obrigatório."],
     },
-    email: {
-      type: String,
-      required: [true, "Por favor, insira um email."],
-      unique: true,
-      lowercase: true, // Garante que o email seja salvo em minúsculo
-      trim: true,
+    companyName: {
+      type: String, // Opcional (apenas PJ)
     },
     document: {
       type: String,
-      required: [true, "Por favor, insira um CPF ou CNPJ."],
+      required: [true, "CPF ou CNPJ é obrigatório."],
       unique: true,
-    },
-    password: {
-      type: String,
-      required: [true, "Por favor, insira uma senha."],
-      select: false, // Por segurança, não retorna a senha nas buscas normais
-    },
-    companyName: {
-      type: String,
     },
     type: {
       type: String,
@@ -32,35 +20,58 @@ const UserSchema = new mongoose.Schema(
       default: "PF",
     },
     businessSize: {
+      type: String, // MEI, ME, EPP... (apenas PJ)
+    },
+    email: {
       type: String,
+      required: [true, "O e-mail é obrigatório."],
+      unique: true,
     },
     phone: {
       type: String,
+      required: [true, "O telefone é obrigatório."],
+    },
+    password: {
+      type: String,
+      required: [true, "A senha é obrigatória."],
+      select: false, // Por segurança, não retorna a senha nas buscas padrão
     },
     
-    // --- NOVOS CAMPOS DE SEGURANÇA (EMAIL & RECUPERAÇÃO) ---
-    
+    // --- CAMPOS DE VERIFICAÇÃO (CRUCIAIS) ---
     emailVerified: {
       type: Boolean,
-      default: false, // O usuário começa como "não verificado"
+      default: false,
     },
-    verificationToken: {
-      type: String, // Código para validar o e-mail no cadastro
-      select: false,
+    verificationCode: {
+      type: String, // Armazena o código de 6 dígitos
+      default: null,
     },
-    resetPasswordToken: {
-      type: String, // Código de 6 dígitos para recuperar senha
-      select: false,
+    // ----------------------------------------
+
+    address: {
+      cep: String,
+      street: String,
+      number: String,
+      complement: String,
+      neighborhood: String,
+      city: String,
+      state: String,
     },
-    resetPasswordExpires: {
-      type: Date, // Hora que o código expira (segurança)
-      select: false,
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now,
     },
   },
   {
-    timestamps: true, // Cria createdAt e updatedAt automaticamente
+    timestamps: true, // Cria automaticamente createdAt e updatedAt
   }
 );
 
-// Evita re-compilar o modelo se ele já existir (erro comum no Next.js)
-export default mongoose.models.User || mongoose.model("User", UserSchema);
+// Evita re-compilar o modelo se já existir (Hot Reload do Next.js)
+const User = models.User || model("User", UserSchema);
+
+export default User;
