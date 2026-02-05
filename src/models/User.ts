@@ -37,16 +37,28 @@ const UserSchema = new Schema(
       select: false, // Por segurança, não retorna a senha nas buscas padrão
     },
     
-    // --- CAMPOS DE VERIFICAÇÃO (CRUCIAIS) ---
+    // --- CAMPOS DE VERIFICAÇÃO (CADASTRO) ---
     emailVerified: {
       type: Boolean,
       default: false,
     },
     verificationCode: {
-      type: String, // Armazena o código de 6 dígitos
+      type: String, 
       default: null,
     },
-    // ----------------------------------------
+
+    // --- CAMPOS DE RECUPERAÇÃO DE SENHA (NOVOS) ---
+    resetPasswordToken: {
+      type: String,
+      default: null,
+      select: false, // Oculta por padrão
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: null,
+      select: false, // Oculta por padrão
+    },
+    // -----------------------------------------------
 
     address: {
       cep: String,
@@ -67,11 +79,10 @@ const UserSchema = new Schema(
     },
   },
   {
-    timestamps: true, // Cria automaticamente createdAt e updatedAt
+    timestamps: true,
   }
 );
 
-// Evita re-compilar o modelo se já existir (Hot Reload do Next.js)
 const User = models.User || model("User", UserSchema);
 
 export default User;

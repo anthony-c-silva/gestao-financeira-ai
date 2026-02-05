@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Mail, KeyRound, ArrowRight, CheckCircle, ArrowLeft, Eye, EyeOff, ShieldCheck, User } from "lucide-react";
 import { Toast } from "@/components/ui/Toast";
+import { Logo } from "@/components/ui/Logo";
 
 function ForgotPasswordContent() {
   const router = useRouter();
@@ -15,7 +16,6 @@ function ForgotPasswordContent() {
   const [step, setStep] = useState<"REQUEST" | "CODE" | "SUCCESS">("REQUEST");
   const [loading, setLoading] = useState(false);
   
-  // Inicializamos vazio e deixamos o useEffect preencher
   const [document, setDocument] = useState("");
   const [email, setEmail] = useState("");
   
@@ -25,7 +25,6 @@ function ForgotPasswordContent() {
 
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  // --- FUNÇÃO DE FORMATAÇÃO PURA (Reutilizável) ---
   const formatDocument = (value: string) => {
     let numbers = value.replace(/\D/g, "");
     if (numbers.length > 14) numbers = numbers.slice(0, 14);
@@ -44,14 +43,12 @@ function ForgotPasswordContent() {
     }
   };
 
-  // 1. Ao carregar, formata o valor da URL diretamente (sem "any")
   useEffect(() => {
     if (docFromUrl) {
       setDocument(formatDocument(docFromUrl));
     }
   }, [docFromUrl]);
 
-  // 2. Ao digitar, usa a mesma função de formatação
   const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setDocument(formatDocument(e.target.value));
   };
@@ -124,44 +121,58 @@ function ForgotPasswordContent() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="flex flex-col items-center mb-8">
-        
-        <h1 className="text-2xl font-bold text-slate-800">Recuperação Segura</h1>
-        <p className="text-slate-500 text-sm text-center max-w-xs mt-1">
-          {step === "REQUEST" && "Confirme seus dados para receber o código de acesso."}
-          {step === "CODE" && `Código enviado para: ${email}`}
-          {step === "SUCCESS" && "Acesso recuperado com sucesso!"}
-        </p>
+    <div className="w-full max-w-sm mx-auto">
+      
+      {/* Logo Centralizada */}
+      <div className="mb-6 flex justify-center animate-in fade-in slide-in-from-top-4 duration-500">
+        <Logo />
       </div>
 
-      <div className="bg-white p-8 rounded-3xl shadow-xl shadow-brand-100/50 border border-slate-100 relative overflow-hidden">
+      <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl shadow-brand-100/50 border border-slate-100 relative overflow-hidden animate-in fade-in zoom-in-95 duration-500">
         
+        {/* Cabeçalho do Card */}
+        <div className="text-center mb-6">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">
+            {step === "REQUEST" && "Recuperar Acesso"}
+            {step === "CODE" && "Código Enviado"}
+            {step === "SUCCESS" && "Sucesso!"}
+          </h1>
+          <p className="text-slate-500 text-sm mt-2">
+            {step === "REQUEST" && "Informe seus dados para receber o código."}
+            {step === "CODE" && (
+              <>
+                Enviamos o código para:<br/>
+                <span className="font-bold text-brand-900">{email}</span>
+              </>
+            )}
+            {step === "SUCCESS" && "Sua senha foi redefinida."}
+          </p>
+        </div>
+
         {step === "SUCCESS" ? (
-          <div className="flex flex-col items-center justify-center py-8 animate-in zoom-in duration-500">
-            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-4 text-emerald-600">
-              <CheckCircle size={40} />
+          <div className="flex flex-col items-center justify-center py-4 animate-in zoom-in duration-500">
+            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4 text-emerald-600">
+              <CheckCircle size={32} />
             </div>
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Senha Alterada!</h2>
             <p className="text-slate-500 text-center text-sm mb-6">
-              Você será redirecionado para o login.
+              Você será redirecionado para o login em instantes.
             </p>
-            <Link href="/login" className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors">
+            <Link href="/login" className="w-full text-center bg-brand-900 text-white py-3.5 rounded-xl font-bold hover:bg-brand-700 transition-colors shadow-lg shadow-brand-200">
               Ir para Login
             </Link>
           </div>
         ) : (
           <>
             {step === "REQUEST" ? (
-              <form onSubmit={handleRequestCode} className="space-y-5 animate-in slide-in-from-left-4" autoComplete="off">
+              <form onSubmit={handleRequestCode} className="space-y-4 animate-in slide-in-from-left-4" autoComplete="off">
                 
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">
                     CPF ou CNPJ
                   </label>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                      <User size={20} />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <User size={18} />
                     </div>
                     <input
                       type="text"
@@ -169,7 +180,7 @@ function ForgotPasswordContent() {
                       value={document}
                       onChange={handleDocumentChange}
                       placeholder="000.000.000-00"
-                      className="w-full p-4 pl-12 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-900 outline-none transition-all text-slate-800 font-medium"
+                      className="w-full p-2.5 pl-10 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none transition-all text-slate-800 font-medium text-sm"
                     />
                   </div>
                 </div>
@@ -179,8 +190,8 @@ function ForgotPasswordContent() {
                     E-mail Cadastrado
                   </label>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                      <Mail size={20} />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <Mail size={18} />
                     </div>
                     <input
                       type="email"
@@ -188,7 +199,7 @@ function ForgotPasswordContent() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Confirme seu e-mail"
-                      className="w-full p-4 pl-12 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-900 outline-none transition-all text-slate-800 font-medium"
+                      className="w-full p-2.5 pl-10 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none transition-all text-slate-800 font-medium text-sm"
                       autoComplete="email"
                     />
                   </div>
@@ -197,20 +208,18 @@ function ForgotPasswordContent() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-4 bg-brand-900 text-white font-bold rounded-2xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3.5 bg-brand-900 text-white font-bold rounded-xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm mt-2"
                 >
-                  {loading ? <Loader2 className="animate-spin" /> : <>Enviar Código <ArrowRight size={20} /></>}
+                  {loading ? <Loader2 size={20} className="animate-spin" /> : <>Enviar Código <ArrowRight size={18} /></>}
                 </button>
               </form>
             ) : (
-              <form onSubmit={handleResetPassword} className="space-y-5 animate-in slide-in-from-right-4" autoComplete="off">
+              <form onSubmit={handleResetPassword} className="space-y-4 animate-in slide-in-from-right-4" autoComplete="off">
                 <div>
-                  <div className="flex justify-between items-center mb-1 ml-1">
-                    <label className="block text-xs font-bold text-slate-500 uppercase">Código de Segurança</label>
-                  </div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Código de Segurança</label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                      <ShieldCheck size={20} />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <ShieldCheck size={18} />
                     </div>
                     <input
                       type="text"
@@ -218,7 +227,7 @@ function ForgotPasswordContent() {
                       value={code}
                       onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                       placeholder="000000"
-                      className="w-full p-4 pl-12 text-lg tracking-widest font-bold bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-900 outline-none transition-all text-slate-800"
+                      className="w-full p-2.5 pl-10 text-lg tracking-widest font-bold bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none transition-all text-center text-slate-800"
                       autoComplete="one-time-code"
                       inputMode="numeric"
                       autoFocus
@@ -229,8 +238,8 @@ function ForgotPasswordContent() {
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Nova Senha</label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                      <KeyRound size={20} />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <KeyRound size={18} />
                     </div>
                     <input
                       type={showPassword ? "text" : "password"}
@@ -238,34 +247,36 @@ function ForgotPasswordContent() {
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Nova senha segura"
-                      className="w-full p-4 pl-12 pr-12 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-900 outline-none transition-all text-slate-800 font-medium"
+                      className="w-full p-2.5 pl-10 pr-10 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none transition-all text-slate-800 font-medium text-sm"
                       autoComplete="new-password"
                     />
                     <button
                       type="button"
-                      className="absolute inset-y-0 right-0 pr-4 text-slate-400 hover:text-brand-900"
+                      className="absolute inset-y-0 right-0 pr-3 text-slate-400 hover:text-brand-900 flex items-center"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-4 bg-brand-900 text-white font-bold rounded-2xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                >
-                  {loading ? <Loader2 className="animate-spin" /> : "Redefinir Senha"}
-                </button>
-                
-                <button
-                  type="button"
-                  onClick={() => setStep("REQUEST")}
-                  className="w-full py-2 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  Voltar e corrigir dados
-                </button>
+                <div className="pt-2 space-y-3">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3.5 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 hover:bg-emerald-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm"
+                  >
+                    {loading ? <Loader2 size={20} className="animate-spin" /> : "Redefinir Senha"}
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => setStep("REQUEST")}
+                    className="w-full py-2 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    Voltar e corrigir dados
+                  </button>
+                </div>
               </form>
             )}
           </>
@@ -285,8 +296,8 @@ function ForgotPasswordContent() {
 
 export default function ForgotPasswordPage() {
   return (
-    <div className="min-h-screen flex flex-col justify-center p-6 bg-slate-50">
-      <Suspense fallback={<div className="text-center">Carregando...</div>}>
+    <div className="min-h-screen flex flex-col justify-center p-4 bg-slate-50">
+      <Suspense fallback={<div className="text-center"><Loader2 className="animate-spin text-brand-900 mx-auto" /></div>}>
         <ForgotPasswordContent />
       </Suspense>
     </div>
