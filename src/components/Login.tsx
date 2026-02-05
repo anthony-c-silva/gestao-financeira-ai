@@ -79,7 +79,7 @@ export default function Login() {
           type="submit"
           className="w-full py-4 bg-brand-900 text-white font-bold rounded-2xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-[0.98] transition-all mt-2"
         >
-          Entrar no Sistema
+          Entrar
         </button>
       </form>
 
