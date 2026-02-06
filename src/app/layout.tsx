@@ -8,6 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Smart Fin",
   description: "Sistema de gestão financeira",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
