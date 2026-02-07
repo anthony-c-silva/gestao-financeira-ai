@@ -24,6 +24,7 @@ import {
   Send,
   X,
   Loader2,
+  Mic,
 } from "lucide-react";
 import { FaturamentoCard } from "@/components/dashboard/FaturamentoCard";
 import {
@@ -60,14 +61,15 @@ import {
 } from "recharts";
 
 const DEFAULT_COLORS = [
-  "#1ba879", // Verde Principal (Brand 500)
-  "#000066", // Azul Corporativo (Corporate 900)
-  "#42cc9f", // Verde Claro (Brand 400)
-  "#30306a", // Azul Médio (Corporate 800)
-  "#10b981", // Emerald (Sucesso/Manter)
-  "#f43f5e", // Rose (Despesa/Manter)
-  "#f59e0b", // Amber (Alerta)
+  "#1ba879", // Verde Principal
+  "#000066", // Azul Corporativo
+  "#42cc9f", // Verde Claro
+  "#30306a", // Azul Médio
+  "#10b981", // Emerald
+  "#f43f5e", // Rose
+  "#f59e0b", // Amber
 ];
+
 interface CustomPieLabelProps {
   name?: string | number;
   percent?: number;
@@ -141,8 +143,11 @@ export default function Dashboard() {
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] =
     useState(false);
   
-  // ESTADO NOVO: Controle do Modal de Sucesso de Exclusão
+  // Controle do Modal de Sucesso
   const [isDeleteSuccessOpen, setIsDeleteSuccessOpen] = useState(false);
+
+  // Controle do Menu Central (FAB)
+  const [isFabOpen, setIsFabOpen] = useState(false);
 
   const [recurrenceAction, setRecurrenceAction] = useState<
     "EDIT" | "DELETE" | null
@@ -239,15 +244,14 @@ export default function Dashboard() {
     showToast("Perfil atualizado!", "success");
   };
 
-  // --- LÓGICA ATUALIZADA: Fecha modais anteriores antes de mostrar sucesso ---
   const handleDeleteAccount = async () => {
     if (!user) return;
     try {
       const res = await fetch(`/api/user/${user._id}`, { method: "DELETE" });
       if (res.ok) {
-        setIsDeleteAccountModalOpen(false); // Fecha confirmação
-        setIsSettingsModalOpen(false);      // Fecha modal de configurações (Minha Conta)
-        setIsDeleteSuccessOpen(true);       // Abre sucesso
+        setIsDeleteAccountModalOpen(false); 
+        setIsSettingsModalOpen(false);      
+        setIsDeleteSuccessOpen(true);       
       } else {
         showToast("Erro ao excluir conta.", "error");
       }
@@ -264,6 +268,7 @@ export default function Dashboard() {
     };
     setModalInitialData(completeData);
     setIsModalOpen(true);
+    setIsFabOpen(false);
   };
 
   const handleTextAiSubmit = async (e: React.FormEvent) => {
@@ -295,6 +300,7 @@ export default function Dashboard() {
     setModalInitialData(null);
     setPendingRecurrenceAction(null);
     setIsModalOpen(true);
+    setIsFabOpen(false); // Fecha o menu ao abrir modal
   };
 
   const handleEditRequest = (t: Transaction) => {
@@ -984,9 +990,9 @@ export default function Dashboard() {
         )}
       </main>
 
-      {currentTab !== "CONTACTS" && (
+      {/* --- MENU FLUTUANTE DE TEXTO (Original) --- */}
+      {isTextMode && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 w-full justify-center">
-          {isTextMode ? (
             <div className="bg-white p-2 rounded-2xl shadow-2xl border border-brand-100 flex items-center gap-2 w-full max-w-[350px] animate-in slide-in-from-bottom-2 zoom-in-95">
               <form
                 onSubmit={handleTextAiSubmit}
@@ -1020,47 +1026,69 @@ export default function Dashboard() {
                 <X size={20} />
               </button>
             </div>
-          ) : (
-            <div className="pointer-events-auto flex items-center gap-3 animate-in fade-in zoom-in duration-300">
-              <VoiceInput
-                onSuccess={handleAiSuccess}
-                onModeChange={(isActive) => setIsInputMode(isActive)}
-                userId={user._id}
-              />
-              {!isInputMode && (
-                <button
-                  onClick={() => setIsTextMode(true)}
-                  className="bg-white text-brand-900 h-[56px] w-[56px] rounded-full shadow-lg border border-brand-100 flex items-center justify-center hover:bg-brand-50 active:scale-95 transition-all"
-                  title="Digitar comando"
-                >
-                  <Keyboard size={24} />
-                </button>
-              )}
-              {!isInputMode && (
-                <button
-                  onClick={handleOpenModalManual}
-                  className="bg-brand-900 text-white px-6 py-3 rounded-full shadow-xl shadow-brand-300 flex items-center gap-2 font-bold hover:bg-brand-700 active:scale-95 transition-all transform hover:-translate-y-1 h-[56px]"
-                >
-                  <Plus size={20} /> Registrar
-                </button>
-              )}
-            </div>
-          )}
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-3 z-20 pb-safe">
-        <div className="flex justify-around items-center max-w-2xl mx-auto">
+      {/* --- MENU "EXPLOSÃO" (Ajustado Responsivo) --- */}
+      {isFabOpen && !isTextMode && (
+        <>
+          <div 
+             className="fixed inset-0 z-20 bg-black/40 backdrop-blur-[2px]" 
+             onClick={() => setIsFabOpen(false)}
+          />
+          
+          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 sm:gap-4 w-full justify-center animate-in slide-in-from-bottom-4 zoom-in-95 duration-200">
+             
+             {/* 1. Voz (IA) - Componente VoiceInput Original */}
+             {/* Usamos scale-90 em mobile para reduzir um pouco o tamanho geral */}
+             <div className="scale-90 sm:scale-110"> 
+               <VoiceInput
+                  onSuccess={(data) => { handleAiSuccess(data); setIsFabOpen(false); }}
+                  onModeChange={(isActive) => setIsInputMode(isActive)}
+                  userId={user._id}
+               />
+             </div>
+
+             {/* 2. Texto (IA) - Botão Circular Branco */}
+             <button
+                onClick={() => {
+                  setIsTextMode(true);
+                  setIsFabOpen(false);
+                }}
+                className="bg-white text-brand-900 h-12 w-12 sm:h-[56px] sm:w-[56px] rounded-full shadow-lg border border-brand-100 flex items-center justify-center hover:bg-brand-50 active:scale-95 transition-all"
+                title="Digitar comando"
+             >
+                {/* Ícone um pouco menor no mobile (20) e normal no desktop (24) */}
+                <Keyboard className="w-5 h-5 sm:w-6 sm:h-6" />
+             </button>
+
+             {/* 3. Registrar (Manual) - Botão Pílula Brand */}
+             <button
+                onClick={handleOpenModalManual}
+                className="bg-brand-900 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-full shadow-xl shadow-brand-300 flex items-center gap-2 font-bold hover:bg-brand-700 active:scale-95 transition-all transform hover:-translate-y-1 h-12 sm:h-[56px]"
+             >
+                <Plus className="w-[18px] h-[18px] sm:w-5 sm:h-5" /> 
+                <span className="text-sm sm:text-base">Registrar</span>
+             </button>
+          </div>
+        </>
+      )}
+
+      {/* --- BARRA DE NAVEGAÇÃO INFERIOR COM BOTÃO CENTRAL --- */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-3 z-40 pb-safe">
+        <div className="flex justify-around items-end max-w-2xl mx-auto relative">
+          
           <button
-            onClick={() => setCurrentTab("HOME")}
-            className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "HOME" ? "text-brand-900" : "text-slate-300 hover:text-slate-500"}`}
+            onClick={() => { setCurrentTab("HOME"); setIsFabOpen(false); }}
+            className={`flex flex-col items-center gap-1 transition-colors w-16 ${currentTab === "HOME" ? "text-brand-900" : "text-slate-300 hover:text-slate-500"}`}
           >
             <Home size={24} strokeWidth={currentTab === "HOME" ? 2.5 : 2} />
             <span className="text-[10px] font-bold">Início</span>
           </button>
+          
           <button
-            onClick={() => setCurrentTab("FLOW")}
-            className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "FLOW" ? "text-brand-900" : "text-slate-300 hover:text-slate-500"}`}
+            onClick={() => { setCurrentTab("FLOW"); setIsFabOpen(false); }}
+            className={`flex flex-col items-center gap-1 transition-colors w-16 ${currentTab === "FLOW" ? "text-brand-900" : "text-slate-300 hover:text-slate-500"}`}
           >
             <BarChart3
               size={24}
@@ -1068,9 +1096,24 @@ export default function Dashboard() {
             />
             <span className="text-[10px] font-bold">Fluxo</span>
           </button>
+
+          {/* --- BOTÃO CENTRAL (FAB Trigger) --- */}
+          <div className="relative -top-6">
+             <button
+               onClick={() => setIsFabOpen(!isFabOpen)}
+               className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 active:scale-90 ${
+                 isFabOpen 
+                   ? "bg-slate-800 text-white rotate-45 shadow-slate-400" 
+                   : "bg-brand-900 text-white hover:bg-brand-700 hover:scale-105 shadow-brand-300"
+               }`}
+             >
+               <Plus size={28} strokeWidth={3} />
+             </button>
+          </div>
+
           <button
-            onClick={() => setCurrentTab("REPORTS")}
-            className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "REPORTS" ? "text-brand-900" : "text-slate-300 hover:text-slate-500"}`}
+            onClick={() => { setCurrentTab("REPORTS"); setIsFabOpen(false); }}
+            className={`flex flex-col items-center gap-1 transition-colors w-16 ${currentTab === "REPORTS" ? "text-brand-900" : "text-slate-300 hover:text-slate-500"}`}
           >
             <PieIcon
               size={24}
@@ -1078,9 +1121,10 @@ export default function Dashboard() {
             />
             <span className="text-[10px] font-bold">Relatórios</span>
           </button>
+          
           <button
-            onClick={() => setCurrentTab("CONTACTS")}
-            className={`flex flex-col items-center gap-1 transition-colors ${currentTab === "CONTACTS" ? "text-brand-900" : "text-slate-300 hover:text-slate-500"}`}
+            onClick={() => { setCurrentTab("CONTACTS"); setIsFabOpen(false); }}
+            className={`flex flex-col items-center gap-1 transition-colors w-16 ${currentTab === "CONTACTS" ? "text-brand-900" : "text-slate-300 hover:text-slate-500"}`}
           >
             <Users
               size={24}
@@ -1088,6 +1132,7 @@ export default function Dashboard() {
             />
             <span className="text-[10px] font-bold">Contatos</span>
           </button>
+
         </div>
       </nav>
 
@@ -1131,13 +1176,12 @@ export default function Dashboard() {
         type={recurrenceAction || "DELETE"}
       />
 
-      {/* COMPONENTE EXPORTAR CONECTADO */}
       <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         transactions={transactions}
         userName={user.name}
-        currentDashboardDate={selectedDate} // PASSANDO A DATA!
+        currentDashboardDate={selectedDate}
       />
       <SettingsModal
         isOpen={isSettingsModalOpen}
@@ -1155,12 +1199,11 @@ export default function Dashboard() {
         message="Tem certeza absoluta? Isso apagará TODOS os seus lançamentos, contatos e configurações. Não é possível recuperar depois."
       />
       
-      {/* MODAL DE SUCESSO DE EXCLUSÃO */}
       <FeedbackModal
         isOpen={isDeleteSuccessOpen}
         onClose={() => {
           setIsDeleteSuccessOpen(false);
-          handleLogout(); // Redireciona para o login ao fechar
+          handleLogout();
         }}
         type="success"
         title="Conta Excluída"

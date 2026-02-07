@@ -1,10 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Mic, Square, Loader2 } from "lucide-react";
 
-// --- CORREÇÃO DE TIPAGEM TYPESCRIPT ---
-// Declaramos os tipos globais que o navegador possui mas o TS desconhece por padrão
+// --- TIPAGEM MANUAL (Para evitar erros de TS) ---
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message?: string;
+}
+
 interface SpeechRecognitionEvent {
   results: {
     [index: number]: {
@@ -21,12 +25,13 @@ interface SpeechRecognition extends EventTarget {
   lang: string;
   start: () => void;
   stop: () => void;
+  abort: () => void;
   onstart: (() => void) | null;
   onend: (() => void) | null;
   onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
 }
 
-// Estendemos a interface Window para incluir as propriedades de voz
 declare global {
   interface Window {
     SpeechRecognition: {
@@ -57,77 +62,121 @@ interface VoiceInputProps {
 export function VoiceInput({ onSuccess, onModeChange, userId }: VoiceInputProps) {
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  // Usamos 'any' aqui para evitar conflitos de tipo complexos, já que definimos acima
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  
+  // Ref para manter a função atualizada sem recriar o useEffect
+  const onModeChangeRef = useRef(onModeChange);
 
   useEffect(() => {
+    onModeChangeRef.current = onModeChange;
+  }, [onModeChange]);
+
+  useEffect(() => {
+    let recognitionInstance: SpeechRecognition | null = null;
+
     if (typeof window !== "undefined") {
-      // Verifica se existe a API padrão ou a versão Webkit (Chrome)
       const SpeechRecognitionConstructor = window.SpeechRecognition || window.webkitSpeechRecognition;
       
       if (SpeechRecognitionConstructor) {
-        const recognitionInstance = new SpeechRecognitionConstructor();
-        recognitionInstance.continuous = false;
+        recognitionInstance = new SpeechRecognitionConstructor();
+        recognitionInstance.continuous = false; // Importante para parar ao terminar de falar
         recognitionInstance.interimResults = false;
         recognitionInstance.lang = "pt-BR";
 
         recognitionInstance.onstart = () => {
           setIsListening(true);
-          onModeChange(true);
+          onModeChangeRef.current(true);
         };
 
         recognitionInstance.onend = () => {
+          // Só atualizamos se não estivermos processando (para evitar piscar)
           setIsListening(false);
-          // Não chamamos onModeChange(false) aqui pois entraremos em "processing"
         };
 
         recognitionInstance.onresult = async (event: SpeechRecognitionEvent) => {
+          // Força parada imediata ao receber resultado
+          recognitionInstance?.stop(); 
+          
           const transcript = event.results[0][0].transcript;
-          await processVoiceCommand(transcript);
+          if (transcript.trim()) {
+            await processVoiceCommand(transcript);
+          }
+        };
+
+        // --- TRATAMENTO DE ERROS MELHORADO ---
+        recognitionInstance.onerror = (event: SpeechRecognitionErrorEvent) => {
+          // Ignora erros de "abortado" (clique manual) ou "sem fala" (silêncio)
+          if (event.error === 'aborted' || event.error === 'no-speech') {
+            setIsListening(false);
+            onModeChangeRef.current(false);
+            return;
+          }
+
+          console.error("Erro no reconhecimento de voz:", event.error);
+          
+          if (event.error === 'not-allowed') {
+            alert("Permissão de microfone negada.");
+          }
+          
+          setIsListening(false);
+          onModeChangeRef.current(false);
         };
 
         setRecognition(recognitionInstance);
       }
     }
-  }, [onModeChange]); // Adicionado onModeChange nas dependências
+
+    return () => {
+      if (recognitionInstance) {
+        recognitionInstance.abort();
+      }
+    };
+  }, []);
 
   const processVoiceCommand = async (text: string) => {
     setIsProcessing(true);
+    // Garante que o modo de escuta visual encerre
+    onModeChangeRef.current(false);
+
     try {
       const res = await fetch("/api/ai/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          text,
-          userId // Envia o ID para buscar categorias personalizadas
-        }),
+        body: JSON.stringify({ text, userId }),
       });
 
       if (res.ok) {
         const data = await res.json();
         onSuccess(data);
       } else {
-        alert("Não entendi o comando. Tente novamente.");
+        alert("Não entendi. Tente falar novamente.");
       }
     } catch (error) {
       console.error(error);
-      alert("Erro de conexão com a IA.");
+      alert("Erro ao processar áudio.");
     } finally {
       setIsProcessing(false);
-      onModeChange(false);
     }
   };
 
   const toggleListening = () => {
     if (!recognition) {
-      alert("Seu navegador não suporta comando de voz.");
+      alert("Seu navegador não suporta voz.");
       return;
     }
 
     if (isListening) {
       recognition.stop();
+      setIsListening(false); // Feedback visual imediato
     } else {
-      recognition.start();
+      try {
+        recognition.start();
+      } catch (error) {
+        // Se der erro dizendo que "já começou", apenas atualizamos o estado
+        console.warn("Recuperando sessão de voz ativa...");
+        setIsListening(true);
+        onModeChangeRef.current(true);
+      }
     }
   };
 
@@ -135,7 +184,7 @@ export function VoiceInput({ onSuccess, onModeChange, userId }: VoiceInputProps)
     <button
       onClick={toggleListening}
       disabled={isProcessing}
-      className={`relative h-[56px] px-6 rounded-full flex items-center justify-center gap-2 font-bold shadow-lg transition-all duration-300 ${
+      className={`relative h-12 px-4 sm:h-[56px] sm:px-6 rounded-full flex items-center justify-center gap-2 font-bold shadow-lg transition-all duration-300 ${
         isListening
           ? "bg-rose-500 text-white animate-pulse scale-105 shadow-rose-300"
           : isProcessing
@@ -145,18 +194,18 @@ export function VoiceInput({ onSuccess, onModeChange, userId }: VoiceInputProps)
     >
       {isProcessing ? (
         <>
-          <Loader2 size={20} className="animate-spin" />
-          <span>Pensando...</span>
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="hidden sm:inline">Pensando...</span>
         </>
       ) : isListening ? (
         <>
-          <Square size={20} fill="currentColor" />
-          <span>Ouvindo...</span>
+          <Square className="w-5 h-5" fill="currentColor" />
+          <span className="hidden sm:inline">Ouvindo...</span>
         </>
       ) : (
         <>
-          <Mic size={20} />
-          <span>IA</span>
+          <Mic className="w-5 h-5" />
+          <span className="text-sm sm:text-base">IA</span>
         </>
       )}
     </button>
