@@ -17,6 +17,7 @@ import {
 import { ContactModal, ContactData } from "@/components/dashboard/ContactModal";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { FeedbackModal, FeedbackType } from "@/components/ui/FeedbackModal";
+import { useAuthFetch } from "@/lib/authClient";
 
 interface Contact {
   _id: string;
@@ -65,6 +66,8 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
     message: string;
   }>({ isOpen: false, type: "success", title: "", message: "" });
 
+  const authFetch = useAuthFetch();
+
   const fetchContacts = async (currentPage = 1) => {
     setLoading(true);
     try {
@@ -80,7 +83,7 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
         params.append("search", searchTerm);
       }
 
-      const res = await fetch(`/api/contacts?${params.toString()}`);
+      const res = await authFetch(`/api/contacts?${params.toString()}`);
       if (res.ok) {
         const result = await res.json();
         // A API agora retorna { data: [], pagination: {} }
@@ -120,7 +123,7 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
     if (!deleteId) return;
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/contacts/${deleteId}`, {
+      const res = await authFetch(`/api/contacts/${deleteId}`, {
         method: "DELETE",
       });
       if (res.ok) {

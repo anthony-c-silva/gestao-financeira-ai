@@ -27,6 +27,7 @@ import {
   Music,
 } from "lucide-react";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
+import { useAuthFetch } from "@/lib/authClient";
 
 export const AVAILABLE_ICONS = [
   { name: "Tag", icon: Tag },
@@ -112,6 +113,8 @@ export function CategoryModal({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const authFetch = useAuthFetch();
+
   useEffect(() => {
     if (isOpen) {
       fetchCategories();
@@ -122,7 +125,9 @@ export function CategoryModal({
   const fetchCategories = async () => {
     setLoadingList(true);
     try {
-      const res = await fetch(`/api/categories?userId=${userId}&type=${type}`);
+      const res = await authFetch(
+        `/api/categories?userId=${userId}&type=${type}`,
+      );
       if (res.ok) setCategories(await res.json());
     } catch (e) {
       console.error(e);
@@ -148,7 +153,7 @@ export function CategoryModal({
     setIsDeleting(true);
 
     try {
-      const res = await fetch(`/api/categories/${deleteId}`, {
+      const res = await authFetch(`/api/categories/${deleteId}`, {
         method: "DELETE",
       });
       const data = await res.json();
@@ -180,7 +185,7 @@ export function CategoryModal({
         : "/api/categories";
       const method = editingId ? "PUT" : "POST";
 
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

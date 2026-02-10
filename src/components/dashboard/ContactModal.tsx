@@ -10,6 +10,7 @@ import {
   Trash2,
   AlertCircle,
 } from "lucide-react";
+import { useAuthFetch } from "@/lib/authClient";
 
 export interface ContactData {
   _id?: string;
@@ -45,6 +46,8 @@ export function ContactModal({
   const [loading, setLoading] = useState(false);
   // NOVO: Estado para armazenar a mensagem de erro personalizada
   const [error, setError] = useState<string | null>(null);
+
+  const authFetch = useAuthFetch();
 
   useEffect(() => {
     if (initialData) {
@@ -109,7 +112,7 @@ export function ContactModal({
         : "/api/contacts";
       const method = initialData?._id ? "PUT" : "POST";
 
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...formData, userId }),

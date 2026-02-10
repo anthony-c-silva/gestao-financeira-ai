@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { CategoryModal, AVAILABLE_ICONS } from "./CategoryModal";
+import { useAuthFetch } from "@/lib/authClient";
 
 const ICON_MAP = AVAILABLE_ICONS.reduce(
   (acc, curr) => {
@@ -150,6 +151,8 @@ export function NewTransactionModal({
   const paymentRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
 
+  const authFetch = useAuthFetch();
+
   // --- LÓGICA DE MÁSCARA DE MOEDA (BANCÁRIA) ---
   const formatCurrency = (value: string) => {
     const numericValue = value.replace(/\D/g, "");
@@ -173,7 +176,9 @@ export function NewTransactionModal({
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch(`/api/categories?userId=${userId}&type=${type}`);
+      const res = await authFetch(
+        `/api/categories?userId=${userId}&type=${type}`,
+      );
       if (res.ok) {
         const data = await res.json();
         setCategories(data);
@@ -274,7 +279,7 @@ export function NewTransactionModal({
     const fetchContacts = async () => {
       const contactType = type === "INCOME" ? "CLIENT" : "SUPPLIER";
       try {
-        const res = await fetch(
+        const res = await authFetch(
           `/api/contacts?userId=${userId}&type=${contactType}&limit=1000`,
         );
         if (res.ok) {
@@ -330,7 +335,7 @@ export function NewTransactionModal({
 
       if (contactName && !selectedContactId) {
         const contactType = type === "INCOME" ? "CLIENT" : "SUPPLIER";
-        const createRes = await fetch("/api/contacts", {
+        const createRes = await authFetch("/api/contacts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -376,7 +381,7 @@ export function NewTransactionModal({
         }
       }
 
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

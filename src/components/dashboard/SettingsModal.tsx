@@ -6,6 +6,7 @@ import {
   Briefcase, CheckCircle2, ChevronDown, Check, Eye, EyeOff 
 } from "lucide-react";
 import { BUSINESS_SIZES } from "@/constants/business";
+import { useAuthFetch } from "@/lib/authClient";
 
 interface UserData {
   _id: string;
@@ -52,6 +53,7 @@ export function SettingsModal({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const authFetch = useAuthFetch();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -160,7 +162,7 @@ export function SettingsModal({
         payload.password = formData.password;
       }
 
-      const res = await fetch(`/api/user/${user?._id}`, {
+      const res = await authFetch(`/api/user/${user?._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

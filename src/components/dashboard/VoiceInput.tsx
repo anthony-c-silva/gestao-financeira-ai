@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Mic, Square, Loader2 } from "lucide-react";
+import { useAuthFetch } from "@/lib/authClient";
 
 // --- TIPAGEM MANUAL (Para evitar erros de TS) ---
 interface SpeechRecognitionErrorEvent extends Event {
@@ -63,6 +64,7 @@ export function VoiceInput({ onSuccess, onModeChange, userId }: VoiceInputProps)
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const authFetch = useAuthFetch();
   
   // Ref para manter a função atualizada sem recriar o useEffect
   const onModeChangeRef = useRef(onModeChange);
@@ -139,7 +141,7 @@ export function VoiceInput({ onSuccess, onModeChange, userId }: VoiceInputProps)
     onModeChangeRef.current(false);
 
     try {
-      const res = await fetch("/api/ai/process", {
+      const res = await authFetch("/api/ai/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, userId }),

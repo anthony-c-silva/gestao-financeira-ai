@@ -45,6 +45,7 @@ import { RecurrenceOptionsModal } from "@/components/dashboard/RecurrenceOptions
 import { Toast } from "@/components/ui/Toast";
 import { MonthSelector } from "@/components/dashboard/MonthSelector";
 import { FeedbackModal } from "@/components/ui/FeedbackModal";
+import { useAuthFetch } from "@/lib/authClient";
 
 import {
   BarChart,
@@ -199,9 +200,14 @@ export default function Dashboard() {
     setToast({ message, type });
   };
 
+  // Wrapper de fetch que trata 401 (sessão expirada) e força logout
+  const authFetch = useAuthFetch(() => {
+    showToast("Sua sessão expirou. Faça login novamente.", "error");
+  });
+
   const fetchTransactions = async (userId: string) => {
     try {
-      const res = await fetch(`/api/transactions?userId=${userId}`);
+      const res = await authFetch(`/api/transactions?userId=${userId}`);
       if (res.ok) setTransactions(await res.json());
     } catch (error) {
       console.error("Erro ao buscar transações");
@@ -210,7 +216,7 @@ export default function Dashboard() {
 
   const fetchCategories = async (userId: string) => {
     try {
-      const res = await fetch(`/api/categories?userId=${userId}`);
+      const res = await authFetch(`/api/categories?userId=${userId}`);
       if (res.ok) setCategories(await res.json());
     } catch (error) {
       console.error("Erro ao buscar categorias");
@@ -219,7 +225,7 @@ export default function Dashboard() {
 
   const fetchFiscalSummary = async (userId: string) => {
     try {
-      const res = await fetch("/api/dashboard/summary", {
+      const res = await authFetch("/api/dashboard/summary", {
         headers: { "x-user-id": userId },
       });
       if (res.ok) setSummaryData(await res.json());
@@ -247,7 +253,9 @@ export default function Dashboard() {
   const handleDeleteAccount = async () => {
     if (!user) return;
     try {
-      const res = await fetch(`/api/user/${user._id}`, { method: "DELETE" });
+      const res = await authFetch(`/api/user/${user._id}`, {
+        method: "DELETE",
+      });
       if (res.ok) {
         setIsDeleteAccountModalOpen(false); 
         setIsSettingsModalOpen(false);      
@@ -276,7 +284,7 @@ export default function Dashboard() {
     if (!aiText.trim() || !user) return;
     setIsAiProcessing(true);
     try {
-      const res = await fetch("/api/ai/process", {
+      const res = await authFetch("/api/ai/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: aiText, userId: user._id }),
@@ -344,7 +352,7 @@ export default function Dashboard() {
     if (!deleteTransaction || !user) return;
     setIsDeleting(true);
     try {
-      const res = await fetch(
+      const res = await authFetch(
         `/api/transactions/${deleteTransaction._id}?action=${action}`,
         { method: "DELETE" },
       );
@@ -367,7 +375,7 @@ export default function Dashboard() {
 
   const handleMarkAsPaid = async (transaction: Transaction) => {
     try {
-      const res = await fetch(`/api/transactions/${transaction._id}`, {
+      const res = await authFetch(`/api/transactions/${transaction._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "PAID" }),
