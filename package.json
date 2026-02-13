@@ -13,6 +13,7 @@
     "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
+    "jose": "^6.1.3",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.562.0",

@@ -16,7 +16,6 @@ export function LoginForm() {
   const [hasError, setHasError] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  // --- MÁSCARA DE CPF/CNPJ ---
   const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, "");
     if (value.length > 14) value = value.slice(0, 14);
@@ -63,10 +62,8 @@ export function LoginForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        // SE O ERRO FOR EMAIL NÃO VERIFICADO, REDIRECIONA PARA VERIFICAR
         if (res.status === 403 && data.code === "EMAIL_NOT_VERIFIED") {
           setToast({ message: "Verifique seu e-mail para continuar.", type: "error" });
-          // Usa o email retornado pela API para montar a URL
           setTimeout(() => {
             router.push(`/verify?email=${encodeURIComponent(data.email)}`);
           }, 1500);
@@ -80,17 +77,14 @@ export function LoginForm() {
         return;
       }
 
-      // Sucesso no login
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // SUCESSO! 
+      // Não usamos mais localStorage. O cookie HttpOnly foi setado pelo servidor.
       setToast({ message: "Login realizado com sucesso!", type: "success" });
       setTimeout(() => router.push("/dashboard"), 500);
 
     } catch (error) {
       setToast({ message: "Erro de conexão.", type: "error" });
-    } finally {
-      // setLoading(false) é chamado dentro dos ifs de erro ou sucesso
-      // Mas por segurança, se cair aqui no catch e não tiver saído:
-      if (!loading) setLoading(false); 
+      setLoading(false);
     }
   };
 
