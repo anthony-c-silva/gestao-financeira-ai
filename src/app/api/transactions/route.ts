@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import Contact from "@/models/Contact";
+import { getAuthSession } from "@/lib/auth";
 
-/** Adiciona N meses à data, mantendo o dia quando possível (ex.: 31/jan → 28/fev). */
+/** Adiciona N meses à data, mantendo o dia quando possível */
 function addMonths(date: Date, n: number): Date {
   const res = new Date(date);
   const day = res.getDate();
@@ -14,24 +15,20 @@ function addMonths(date: Date, n: number): Date {
   return res;
 }
 
-// BUSCAR TRANSAÇÕES
-export async function GET(req: Request) {
+// BUSCAR TRANSAÇÕES DO USUÁRIO LOGADO
+export async function GET() {
   try {
-    await connectDB();
-    // Garante que o modelo Contact está registrado antes de fazer o populate
-    if (!Contact) console.log("Carregando modelo Contact...");
-
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
-
-    if (!userId) {
-      return NextResponse.json(
-        { message: "ID do usuário obrigatório" },
-        { status: 400 }
-      );
+    // 1. Autenticação via Cookie
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 401 });
     }
 
-    const transactions = await Transaction.find({ userId })
+    await connectDB();
+    if (!Contact) console.log("Carregando modelo Contact...");
+
+    // 2. Busca usando APENAS o ID da sessão
+    const transactions = await Transaction.find({ userId: session.id })
       .populate("contactId", "name type")
       .sort({ date: -1 })
       .limit(100);
@@ -43,23 +40,29 @@ export async function GET(req: Request) {
   }
 }
 
-// CRIAR NOVA TRANSAÇÃO (COM RECORRÊNCIA)
+// CRIAR NOVA TRANSAÇÃO
 export async function POST(req: Request) {
   try {
+    // 1. Autenticação via Cookie
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 401 });
+    }
+
     await connectDB();
     const body = await req.json();
 
-    if (!body.userId || !body.amount || !body.type) {
+    if (!body.amount || !body.type) {
       return NextResponse.json(
         { message: "Dados incompletos" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!body.date) {
       return NextResponse.json(
         { message: "Data da transação obrigatória" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -67,7 +70,7 @@ export async function POST(req: Request) {
     if (Number.isNaN(baseDate.getTime())) {
       return NextResponse.json(
         { message: "Data da transação inválida" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -75,11 +78,14 @@ export async function POST(req: Request) {
 
     let installmentsCount = 1;
     if (isRecurring) {
-      const raw = body.installments != null ? parseInt(String(body.installments), 10) : NaN;
+      const raw =
+        body.installments != null
+          ? parseInt(String(body.installments), 10)
+          : NaN;
       if (!Number.isInteger(raw) || raw < 2 || raw > 60) {
         return NextResponse.json(
           { message: "Recorrência deve estar entre 2 e 60 meses" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       installmentsCount = raw;
@@ -89,8 +95,9 @@ export async function POST(req: Request) {
       ? Math.random().toString(36).substring(2, 10)
       : null;
 
+    // Interface local para tipagem
     type TransactionDoc = {
-      userId: unknown;
+      userId: string; // Garantido que é string vinda da sessão
       contactId?: unknown;
       type: string;
       amount: number;
@@ -103,13 +110,14 @@ export async function POST(req: Request) {
       installment: number;
       totalInstallments: number;
     };
+
     const transactionsToCreate: TransactionDoc[] = [];
 
     for (let i = 0; i < installmentsCount; i++) {
       const parcelDate = addMonths(baseDate, i);
 
       transactionsToCreate.push({
-        userId: body.userId,
+        userId: session.id, // ID FORÇADO DA SESSÃO
         contactId: body.contactId ?? undefined,
         type: body.type,
         amount: body.amount,
@@ -117,14 +125,16 @@ export async function POST(req: Request) {
         category: body.category ?? "",
         paymentMethod: body.paymentMethod ?? "",
         date: parcelDate,
-        status: i === 0 ? (body.status === "PAID" ? "PAID" : "PENDING") : "PENDING",
+        status:
+          i === 0 ? (body.status === "PAID" ? "PAID" : "PENDING") : "PENDING",
         recurrenceId: recurrenceId ?? undefined,
         installment: i + 1,
         totalInstallments: installmentsCount,
       });
     }
 
-    const createdTransactions = await Transaction.insertMany(transactionsToCreate);
+    const createdTransactions =
+      await Transaction.insertMany(transactionsToCreate);
 
     return NextResponse.json(createdTransactions[0], { status: 201 });
   } catch (error) {
