@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Transaction from "@/models/Transaction";
 import User from "@/models/User";
-import { BUSINESS_SIZES, BusinessSizeType } from "@/constants/business"; // Assumindo que você criou o arquivo de constantes
+import { BUSINESS_SIZES, BusinessSizeType } from "@/constants/business";
+import { getAuthSession } from "@/lib/auth";
 
 // Helper para pegar o primeiro e último dia do ano corrente
 const getYearRange = () => {
@@ -14,40 +15,35 @@ const getYearRange = () => {
 
 export async function GET(req: Request) {
   try {
-    await connectDB();
-
-    // SIMULAÇÃO DE AUTENTICAÇÃO
-    // Em produção, aqui você pegaria o ID do usuário da sessão (NextAuth ou JWT)
-    // Para teste rápido, vamos pegar do Header ou um hardcoded provisório se não tiver auth implementada ainda
-    const userId = req.headers.get("x-user-id");
-
-    if (!userId) {
-      return NextResponse.json(
-        { message: "Usuário não autenticado" },
-        { status: 401 }
-      );
+    // 1. Segurança: Obtém sessão do cookie
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 401 });
     }
 
-    // 1. Buscar dados do Usuário (Para saber o Limite)
-    const user = await User.findById(userId);
-    if (!user)
+    await connectDB();
+
+    // 2. Buscar dados do Usuário (Para saber o Limite) usando o ID da sessão
+    const user = await User.findById(session.id);
+    if (!user) {
       return NextResponse.json(
         { message: "Usuário não encontrado" },
-        { status: 404 }
+        { status: 404 },
       );
+    }
 
     const businessType = (user.businessSize as BusinessSizeType) || "OTHER";
     const limitInfo = BUSINESS_SIZES[businessType] || BUSINESS_SIZES.OTHER;
     const annualLimit = limitInfo.limit;
 
-    // 2. Calcular Faturamento Anual (Soma de INCOME do ano)
+    // 3. Calcular Faturamento Anual (Soma de INCOME do ano)
     const { start, end } = getYearRange();
 
     const revenueStats = await Transaction.aggregate([
       {
         $match: {
-          userId: user._id,
-          type: "INCOME", // Regra de negócio: Só conta entrada
+          userId: user._id, // Garante que só busca dados deste usuário
+          type: "INCOME",
           date: { $gte: start, $lte: end },
         },
       },
@@ -61,8 +57,8 @@ export async function GET(req: Request) {
 
     const currentRevenue = revenueStats[0]?.total || 0;
 
-    // 3. Regras de Alerta (Níveis 1, 2 e 3)
-    let alertLevel = "NORMAL"; // NORMAL, WARNING, DANGER, EXTRAPOLATED
+    // 4. Regras de Alerta
+    let alertLevel = "NORMAL";
     let percentage = 0;
 
     if (annualLimit > 0) {
@@ -80,7 +76,6 @@ export async function GET(req: Request) {
       currentRevenue,
       percentage,
       alertLevel,
-      // Aqui você pode adicionar outros resumos (saldo total, despesas mês, etc.)
     });
   } catch (error) {
     console.error("Erro no Dashboard Summary:", error);
