@@ -13,7 +13,7 @@ export async function GET() {
 
     await connectDB();
 
-    // @ts-expect-error: Next.js HMR Mongoose Model union type mismatch
+    // Busca o usuário, mas esconde dados sensíveis
     const user = await User.findById(session.id).select(
       "-password -verificationCode -resetPasswordToken",
     );

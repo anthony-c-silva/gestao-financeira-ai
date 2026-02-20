@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 const UserSchema = new Schema(
   {
@@ -36,14 +36,14 @@ const UserSchema = new Schema(
       required: [true, "A senha é obrigatória."],
       select: false, // Por segurança, não retorna a senha nas buscas padrão
     },
-    
+
     // --- CAMPOS DE VERIFICAÇÃO (CADASTRO) ---
     emailVerified: {
       type: Boolean,
       default: false,
     },
     verificationCode: {
-      type: String, 
+      type: String,
       default: null,
     },
 
@@ -80,9 +80,10 @@ const UserSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
-const User = models.User || model("User", UserSchema);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const User = (mongoose.models.User as any) || mongoose.model("User", UserSchema);
 
 export default User;
