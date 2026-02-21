@@ -1,14 +1,11 @@
-"use client";
-
 import React from "react";
-import { CheckCircle2, AlertCircle, XCircle, Info } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
+import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 
-export type FeedbackType = "success" | "error" | "warning" | "info";
-
-interface FeedbackModalProps {
+interface Props {
   isOpen: boolean;
   onClose: () => void;
-  type: FeedbackType;
+  type: "success" | "error";
   title: string;
   message: string;
 }
@@ -19,65 +16,40 @@ export function FeedbackModal({
   type,
   title,
   message,
-}: FeedbackModalProps) {
-  if (!isOpen) return null;
-
-  // Configuração visual baseada no tipo de mensagem
-  const styles = {
-    success: {
-      iconBg: "bg-emerald-100",
-      iconColor: "text-emerald-600",
-      button: "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200",
-      Icon: CheckCircle2,
-    },
-    error: {
-      iconBg: "bg-rose-100",
-      iconColor: "text-rose-600",
-      button: "bg-rose-600 hover:bg-rose-700 shadow-rose-200",
-      Icon: XCircle,
-    },
-    warning: {
-      iconBg: "bg-amber-100",
-      iconColor: "text-amber-600",
-      button: "bg-amber-500 hover:bg-amber-600 shadow-amber-200",
-      Icon: AlertCircle,
-    },
-    info: {
-      iconBg: "bg-brand-100",
-      iconColor: "text-brand-900",
-      button: "bg-brand-900 hover:bg-brand-700 shadow-brand-200",
-      Icon: Info,
-    },
-  };
-
-  const currentStyle = styles[type];
-  const Icon = currentStyle.Icon;
+}: Props) {
+  const isSuccess = type === "success";
 
   return (
-    // AJUSTE CRÍTICO: z-[9999] para ficar acima de todos os outros modais
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col items-center text-center">
-        {/* Ícone Animado */}
+    <ResponsiveModal
+      isOpen={isOpen}
+      onClose={() => onClose()}
+      title={title}
+      description={message}
+    >
+      <div className="flex flex-col items-center text-center">
         <div
-          className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${currentStyle.iconBg} ${currentStyle.iconColor} shadow-sm`}
+          className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+            isSuccess
+              ? "bg-emerald-100 text-emerald-600"
+              : "bg-rose-100 text-rose-600"
+          }`}
         >
-          <Icon size={32} strokeWidth={2.5} />
+          {isSuccess ? <CheckCircle2 size={32} /> : <XCircle size={32} />}
         </div>
-
-        {/* Textos */}
         <h3 className="text-xl font-bold text-slate-800 mb-2">{title}</h3>
-        <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-          {message}
-        </p>
+        <p className="text-slate-500 mb-8 text-sm">{message}</p>
 
-        {/* Botão de Ação */}
         <button
           onClick={onClose}
-          className={`w-full py-3.5 px-4 rounded-xl text-white font-bold shadow-lg transition-all active:scale-[0.98] ${currentStyle.button}`}
+          className={`w-full px-5 py-3 rounded-xl font-bold text-white transition-colors ${
+            isSuccess
+              ? "bg-emerald-600 hover:bg-emerald-700"
+              : "bg-rose-600 hover:bg-rose-700"
+          }`}
         >
-          Entendido
+          Entendi
         </button>
       </div>
-    </div>
+    </ResponsiveModal>
   );
 }

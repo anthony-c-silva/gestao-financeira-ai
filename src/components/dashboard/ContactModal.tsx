@@ -11,6 +11,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useAuthFetch } from "@/lib/authClient";
+import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 
 export interface ContactData {
   _id?: string;
@@ -44,7 +45,6 @@ export function ContactModal({
     document: "",
   });
   const [loading, setLoading] = useState(false);
-  // NOVO: Estado para armazenar a mensagem de erro personalizada
   const [error, setError] = useState<string | null>(null);
 
   const authFetch = useAuthFetch();
@@ -59,10 +59,8 @@ export function ContactModal({
     } else {
       setFormData({ name: "", type: "CLIENT", phone: "", document: "" });
     }
-    setError(null); // Limpa erro ao abrir
+    setError(null);
   }, [initialData, isOpen]);
-
-  if (!isOpen) return null;
 
   const maskPhone = (v: string) =>
     v
@@ -89,7 +87,7 @@ export function ContactModal({
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     let finalVal = value;
@@ -97,7 +95,6 @@ export function ContactModal({
     if (name === "document") finalVal = maskDocument(value);
 
     setFormData((prev) => ({ ...prev, [name]: finalVal }));
-    // Limpa o erro assim que o usuário começa a corrigir
     if (error) setError(null);
   };
 
@@ -124,7 +121,6 @@ export function ContactModal({
         onSuccess();
         onClose();
       } else {
-        // Define o erro no estado para mostrar a tarja vermelha
         setError(data.message || "Erro ao salvar contato.");
       }
     } catch (error) {
@@ -136,25 +132,30 @@ export function ContactModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-      <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="p-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-          <h2 className="font-bold text-slate-800 text-lg">
-            {initialData ? "Editar Contato" : "Novo Contato"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:bg-slate-200 rounded-full"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <form
-          onSubmit={handleSubmit}
-          className="p-6 space-y-4 overflow-y-auto custom-scrollbar"
+    <ResponsiveModal
+      isOpen={isOpen}
+      onClose={() => onClose()}
+      title={initialData ? "Editar Contato" : "Novo Contato"}
+      description="Preencha os dados do cliente ou fornecedor."
+    >
+      <div className="pb-4 border-b border-slate-100 flex justify-between items-center shrink-0">
+        <h2 className="font-bold text-slate-800 text-lg">
+          {initialData ? "Editar Contato" : "Novo Contato"}
+        </h2>
+        <button
+          onClick={onClose}
+          className="p-2 text-slate-400 hover:bg-slate-200 rounded-full transition-colors"
         >
-          {/* TARJA DE ERRO PERSONALIZADA */}
+          <X size={20} />
+        </button>
+      </div>
+
+      <div className="max-h-[75vh] overflow-y-auto custom-scrollbar">
+        <form
+          id="contact-form"
+          onSubmit={handleSubmit}
+          className="space-y-4 py-4 px-1"
+        >
           {error && (
             <div className="bg-rose-50 border border-rose-100 text-rose-600 px-4 py-3 rounded-xl text-sm font-bold flex items-start gap-2 animate-in slide-in-from-top-2">
               <AlertCircle size={18} className="shrink-0 mt-0.5" />
@@ -169,7 +170,7 @@ export function ContactModal({
               className={`flex-1 py-2 text-xs font-bold uppercase rounded-lg transition-all ${
                 formData.type === "CLIENT"
                   ? "bg-white text-brand-900 shadow-sm"
-                  : "text-slate-400"
+                  : "text-slate-400 hover:text-slate-600"
               }`}
             >
               Cliente
@@ -180,7 +181,7 @@ export function ContactModal({
               className={`flex-1 py-2 text-xs font-bold uppercase rounded-lg transition-all ${
                 formData.type === "SUPPLIER"
                   ? "bg-white text-rose-600 shadow-sm"
-                  : "text-slate-400"
+                  : "text-slate-400 hover:text-slate-600"
               }`}
             >
               Fornecedor
@@ -210,7 +211,7 @@ export function ContactModal({
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1 flex items-center gap-1">
                 <Phone size={12} /> Telefone
@@ -247,32 +248,32 @@ export function ContactModal({
             </div>
           </div>
         </form>
-
-        <div className="p-5 border-t border-slate-50 bg-slate-50/50 flex gap-3">
-          {initialData && onDelete && initialData._id && (
-            <button
-              type="button"
-              onClick={() => onDelete(initialData._id!)}
-              className="p-3 text-rose-500 hover:bg-rose-100 rounded-xl transition-colors"
-            >
-              <Trash2 size={20} />
-            </button>
-          )}
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="flex-1 bg-brand-900 text-white font-bold py-3 rounded-xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-95 transition-all flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              "Salvando..."
-            ) : (
-              <>
-                <Save size={18} /> Salvar Contato
-              </>
-            )}
-          </button>
-        </div>
       </div>
-    </div>
+
+      <div className="pt-4 border-t border-slate-100 flex gap-3 mt-2 shrink-0">
+        {initialData && onDelete && initialData._id && (
+          <button
+            type="button"
+            onClick={() => onDelete(initialData._id!)}
+            className="p-3 text-rose-500 hover:bg-rose-50 border border-rose-100 rounded-xl transition-colors"
+          >
+            <Trash2 size={20} />
+          </button>
+        )}
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="flex-1 bg-brand-900 text-white font-bold py-3 rounded-xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-95 transition-all flex items-center justify-center gap-2"
+        >
+          {loading ? (
+            "Salvando..."
+          ) : (
+            <>
+              <Save size={18} /> Salvar Contato
+            </>
+          )}
+        </button>
+      </div>
+    </ResponsiveModal>
   );
 }

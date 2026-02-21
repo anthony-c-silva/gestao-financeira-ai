@@ -27,7 +27,6 @@ export interface FiscalSummary {
   annualLimit: number;
   currentRevenue: number;
   percentage: number;
-  // Agora o TypeScript sabe que não é uma string qualquer, e sim os status oficiais
   alertLevel: "NORMAL" | "WARNING" | "DANGER" | "EXTRAPOLATED";
 }
 
@@ -73,6 +72,13 @@ export function HomeView({
         ? ` (${t.installment}/${t.totalInstallments})`
         : "";
     return base + suf;
+  };
+
+  // 🐛 CORREÇÃO AQUI: Função que neutraliza o fuso horário (UTC-3) para evitar mostrar 1 dia antes
+  const formatDisplayDate = (dateString: string) => {
+    const d = new Date(dateString);
+    const adjustedDate = new Date(d.valueOf() + d.getTimezoneOffset() * 60000);
+    return adjustedDate.toLocaleDateString("pt-BR");
   };
 
   const recentActivities = [...transactions]
@@ -124,7 +130,6 @@ export function HomeView({
         </div>
       </div>
 
-      {/* O AS ANY FOI REMOVIDO DAQUI! 🎉 */}
       {userType === "PJ" && (
         <FaturamentoCard data={summaryData} loading={loading} />
       )}
@@ -135,22 +140,22 @@ export function HomeView({
             <Wallet size={18} className="text-brand-900" /> Últimas Atividades
           </h3>
         </div>
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-2 custom-scrollbar">
           <button
             onClick={() => setHomeFilter("ALL")}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${homeFilter === "ALL" ? "bg-slate-800 text-white border-slate-800 shadow-md" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"}`}
+            className={`px-4 py-2 rounded-full text-xs font-bold transition-all border shrink-0 ${homeFilter === "ALL" ? "bg-slate-800 text-white border-slate-800 shadow-md" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"}`}
           >
             Todos
           </button>
           <button
             onClick={() => setHomeFilter("INCOME")}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition-all border flex items-center gap-1 ${homeFilter === "INCOME" ? "bg-emerald-100 text-emerald-700 border-emerald-200 shadow-sm" : "bg-white text-slate-500 border-slate-200 hover:text-emerald-600"}`}
+            className={`px-4 py-2 rounded-full text-xs font-bold transition-all border shrink-0 flex items-center gap-1 ${homeFilter === "INCOME" ? "bg-emerald-100 text-emerald-700 border-emerald-200 shadow-sm" : "bg-white text-slate-500 border-slate-200 hover:text-emerald-600"}`}
           >
             <TrendingUp size={12} /> Entradas
           </button>
           <button
             onClick={() => setHomeFilter("EXPENSE")}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition-all border flex items-center gap-1 ${homeFilter === "EXPENSE" ? "bg-rose-100 text-rose-700 border-rose-200 shadow-sm" : "bg-white text-slate-500 border-slate-200 hover:text-rose-600"}`}
+            className={`px-4 py-2 rounded-full text-xs font-bold transition-all border shrink-0 flex items-center gap-1 ${homeFilter === "EXPENSE" ? "bg-rose-100 text-rose-700 border-rose-200 shadow-sm" : "bg-white text-slate-500 border-slate-200 hover:text-rose-600"}`}
           >
             <TrendingDown size={12} /> Saídas
           </button>
@@ -182,7 +187,8 @@ export function HomeView({
                       {getDisplayTitle(t)}
                     </p>
                     <p className="text-xs text-slate-400">
-                      {new Date(t.date).toLocaleDateString("pt-BR")}
+                      {/* Usando a função corrigida aqui */}
+                      {formatDisplayDate(t.date)}
                     </p>
                   </div>
                 </div>

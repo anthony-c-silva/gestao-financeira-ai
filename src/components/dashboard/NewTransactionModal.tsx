@@ -24,6 +24,7 @@ import {
 
 import { CategoryModal, AVAILABLE_ICONS } from "./CategoryModal";
 import { useAuthFetch } from "@/lib/authClient";
+import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 
 const ICON_MAP = AVAILABLE_ICONS.reduce(
   (acc, curr) => {
@@ -34,16 +35,13 @@ const ICON_MAP = AVAILABLE_ICONS.reduce(
 );
 
 // --- CORES DA MARCA NOS PAGAMENTOS ---
-// Pix/Dinheiro = Verde (Emerald)
-// Cartões = Azul (Brand)
-// Boleto = Laranja (Amber)
 const PAYMENT_STYLES: { [key: string]: { bg: string; text: string } } = {
-  "Pix": { bg: "bg-emerald-100", text: "text-emerald-600" },
-  "Dinheiro": { bg: "bg-emerald-50", text: "text-emerald-700" },
+  Pix: { bg: "bg-emerald-100", text: "text-emerald-600" },
+  Dinheiro: { bg: "bg-emerald-50", text: "text-emerald-700" },
   "Cartão Crédito": { bg: "bg-brand-100", text: "text-brand-900" },
   "Cartão Débito": { bg: "bg-brand-50", text: "text-brand-700" },
-  "Boleto": { bg: "bg-amber-100", text: "text-amber-600" },
-  "default": { bg: "bg-slate-100", text: "text-slate-600" },
+  Boleto: { bg: "bg-amber-100", text: "text-amber-600" },
+  default: { bg: "bg-slate-100", text: "text-slate-600" },
 };
 
 export interface TransactionData {
@@ -199,7 +197,7 @@ export function NewTransactionModal({
     if (isOpen) {
       if (initialData) {
         setEditingId(initialData._id || null);
-        
+
         // Formata valor inicial vindo do banco/IA
         if (initialData.amount) {
           setAmount(
@@ -415,8 +413,6 @@ export function NewTransactionModal({
     setInstallments("2");
   };
 
-  if (!isOpen) return null;
-
   const currentCategoryObj = categories.find((c) => c.name === category);
   const CategoryIcon = currentCategoryObj
     ? ICON_MAP[currentCategoryObj.icon] || Tag
@@ -427,7 +423,6 @@ export function NewTransactionModal({
   const currentPayment =
     PAYMENT_METHODS.find((p) => p.id === paymentMethod) || PAYMENT_METHODS[0];
   const PaymentIcon = currentPayment.icon;
-  // Pega o estilo correto (Verde ou Azul)
   const paymentStyle =
     PAYMENT_STYLES[paymentMethod] || PAYMENT_STYLES["default"];
 
@@ -440,26 +435,32 @@ export function NewTransactionModal({
     },
   );
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-10 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar flex flex-col">
-        <div className="flex justify-between items-center mb-4 shrink-0">
-          <h2 className="text-xl font-bold text-slate-800">
-            {editingId
-              ? "Editar Movimentação"
-              : initialData && !editingId
-                ? "IA: Conferir e Salvar"
-                : "Nova Movimentação"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-400 transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
+  const getTitle = () => {
+    if (editingId) return "Editar Movimentação";
+    if (initialData && !editingId) return "IA: Conferir e Salvar";
+    return "Nova Movimentação";
+  };
 
-        <form onSubmit={handleSubmit} className="space-y-5 pb-4">
+  return (
+    <ResponsiveModal
+      isOpen={isOpen}
+      onClose={() => onClose()}
+      title={getTitle()}
+      description="Preencha os dados da transação financeira."
+    >
+      <div className="flex justify-between items-center mb-4 shrink-0 border-b border-slate-100 pb-4">
+        <h2 className="text-xl font-bold text-slate-800">{getTitle()}</h2>
+        <button
+          onClick={onClose}
+          className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-400 transition-colors"
+        >
+          <X size={20} />
+        </button>
+      </div>
+
+      {/* Container de scroll para evitar que formulários longos quebrem o modal em ecrãs pequenos */}
+      <div className="max-h-[75vh] sm:max-h-full overflow-y-auto custom-scrollbar px-1 pb-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 rounded-2xl">
             <button
               type="button"
@@ -483,8 +484,6 @@ export function NewTransactionModal({
             </span>
             <div className="flex justify-center items-center gap-1 mt-1">
               <span className="text-2xl font-medium text-slate-400">R$</span>
-              
-              {/* INPUT COM MÁSCARA */}
               <input
                 type="text"
                 inputMode="numeric"
@@ -531,7 +530,6 @@ export function NewTransactionModal({
                   setShowSuggestions(true);
                 }}
                 onFocus={() => setShowSuggestions(true)}
-                // AZUL DA MARCA NO FOCUS
                 className="w-full p-4 pl-12 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-900 outline-none text-slate-700 font-bold transition-all"
               />
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-brand-900 transition-colors">
@@ -633,7 +631,6 @@ export function NewTransactionModal({
                           key={idx}
                           type="button"
                           onClick={() => handleSelectDate(day)}
-                          // AZUL DA MARCA NO CALENDÁRIO
                           className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${isSelected ? "bg-brand-900 text-white shadow-md shadow-brand-200" : isToday ? "bg-brand-50 text-brand-900 border border-brand-200" : "text-slate-600 hover:bg-slate-100"}`}
                         >
                           {day.getDate()}
@@ -762,8 +759,9 @@ export function NewTransactionModal({
                 className="w-full p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between focus:ring-2 focus:ring-brand-900 outline-none active:bg-slate-100 transition-colors"
               >
                 <div className="flex items-center gap-2 overflow-hidden">
-                  {/* ÍCONE DE PAGAMENTO COM COR CERTA */}
-                  <div className={`p-1.5 rounded-lg ${paymentStyle.bg} ${paymentStyle.text}`}>
+                  <div
+                    className={`p-1.5 rounded-lg ${paymentStyle.bg} ${paymentStyle.text}`}
+                  >
                     <PaymentIcon size={16} />
                   </div>
                   <span className="text-sm font-bold text-slate-700 truncate">
@@ -775,8 +773,8 @@ export function NewTransactionModal({
               {isPaymentOpen && (
                 <div className="absolute bottom-full mb-2 w-full bg-white rounded-2xl shadow-xl border border-slate-100 max-h-60 overflow-y-auto z-30 animate-in zoom-in-95 origin-bottom custom-scrollbar">
                   {PAYMENT_METHODS.map((method) => {
-                    // SELECIONA ESTILO CORRETO
-                    const style = PAYMENT_STYLES[method.id] || PAYMENT_STYLES["default"];
+                    const style =
+                      PAYMENT_STYLES[method.id] || PAYMENT_STYLES["default"];
                     return (
                       <button
                         key={method.id}
@@ -787,7 +785,9 @@ export function NewTransactionModal({
                         }}
                         className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
                       >
-                        <div className={`p-1.5 rounded-lg ${style.bg} ${style.text}`}>
+                        <div
+                          className={`p-1.5 rounded-lg ${style.bg} ${style.text}`}
+                        >
                           <method.icon size={16} />
                         </div>
                         <span
@@ -845,7 +845,7 @@ export function NewTransactionModal({
             </div>
           )}
 
-          <div className="pt-2 pb-6">
+          <div className="pt-2">
             <button
               type="submit"
               disabled={loading}
@@ -878,6 +878,6 @@ export function NewTransactionModal({
           type={type}
         />
       </div>
-    </div>
+    </ResponsiveModal>
   );
 }

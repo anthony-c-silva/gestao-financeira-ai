@@ -1,15 +1,14 @@
-"use client";
-
 import React from "react";
-import { AlertTriangle, Trash2, X } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
+import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
 
-interface ConfirmationModalProps {
+interface Props {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
   title: string;
   message: string;
-  isDeleting?: boolean; // Para mostrar loading se necessário
+  isDeleting?: boolean;
 }
 
 export function ConfirmationModal({
@@ -18,53 +17,43 @@ export function ConfirmationModal({
   onConfirm,
   title,
   message,
-  isDeleting = false,
-}: ConfirmationModalProps) {
-  if (!isOpen) return null;
-
+  isDeleting,
+}: Props) {
   return (
-    // CORREÇÃO: Alterado z-[70] para z-[100] para garantir que fique acima do SettingsModal (que é z-80)
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col items-center text-center relative">
-        
-        {/* Botão Fechar X no topo */}
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-slate-300 hover:text-slate-500 transition-colors"
-        >
-          <X size={20} />
-        </button>
-
-        {/* Ícone de Alerta */}
-        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-rose-100 text-rose-600 shadow-sm shadow-rose-100">
-          <Trash2 size={32} strokeWidth={2} />
+    <ResponsiveModal
+      isOpen={isOpen}
+      onClose={() => onClose()}
+      title={title}
+      description={message}
+    >
+      <div className="flex flex-col items-center text-center">
+        <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mb-4">
+          <AlertTriangle size={32} />
         </div>
-
-        {/* Textos */}
         <h3 className="text-xl font-bold text-slate-800 mb-2">{title}</h3>
-        <p className="text-slate-500 text-sm mb-8 leading-relaxed">
-          {message}
-        </p>
-
-        {/* Botões de Ação */}
-        <div className="flex gap-3 w-full">
-          <button
-            onClick={onClose}
-            className="flex-1 py-3.5 rounded-2xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors"
-            disabled={isDeleting}
-          >
-            Cancelar
-          </button>
-          
-          <button
-            onClick={onConfirm}
-            disabled={isDeleting}
-            className="flex-[1.5] py-3.5 rounded-2xl bg-rose-600 text-white font-bold text-sm shadow-lg shadow-rose-200 hover:bg-rose-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isDeleting ? "Apagando..." : "Sim, Excluir"}
-          </button>
-        </div>
+        <p className="text-slate-500 mb-8 text-sm">{message}</p>
       </div>
-    </div>
+
+      <div className="flex sm:flex-row flex-col-reverse gap-3">
+        <button
+          onClick={onClose}
+          disabled={isDeleting}
+          className="w-full px-5 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={onConfirm}
+          disabled={isDeleting}
+          className="w-full px-5 py-3 rounded-xl font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors flex items-center justify-center gap-2"
+        >
+          {isDeleting ? (
+            <Loader2 size={20} className="animate-spin" />
+          ) : (
+            "Confirmar Exclusão"
+          )}
+        </button>
+      </div>
+    </ResponsiveModal>
   );
 }
