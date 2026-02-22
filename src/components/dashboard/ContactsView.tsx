@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import { ContactModal, ContactData } from "@/components/dashboard/ContactModal";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
-import { FeedbackModal, FeedbackType } from "@/components/ui/FeedbackModal";
+// CORREÇÃO AQUI: Removida a importação do FeedbackType inexistente
+import { FeedbackModal } from "@/components/ui/FeedbackModal";
 import { useAuthFetch } from "@/lib/authClient";
 
 interface Contact {
@@ -53,15 +54,15 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
   // Estados de Modais
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<ContactData | null>(
-    null
+    null,
   );
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Estado de Feedback
+  // CORREÇÃO AQUI: Tipagem explícita direto no estado
   const [feedback, setFeedback] = useState<{
     isOpen: boolean;
-    type: FeedbackType;
+    type: "success" | "error";
     title: string;
     message: string;
   }>({ isOpen: false, type: "success", title: "", message: "" });
@@ -71,12 +72,11 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
   const fetchContacts = async (currentPage = 1) => {
     setLoading(true);
     try {
-      // Monta a URL com paginação e busca
       const params = new URLSearchParams({
         userId,
         type: filterType,
         page: currentPage.toString(),
-        limit: "20", // 20 itens por página
+        limit: "20",
       });
 
       if (searchTerm) {
@@ -86,7 +86,6 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
       const res = await authFetch(`/api/contacts?${params.toString()}`);
       if (res.ok) {
         const result = await res.json();
-        // A API agora retorna { data: [], pagination: {} }
         setContacts(result.data);
         setTotalPages(result.pagination.totalPages);
         setTotalCount(result.pagination.total);
@@ -98,22 +97,18 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
     }
   };
 
-  // Efeito para buscar quando muda Tipo, Busca ou Página
-  // Usamos um timeout para o Search (Debounce)
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       fetchContacts(page);
-    }, 500); // Espera 500ms após parar de digitar
+    }, 500);
 
     return () => clearTimeout(delayDebounceFn);
   }, [userId, filterType, searchTerm, page]);
 
-  // Se mudar o tipo ou digitar algo novo, volta para página 1
   useEffect(() => {
     setPage(1);
   }, [filterType, searchTerm]);
 
-  // Handlers
   const handleDeleteRequest = (id: string) => {
     setDeleteId(id);
     setIsModalOpen(false);
@@ -133,7 +128,7 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
           title: "Excluído!",
           message: "O contato foi removido.",
         });
-        fetchContacts(page); // Recarrega a página atual
+        fetchContacts(page);
       } else {
         throw new Error("Falha");
       }
@@ -168,7 +163,6 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
 
   return (
     <div className="space-y-6 pb-20 animate-in fade-in slide-in-from-right-8 duration-300">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Meus Contatos</h1>
@@ -187,7 +181,6 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
         </button>
       </div>
 
-      {/* Tabs & Search */}
       <div className="space-y-4 sticky top-16 bg-slate-50 z-10 py-2">
         <div className="flex bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
           <button
@@ -227,7 +220,6 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
         </div>
       </div>
 
-      {/* Lista */}
       <div className="space-y-3">
         {loading ? (
           <p className="text-center text-slate-400 text-xs py-10 animate-pulse">
@@ -316,7 +308,6 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
         )}
       </div>
 
-      {/* RODAPÉ DE PAGINAÇÃO */}
       {totalPages > 1 && (
         <div className="flex justify-between items-center pt-4 border-t border-slate-200">
           <button
@@ -339,7 +330,6 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
         </div>
       )}
 
-      {/* MODAIS */}
       <ContactModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
