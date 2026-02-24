@@ -458,157 +458,159 @@ export function NewTransactionModal({
         </button>
       </div>
 
-      {/* Container de scroll para evitar que formulários longos quebrem o modal em ecrãs pequenos */}
-      <div className="max-h-[75vh] sm:max-h-full overflow-y-auto custom-scrollbar px-1 pb-4">
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 rounded-2xl">
+      <div
+        className="max-h-[75vh] sm:max-h-[85vh] overflow-y-auto custom-scrollbar px-1 pb-32"
+        data-vaul-no-drag
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* 1. TIPO DE TRANSAÇÃO (Entrada / Saída) */}
+          <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
             <button
               type="button"
               onClick={() => setType("INCOME")}
-              className={`py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${type === "INCOME" ? "bg-white shadow-md text-emerald-600 transform scale-[1.02]" : "text-slate-400 hover:text-slate-600"}`}
+              className={`py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${type === "INCOME" ? "bg-white shadow-sm text-emerald-600" : "text-slate-400 hover:text-slate-600"}`}
             >
-              <ArrowUpCircle size={18} /> Entrada
+              <ArrowUpCircle size={16} /> Entrada
             </button>
             <button
               type="button"
               onClick={() => setType("EXPENSE")}
-              className={`py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${type === "EXPENSE" ? "bg-white shadow-md text-rose-600 transform scale-[1.02]" : "text-slate-400 hover:text-slate-600"}`}
+              className={`py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${type === "EXPENSE" ? "bg-white shadow-sm text-rose-600" : "text-slate-400 hover:text-slate-600"}`}
             >
-              <ArrowDownCircle size={18} /> Saída
+              <ArrowDownCircle size={16} /> Saída
             </button>
           </div>
 
-          <div className="text-center py-2">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          {/* 2. VALOR */}
+          <div className="text-center py-2 bg-slate-50 rounded-2xl border border-slate-100">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Valor da transação
             </span>
             <div className="flex justify-center items-center gap-1 mt-1">
-              <span className="text-2xl font-medium text-slate-400">R$</span>
+              <span className="text-xl font-medium text-slate-400">R$</span>
               <input
                 type="text"
-                inputMode="numeric"
+                inputMode="decimal"
                 required
                 placeholder="0,00"
                 value={amount}
                 onChange={handleAmountChange}
-                className={`w-full max-w-[280px] ${getAmountSize(amount)} font-black text-slate-800 placeholder-slate-200 focus:outline-none bg-transparent text-center transition-all`}
-                autoFocus={!initialData}
+                className={`w-full max-w-[200px] ${getAmountSize(amount)} font-black text-slate-800 placeholder-slate-200 focus:outline-none bg-transparent text-center transition-all`}
               />
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setStatus("PAID")}
-              className={`flex-1 py-3 px-4 rounded-xl border-2 text-sm font-bold flex items-center justify-center gap-2 transition-all ${status === "PAID" ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-100 text-slate-400 bg-slate-50 hover:bg-slate-100"}`}
-            >
-              <Check size={16} /> {type === "INCOME" ? "Recebido" : "Pago"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatus("PENDING")}
-              className={`flex-1 py-3 px-4 rounded-xl border-2 text-sm font-bold flex items-center justify-center gap-2 transition-all ${status === "PENDING" ? "border-amber-400 bg-amber-50 text-amber-700" : "border-slate-100 text-slate-400 bg-slate-50 hover:bg-slate-100"}`}
-            >
-              <CalendarClock size={16} /> Pendente
-            </button>
-          </div>
-
-          <div className="relative" ref={wrapperRef}>
-            <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
-              {type === "INCOME" ? "Quem pagou?" : "Para quem?"}
+          {/* 3. DESCRIÇÃO */}
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 ml-1">
+              Descrição / Detalhes
             </label>
-            <div className="relative group">
-              <input
-                type="text"
-                required
-                placeholder="Buscar ou adicionar novo..."
-                value={contactName}
-                onChange={(e) => {
-                  setContactName(e.target.value);
-                  setSelectedContactId(null);
-                  setShowSuggestions(true);
-                }}
-                onFocus={() => setShowSuggestions(true)}
-                className="w-full p-4 pl-12 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-900 outline-none text-slate-700 font-bold transition-all"
-              />
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-brand-900 transition-colors">
-                <Search size={20} />
-              </div>
-            </div>
-            {showSuggestions && contactName && (
-              <div className="absolute z-20 w-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 max-h-48 overflow-y-auto animate-in slide-in-from-top-2 custom-scrollbar">
-                {filteredContacts.length > 0 ? (
-                  filteredContacts.map((contact) => (
-                    <button
-                      key={contact._id}
-                      type="button"
-                      onClick={() => {
-                        setContactName(contact.name);
-                        setSelectedContactId(contact._id);
-                        setShowSuggestions(false);
-                      }}
-                      className="w-full text-left px-5 py-3 hover:bg-brand-50 text-sm text-slate-700 font-medium flex items-center justify-between group"
-                    >
-                      {contact.name}
-                      <Check
-                        size={16}
-                        className="text-brand-900 opacity-0 group-hover:opacity-100 transition-opacity"
-                      />
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-5 py-4 text-sm text-slate-500 flex items-center gap-2">
-                    <div className="p-1.5 bg-brand-100 text-brand-900 rounded-lg">
-                      <UserPlus size={16} />
-                    </div>
-                    <span>
-                      Cadastrar <strong>{contactName}</strong> automaticamente.
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
+            <input
+              type="text"
+              placeholder="Ex: Aluguel de Janeiro"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-brand-900 outline-none text-slate-700 font-medium text-sm transition-all"
+            />
           </div>
 
-          <div className="grid grid-cols-2 gap-4 relative">
+          {/* 4. CONTATO E DATA */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative">
+            <div className="relative" ref={wrapperRef}>
+              <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 ml-1">
+                {type === "INCOME"
+                  ? "Cliente (Opcional)"
+                  : "Fornecedor (Opcional)"}
+              </label>
+              <div className="relative group">
+                <input
+                  type="text"
+                  placeholder="Buscar..."
+                  value={contactName}
+                  onChange={(e) => {
+                    setContactName(e.target.value);
+                    setSelectedContactId(null);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  className="w-full p-3 pl-10 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-brand-900 outline-none text-slate-700 font-medium text-sm transition-all"
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-brand-900 transition-colors">
+                  <Search size={16} />
+                </div>
+              </div>
+
+              {showSuggestions && contactName && (
+                <div className="absolute z-20 w-full mt-2 bg-white rounded-xl shadow-xl border border-slate-100 max-h-48 overflow-y-auto animate-in slide-in-from-top-2 custom-scrollbar">
+                  {filteredContacts.length > 0 ? (
+                    filteredContacts.map((contact) => (
+                      <button
+                        key={contact._id}
+                        type="button"
+                        onClick={() => {
+                          setContactName(contact.name);
+                          setSelectedContactId(contact._id);
+                          setShowSuggestions(false);
+                        }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-brand-50 text-sm text-slate-700 font-medium flex items-center justify-between group"
+                      >
+                        {contact.name}
+                        <Check
+                          size={16}
+                          className="text-brand-900 opacity-0 group-hover:opacity-100 transition-opacity"
+                        />
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-sm text-slate-500 flex items-center gap-2">
+                      <UserPlus size={16} className="text-brand-900" />
+                      <span>
+                        Cadastrar <strong>{contactName}</strong>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div ref={calendarRef} className="relative">
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
-                Data
+              <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 ml-1">
+                Data do Pagamento
               </label>
               <button
                 type="button"
                 onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-                className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between outline-none text-slate-700 font-bold text-sm focus:ring-2 focus:ring-brand-900 active:scale-[0.98] transition-all"
+                className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between outline-none text-slate-700 font-medium text-sm focus:ring-2 focus:ring-brand-900 transition-all"
               >
                 <span className="flex items-center gap-2">
-                  <CalendarIcon size={18} className="text-brand-900" />
+                  <CalendarIcon size={16} className="text-brand-900" />
                   {formattedDateDisplay}
                 </span>
               </button>
+
               {isCalendarOpen && (
-                <div className="absolute bottom-full mb-2 left-0 w-[300px] bg-white rounded-3xl shadow-2xl border border-slate-100 p-4 z-40 animate-in zoom-in-95 origin-bottom-left">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="absolute bottom-full mb-2 right-0 sm:left-0 w-[280px] bg-white rounded-2xl shadow-xl border border-slate-100 p-3 z-40 animate-in zoom-in-95">
+                  <div className="flex items-center justify-between mb-3">
                     <button
                       type="button"
                       onClick={() => changeMonth(-1)}
-                      className="p-1 hover:bg-slate-100 rounded-full text-slate-500"
+                      className="p-1 hover:bg-slate-100 rounded-full"
                     >
-                      <ChevronLeft size={20} />
+                      <ChevronLeft size={18} />
                     </button>
-                    <span className="font-bold text-slate-700 capitalize">
+                    <span className="font-bold text-sm text-slate-700 capitalize">
                       {MONTHS[calendarViewDate.getMonth()]}{" "}
                       {calendarViewDate.getFullYear()}
                     </span>
                     <button
                       type="button"
                       onClick={() => changeMonth(1)}
-                      className="p-1 hover:bg-slate-100 rounded-full text-slate-500"
+                      className="p-1 hover:bg-slate-100 rounded-full"
                     >
-                      <ChevronRight size={20} />
+                      <ChevronRight size={18} />
                     </button>
                   </div>
-                  <div className="grid grid-cols-7 gap-1 mb-2 text-center">
+                  <div className="grid grid-cols-7 gap-1 mb-1 text-center">
                     {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => (
                       <span
                         key={i}
@@ -631,7 +633,7 @@ export function NewTransactionModal({
                           key={idx}
                           type="button"
                           onClick={() => handleSelectDate(day)}
-                          className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${isSelected ? "bg-brand-900 text-white shadow-md shadow-brand-200" : isToday ? "bg-brand-50 text-brand-900 border border-brand-200" : "text-slate-600 hover:bg-slate-100"}`}
+                          className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${isSelected ? "bg-brand-900 text-white" : isToday ? "bg-brand-50 text-brand-900" : "text-slate-600 hover:bg-slate-100"}`}
                         >
                           {day.getDate()}
                         </button>
@@ -641,23 +643,12 @@ export function NewTransactionModal({
                 </div>
               )}
             </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
-                Detalhes
-              </label>
-              <input
-                type="text"
-                placeholder="Ex: Aluguel"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand-900 outline-none text-slate-700 font-medium text-sm"
-              />
-            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2">
+          {/* 5. CATEGORIA E MÉTODO */}
+          <div className="grid grid-cols-2 gap-3 relative">
             <div className="relative" ref={categoryRef}>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
+              <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 ml-1">
                 Categoria
               </label>
               <button
@@ -667,87 +658,71 @@ export function NewTransactionModal({
                   setIsPaymentOpen(false);
                   setIsCalendarOpen(false);
                 }}
-                className="w-full p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between focus:ring-2 focus:ring-brand-900 outline-none active:bg-slate-100 transition-colors"
+                className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between focus:ring-2 focus:ring-brand-900 outline-none transition-all"
               >
                 <div className="flex items-center gap-2 overflow-hidden">
                   <div
-                    className="p-1.5 rounded-lg"
+                    className="p-1.5 rounded-md"
                     style={{
                       backgroundColor: categoryBg,
                       color: categoryColor,
                     }}
                   >
-                    <CategoryIcon size={16} />
+                    <CategoryIcon size={14} />
                   </div>
                   <span className="text-sm font-bold text-slate-700 truncate">
                     {category || "Selecione..."}
                   </span>
                 </div>
-                <ChevronDown size={16} className="text-slate-400" />
+                <ChevronDown size={14} className="text-slate-400 shrink-0" />
               </button>
+
               {isCategoryOpen && (
-                <div className="absolute bottom-full mb-2 w-full bg-white rounded-2xl shadow-xl border border-slate-100 max-h-60 overflow-y-auto z-30 animate-in zoom-in-95 origin-bottom custom-scrollbar">
-                  {categories.length > 0 ? (
-                    categories.map((cat) => {
-                      const IconComp = ICON_MAP[cat.icon] || Tag;
-                      return (
-                        <button
-                          key={cat._id}
-                          type="button"
-                          onClick={() => {
-                            setCategory(cat.name);
-                            setIsCategoryOpen(false);
-                          }}
-                          className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                <div className="absolute bottom-full mb-2 w-full sm:w-[200%] bg-white rounded-xl shadow-xl border border-slate-100 max-h-56 overflow-y-auto z-30 animate-in zoom-in-95 custom-scrollbar">
+                  {categories.map((cat) => {
+                    const IconComp = ICON_MAP[cat.icon] || Tag;
+                    return (
+                      <button
+                        key={cat._id}
+                        type="button"
+                        onClick={() => {
+                          setCategory(cat.name);
+                          setIsCategoryOpen(false);
+                        }}
+                        className="w-full px-3 py-2.5 flex items-center gap-3 hover:bg-slate-50 border-b border-slate-50"
+                      >
+                        <div
+                          className="p-1 rounded-md"
+                          style={{ backgroundColor: cat.bg, color: cat.color }}
                         >
-                          <div
-                            className="p-1.5 rounded-lg"
-                            style={{
-                              backgroundColor: cat.bg,
-                              color: cat.color,
-                            }}
-                          >
-                            <IconComp size={16} />
-                          </div>
-                          <span
-                            className={`text-sm font-medium ${category === cat.name ? "text-brand-900" : "text-slate-600"}`}
-                          >
-                            {cat.name}
-                          </span>
-                          {category === cat.name && (
-                            <Check
-                              size={14}
-                              className="ml-auto text-brand-900"
-                            />
-                          )}
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <div className="p-4 text-center text-xs text-slate-400">
-                      Nenhuma categoria encontrada.
-                    </div>
-                  )}
+                          <IconComp size={14} />
+                        </div>
+                        <span
+                          className={`text-sm font-medium ${category === cat.name ? "text-brand-900" : "text-slate-600"}`}
+                        >
+                          {cat.name}
+                        </span>
+                      </button>
+                    );
+                  })}
                   <button
                     type="button"
                     onClick={() => {
                       setIsCreateCategoryOpen(true);
                       setIsCategoryOpen(false);
                     }}
-                    className="w-full px-4 py-3 flex items-center gap-3 bg-brand-50 hover:bg-brand-100 text-brand-900 transition-colors border-t border-brand-100 sticky bottom-0"
+                    className="w-full px-3 py-3 flex items-center gap-2 bg-brand-50 text-brand-900 sticky bottom-0"
                   >
-                    <PlusCircle size={16} />
-                    <span className="text-sm font-bold">
-                      Criar Nova Categoria
-                    </span>
+                    <PlusCircle size={14} />
+                    <span className="text-xs font-bold">Nova Categoria</span>
                   </button>
                 </div>
               )}
             </div>
 
             <div className="relative" ref={paymentRef}>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
-                {type === "INCOME" ? "Recebimento" : "Pagamento"}
+              <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 ml-1">
+                Forma de Pag.
               </label>
               <button
                 type="button"
@@ -756,22 +731,23 @@ export function NewTransactionModal({
                   setIsCategoryOpen(false);
                   setIsCalendarOpen(false);
                 }}
-                className="w-full p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between focus:ring-2 focus:ring-brand-900 outline-none active:bg-slate-100 transition-colors"
+                className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between focus:ring-2 focus:ring-brand-900 outline-none transition-all"
               >
                 <div className="flex items-center gap-2 overflow-hidden">
                   <div
-                    className={`p-1.5 rounded-lg ${paymentStyle.bg} ${paymentStyle.text}`}
+                    className={`p-1.5 rounded-md ${paymentStyle.bg} ${paymentStyle.text}`}
                   >
-                    <PaymentIcon size={16} />
+                    <PaymentIcon size={14} />
                   </div>
                   <span className="text-sm font-bold text-slate-700 truncate">
                     {paymentMethod}
                   </span>
                 </div>
-                <ChevronDown size={16} className="text-slate-400" />
+                <ChevronDown size={14} className="text-slate-400 shrink-0" />
               </button>
+
               {isPaymentOpen && (
-                <div className="absolute bottom-full mb-2 w-full bg-white rounded-2xl shadow-xl border border-slate-100 max-h-60 overflow-y-auto z-30 animate-in zoom-in-95 origin-bottom custom-scrollbar">
+                <div className="absolute bottom-full mb-2 right-0 w-full sm:w-[150%] bg-white rounded-xl shadow-xl border border-slate-100 z-30 animate-in zoom-in-95">
                   {PAYMENT_METHODS.map((method) => {
                     const style =
                       PAYMENT_STYLES[method.id] || PAYMENT_STYLES["default"];
@@ -783,21 +759,16 @@ export function NewTransactionModal({
                           setPaymentMethod(method.id);
                           setIsPaymentOpen(false);
                         }}
-                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                        className="w-full px-3 py-2.5 flex items-center gap-3 hover:bg-slate-50 border-b border-slate-50"
                       >
                         <div
-                          className={`p-1.5 rounded-lg ${style.bg} ${style.text}`}
+                          className={`p-1 rounded-md ${style.bg} ${style.text}`}
                         >
-                          <method.icon size={16} />
+                          <method.icon size={14} />
                         </div>
-                        <span
-                          className={`text-sm font-medium whitespace-nowrap ${paymentMethod === method.id ? "text-brand-900" : "text-slate-600"}`}
-                        >
+                        <span className="text-sm font-medium text-slate-600">
                           {method.id}
                         </span>
-                        {paymentMethod === method.id && (
-                          <Check size={14} className="ml-auto text-brand-900" />
-                        )}
                       </button>
                     );
                   })}
@@ -806,11 +777,31 @@ export function NewTransactionModal({
             </div>
           </div>
 
+          {/* 6. STATUS */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setStatus("PAID")}
+              className={`flex-1 py-2.5 px-3 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 transition-all ${status === "PAID" ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm" : "border-slate-200 text-slate-400 bg-slate-50 hover:bg-slate-100"}`}
+            >
+              <Check size={16} />{" "}
+              {type === "INCOME" ? "Recebido" : "Pago"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatus("PENDING")}
+              className={`flex-1 py-2.5 px-3 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 transition-all ${status === "PENDING" ? "border-amber-400 bg-amber-50 text-amber-700 shadow-sm" : "border-slate-200 text-slate-400 bg-slate-50 hover:bg-slate-100"}`}
+            >
+              <CalendarClock size={16} /> Pendente
+            </button>
+          </div>
+
+          {/* 7. RECORRÊNCIA */}
           {!editingId && (
-            <div className="bg-brand-50 p-4 rounded-2xl border border-brand-100 flex flex-col gap-3">
+            <div className="bg-brand-50/50 p-3 rounded-xl border border-brand-100/50 flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-brand-900 font-bold text-sm">
-                  <Repeat size={18} /> Repetir este lançamento?
+                  <Repeat size={16} /> Repetir lançamento?
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -819,14 +810,14 @@ export function NewTransactionModal({
                     onChange={(e) => setIsRecurring(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-900"></div>
+                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-900"></div>
                 </label>
               </div>
               {isRecurring && (
-                <div className="animate-in slide-in-from-top-2 fade-in">
-                  <label className="block text-xs font-bold text-brand-400 uppercase mb-1 ml-1">
-                    Repetir por quantos meses?
-                  </label>
+                <div className="flex items-center justify-between animate-in slide-in-from-top-1">
+                  <span className="text-xs font-bold text-slate-500 uppercase">
+                    Qtd de meses:
+                  </span>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
@@ -834,28 +825,26 @@ export function NewTransactionModal({
                       max="60"
                       value={installments}
                       onChange={(e) => setInstallments(e.target.value)}
-                      className="w-20 p-2 bg-white border border-brand-200 rounded-xl text-center font-bold text-brand-700 outline-none focus:ring-2 focus:ring-brand-900"
+                      className="w-16 p-1.5 bg-white border border-brand-200 rounded-lg text-center font-bold text-brand-700 outline-none focus:ring-2 focus:ring-brand-900"
                     />
-                    <span className="text-sm text-brand-900 font-medium">
-                      Meses (Vezes)
-                    </span>
                   </div>
                 </div>
               )}
             </div>
           )}
 
+          {/* 8. BOTÃO SALVAR */}
           <div className="pt-2">
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-4 rounded-2xl font-bold text-white shadow-xl flex items-center justify-center gap-2 transform active:scale-[0.98] transition-all ${type === "INCOME" ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200" : "bg-rose-500 hover:bg-rose-600 shadow-rose-200"}`}
+              className={`w-full py-3.5 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 transform active:scale-[0.98] transition-all ${type === "INCOME" ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200" : "bg-rose-500 hover:bg-rose-600 shadow-rose-200"}`}
             >
               {loading ? (
                 "Salvando..."
               ) : (
                 <>
-                  <Check size={20} /> Confirmar{" "}
+                  <Check size={18} /> Confirmar{" "}
                   {editingId
                     ? "Edição"
                     : type === "INCOME"

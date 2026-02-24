@@ -53,10 +53,8 @@ export const AVAILABLE_ICONS = [
 
 // CORES EM HEX (Fundo Claro / Texto Escuro)
 const COLORS = [
-  // --- NOVAS CORES DA MARCA ---
   { name: "Verde Marca", bg: "#effdf6", text: "#1ba879" },
   { name: "Azul Marca", bg: "#f0f1fa", text: "#000066" },
-
   { name: "Cinza", bg: "#f1f5f9", text: "#64748b" },
   { name: "Vermelho", bg: "#fee2e2", text: "#ef4444" },
   { name: "Laranja", bg: "#ffedd5", text: "#f97316" },
@@ -230,6 +228,7 @@ export function CategoryModal({
         title="Gerenciar Categorias"
         description={`Gerencie suas categorias de ${type === "INCOME" ? "Entradas" : "Saídas"}`}
       >
+        {/* CABEÇALHO (Fora do no-drag para permitir arrastar para fechar) */}
         <div className="pb-4 border-b border-slate-100 flex justify-between items-center shrink-0">
           <div>
             <h2 className="font-bold text-slate-800 text-lg">
@@ -247,24 +246,29 @@ export function CategoryModal({
           </button>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto custom-scrollbar py-2">
+        {/* ÁREA DE SCROLL (Com data-vaul-no-drag e pb-32 para o teclado) */}
+        <div
+          className="max-h-[75vh] sm:max-h-[85vh] overflow-y-auto custom-scrollbar px-1 py-4 pb-32"
+          data-vaul-no-drag
+        >
           <form
             onSubmit={handleSubmit}
-            className="space-y-6 border-b border-slate-100 pb-6 mb-6"
+            className="space-y-5 border-b border-slate-100 pb-6 mb-6"
           >
             {error && (
-              <div className="bg-rose-50 text-rose-600 px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-2">
-                <AlertCircle size={16} /> {error}
+              <div className="bg-rose-50 border border-rose-100 text-rose-600 px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-2 animate-in slide-in-from-top-2">
+                <AlertCircle size={18} className="shrink-0" /> {error}
               </div>
             )}
 
+            {/* NOME DA CATEGORIA */}
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
+              <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 ml-1">
                 {editingId ? "Editar Nome" : "Nova Categoria"}
               </label>
               <div className="flex items-center gap-3">
                 <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors"
+                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-colors"
                   style={{
                     backgroundColor: selectedColor.bg,
                     color: selectedColor.text,
@@ -282,13 +286,14 @@ export function CategoryModal({
                   placeholder="Ex: Academia"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="flex-1 min-w-0 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-900 font-bold text-slate-700"
+                  className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-brand-900 outline-none text-slate-700 font-bold text-sm transition-all"
                 />
               </div>
             </div>
 
+            {/* SELETOR DE COR */}
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
+              <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 ml-1">
                 Cor
               </label>
               <div className="flex flex-wrap gap-2">
@@ -297,18 +302,24 @@ export function CategoryModal({
                     key={color.name}
                     type="button"
                     onClick={() => setSelectedColor(color)}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${selectedColor.name === color.name ? "border-slate-800 scale-110" : "border-transparent hover:scale-105"}`}
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${
+                      selectedColor.name === color.name
+                        ? "border-slate-800 scale-110 shadow-md"
+                        : "border-transparent hover:scale-105"
+                    }`}
                     style={{ backgroundColor: color.bg }}
+                    title={color.name}
                   />
                 ))}
               </div>
             </div>
 
+            {/* SELETOR DE ÍCONE */}
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
+              <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 ml-1">
                 Ícone
               </label>
-              <div className="grid grid-cols-6 gap-2">
+              <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
                 {AVAILABLE_ICONS.map((item) => (
                   <button
                     key={item.name}
@@ -316,7 +327,7 @@ export function CategoryModal({
                     onClick={() => setSelectedIcon(item.name)}
                     className={`aspect-square flex items-center justify-center rounded-xl transition-all ${
                       selectedIcon === item.name
-                        ? "bg-brand-100 text-brand-900 ring-2 ring-brand-900"
+                        ? "bg-brand-100 text-brand-900 ring-2 ring-brand-900 shadow-sm"
                         : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                     }`}
                   >
@@ -326,58 +337,64 @@ export function CategoryModal({
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading || !name}
-              className={`w-full font-bold py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                editingId
-                  ? "bg-brand-900 text-white hover:bg-brand-700 shadow-brand-200"
-                  : "bg-slate-800 text-white hover:bg-slate-900 shadow-slate-300"
-              }`}
-            >
-              {loading ? (
-                "Salvando..."
-              ) : editingId ? (
-                <>
-                  <Save size={18} /> Atualizar
-                </>
-              ) : (
-                <>
-                  <Save size={18} /> Criar
-                </>
-              )}
-            </button>
-            {editingId && (
+            {/* BOTÃO SUBMIT E CANCELAR */}
+            <div className="pt-2">
               <button
-                type="button"
-                onClick={resetForm}
-                className="w-full text-xs text-slate-400 hover:text-slate-600 font-bold underline"
+                type="submit"
+                disabled={loading || !name}
+                className={`w-full font-bold py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
+                  editingId
+                    ? "bg-brand-900 text-white hover:bg-brand-700 shadow-brand-200"
+                    : "bg-slate-800 text-white hover:bg-slate-900 shadow-slate-300"
+                }`}
               >
-                Cancelar Edição
+                {loading ? (
+                  "Salvando..."
+                ) : editingId ? (
+                  <>
+                    <Save size={18} /> Atualizar
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} /> Criar
+                  </>
+                )}
               </button>
-            )}
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="w-full mt-3 text-xs text-slate-400 hover:text-slate-600 font-bold transition-colors"
+                >
+                  Cancelar Edição
+                </button>
+              )}
+            </div>
           </form>
 
+          {/* LISTA DE CATEGORIAS EXISTENTES */}
           <div>
-            <h3 className="text-xs font-bold text-slate-400 uppercase mb-3">
+            <h3 className="text-xs font-bold text-slate-400 uppercase mb-3 ml-1">
               Categorias Existentes
             </h3>
             <div className="space-y-2">
               {loadingList ? (
-                <p className="text-center text-xs text-slate-400 py-4">
-                  Carregando...
+                <p className="text-center text-xs text-slate-400 py-4 animate-pulse">
+                  Carregando categorias...
                 </p>
               ) : categories.length === 0 ? (
-                <p className="text-center text-xs text-slate-400 py-4">
-                  Nenhuma categoria encontrada.
-                </p>
+                <div className="text-center py-6 border border-dashed border-slate-200 rounded-xl bg-slate-50">
+                  <p className="text-xs text-slate-500 font-medium">
+                    Nenhuma categoria encontrada.
+                  </p>
+                </div>
               ) : (
                 categories.map((cat) => {
                   const IconComp = ICON_MAP[cat.icon] || Tag;
                   return (
                     <div
                       key={cat._id}
-                      className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-brand-100 transition-colors group"
+                      className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl shadow-sm hover:border-brand-100 transition-colors group"
                     >
                       <div className="flex items-center gap-3">
                         <div
@@ -400,7 +417,7 @@ export function CategoryModal({
                       </div>
 
                       {!cat.isDefault && (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => handleEdit(cat)}
                             className="p-2 text-slate-400 hover:bg-brand-50 hover:text-brand-900 rounded-lg transition-colors"
