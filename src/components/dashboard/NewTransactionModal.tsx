@@ -198,10 +198,10 @@ export function NewTransactionModal({
       if (initialData) {
         setEditingId(initialData._id || null);
 
-        // Formata valor inicial vindo do banco/IA
+        // Formata valor inicial vindo do banco/IA (AGORA DIVIDIDO POR 100)
         if (initialData.amount) {
           setAmount(
-            initialData.amount.toLocaleString("pt-BR", {
+            (initialData.amount / 100).toLocaleString("pt-BR", {
               minimumFractionDigits: 2,
             }),
           );
@@ -354,11 +354,14 @@ export function NewTransactionModal({
         amount.replace(/\./g, "").replace(",", "."),
       );
 
+      // MULTIPLICA POR 100 E ARREDONDA PARA GARANTIR INTEIRO NO BANCO DE DADOS (Ex: 123456)
+      const amountInCents = Math.round(cleanAmount * 100);
+
       const payload = {
         userId,
         contactId: finalContactId,
         type,
-        amount: cleanAmount,
+        amount: amountInCents, // ENVIA EM CENTAVOS
         description,
         category,
         paymentMethod,
@@ -784,8 +787,7 @@ export function NewTransactionModal({
               onClick={() => setStatus("PAID")}
               className={`flex-1 py-2.5 px-3 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 transition-all ${status === "PAID" ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm" : "border-slate-200 text-slate-400 bg-slate-50 hover:bg-slate-100"}`}
             >
-              <Check size={16} />{" "}
-              {type === "INCOME" ? "Recebido" : "Pago"}
+              <Check size={16} /> {type === "INCOME" ? "Recebido" : "Pago"}
             </button>
             <button
               type="button"

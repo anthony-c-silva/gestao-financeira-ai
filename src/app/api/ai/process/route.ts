@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     if (!apiKey) {
       return NextResponse.json(
         { message: "Configuração de API pendente" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     if (!text) {
       return NextResponse.json(
         { message: "Áudio não identificado" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -66,12 +66,18 @@ export async function POST(req: Request) {
     const jsonString = textResponse.replace(/```json|```/g, "").trim();
     const data = JSON.parse(jsonString);
 
+    // --- CONVERSÃO PARA O PADRÃO DE CENTAVOS ---
+    // A IA devolve decimais (ex: 15.50). Multiplicamos por 100 e arredondamos para garantir um número inteiro limpo (1550).
+    if (typeof data.amount === "number") {
+      data.amount = Math.round(data.amount * 100);
+    }
+
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
     console.error("Erro no processamento IA:", error);
     return NextResponse.json(
       { message: "Não foi possível processar o comando de voz." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

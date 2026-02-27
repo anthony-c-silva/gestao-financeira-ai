@@ -78,8 +78,9 @@ export function ExportModal({
     });
   };
 
+  // --- FORMATAÇÃO MATEMÁTICA (PADRÃO DE CENTAVOS) ---
   const formatCurrency = (val: number) =>
-    val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    (val / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   // --- LÓGICA DO PDF ---
   const handleExportPDF = () => {
@@ -93,7 +94,7 @@ export function ExportModal({
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
       );
 
-      // Cálculos de Totais
+      // Cálculos de Totais (feitos em centavos)
       const income = data
         .filter((t) => t.type === "INCOME" && t.status === "PAID")
         .reduce((acc, t) => acc + t.amount, 0);
@@ -209,8 +210,8 @@ export function ExportModal({
         Contato: t.contactId?.name || "",
         Tipo: t.type === "INCOME" ? "Entrada" : "Saída",
         Status: t.status === "PAID" ? "Concluído" : "Pendente",
-        // Importante: Valor numérico para o Excel somar
-        Valor: t.type === "EXPENSE" ? -t.amount : t.amount,
+        // Importante: Valor numérico (dividido por 100) para o Excel somar corretamente
+        Valor: t.type === "EXPENSE" ? -(t.amount / 100) : t.amount / 100,
         Pagamento: t.paymentMethod,
       }));
 

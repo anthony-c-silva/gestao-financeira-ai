@@ -42,8 +42,9 @@ export function DreReport({ transactions, month }: DreReportProps) {
   const margin =
     grossRevenue > 0 ? ((netResult / grossRevenue) * 100).toFixed(1) : "0.0";
 
+  // --- FORMATAÇÃO MATEMÁTICA (PADRÃO DE CENTAVOS) ---
   const format = (val: number) =>
-    val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    (val / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
     <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-4">

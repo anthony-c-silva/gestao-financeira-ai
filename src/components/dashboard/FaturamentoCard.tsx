@@ -57,11 +57,12 @@ export function FaturamentoCard({ data, loading }: FaturamentoCardProps) {
   const config = statusConfig[data.alertLevel] || statusConfig.NORMAL;
   const Icon = config.icon;
 
+  // PADRÃO DE CENTAVOS: Dividimos por 100 antes de formatar para Real
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
-    }).format(value);
+    }).format(value / 100);
 
   return (
     <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden">
@@ -126,7 +127,7 @@ export function FaturamentoCard({ data, loading }: FaturamentoCardProps) {
             onClick={() =>
               window.open(
                 "https://wa.me/555196603937?text=Ola, preciso de ajuda com meu enquadramento",
-                "_blank"
+                "_blank",
               )
             }
             className="w-full py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2"

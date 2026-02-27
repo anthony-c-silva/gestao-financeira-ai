@@ -36,7 +36,7 @@ export interface TransactionItem {
   category: string;
   totalInstallments?: number;
   installment?: number;
-  date: string; // CORREÇÃO: Removido o '| Date', pois via JSON (API) a data sempre chega como string
+  date: string;
   type: "INCOME" | "EXPENSE";
   status: "PAID" | "PENDING";
   amount: number;
@@ -237,13 +237,13 @@ export function ReportsView({
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: "#94a3b8", fontSize: 10 }}
-                  tickFormatter={(val) => `R$${val}`}
+                  tickFormatter={(val) => `R$${val / 100}`} // DIVIDINDO POR 100
                 />
                 <Tooltip
                   cursor={{ fill: "#f8fafc" }}
                   contentStyle={{ borderRadius: "12px", border: "none" }}
                   formatter={(val: number) => [
-                    `R$ ${val.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+                    `R$ ${(val / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, // DIVIDINDO POR 100
                   ]}
                 />
                 <Legend
@@ -306,7 +306,7 @@ export function ReportsView({
                 <Tooltip
                   contentStyle={{ borderRadius: "12px", border: "none" }}
                   formatter={(val: number) => [
-                    `R$ ${val.toLocaleString("pt-BR")}`,
+                    `R$ ${(val / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, // DIVIDINDO POR 100
                   ]}
                 />
                 <Legend

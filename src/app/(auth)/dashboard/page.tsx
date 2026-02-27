@@ -397,7 +397,8 @@ export default function Dashboard() {
 
   const formatMoney = (value: number) => {
     if (!showValues) return "••••••";
-    return value.toLocaleString("pt-BR", {
+    // DIVIDINDO POR 100 AQUI
+    return (value / 100).toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL",
     });

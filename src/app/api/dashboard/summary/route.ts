@@ -34,7 +34,9 @@ export async function GET(req: Request) {
 
     const businessType = (user.businessSize as BusinessSizeType) || "OTHER";
     const limitInfo = BUSINESS_SIZES[businessType] || BUSINESS_SIZES.OTHER;
-    const annualLimit = limitInfo.limit;
+
+    // PADRÃO DE CENTAVOS: Multiplicamos o limite em Reais por 100 para a matemática ficar correta
+    const annualLimitCents = limitInfo.limit * 100;
 
     // 3. Calcular Faturamento Anual (Soma de INCOME do ano)
     const { start, end } = getYearRange();
@@ -50,21 +52,21 @@ export async function GET(req: Request) {
       {
         $group: {
           _id: null,
-          total: { $sum: "$amount" },
+          total: { $sum: "$amount" }, // Esse valor já está em centavos no banco!
         },
       },
     ]);
 
-    const currentRevenue = revenueStats[0]?.total || 0;
+    const currentRevenueCents = revenueStats[0]?.total || 0;
 
-    // 4. Regras de Alerta
+    // 4. Regras de Alerta (Feitas todas em Centavos)
     let alertLevel = "NORMAL";
     let percentage = 0;
 
-    if (annualLimit > 0) {
-      percentage = (currentRevenue / annualLimit) * 100;
+    if (annualLimitCents > 0) {
+      percentage = (currentRevenueCents / annualLimitCents) * 100;
 
-      if (currentRevenue > annualLimit) alertLevel = "EXTRAPOLATED";
+      if (currentRevenueCents > annualLimitCents) alertLevel = "EXTRAPOLATED";
       else if (percentage >= 90) alertLevel = "DANGER";
       else if (percentage >= 80) alertLevel = "WARNING";
     }
@@ -72,8 +74,8 @@ export async function GET(req: Request) {
     return NextResponse.json({
       businessType: businessType,
       limitLabel: limitInfo.label,
-      annualLimit,
-      currentRevenue,
+      annualLimit: annualLimitCents, // Enviamos em centavos para o Front
+      currentRevenue: currentRevenueCents, // Enviamos em centavos para o Front
       percentage,
       alertLevel,
     });
