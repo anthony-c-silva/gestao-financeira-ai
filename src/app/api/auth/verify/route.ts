@@ -14,8 +14,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Busca o usuário e força retorno como 'any' para evitar erro de TS
-    const user = await User.findOne({ email }) as any;
+    const user = await User.findOne({ email });
 
     if (!user) {
       return NextResponse.json(
@@ -24,21 +23,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // --- DEBUG: LOGS PARA VER O QUE ESTÁ ACONTECENDO ---
-    console.log("--- DEBUG VERIFICAÇÃO ---");
-    console.log("Email:", email);
-    console.log("Código Recebido (Input):", code);
-    console.log("Código no Banco (User):", user.verificationCode);
-    console.log("Tipos:", typeof code, typeof user.verificationCode);
-    console.log("-------------------------");
-
     // Normaliza para comparação (remove espaços e garante string)
     const codeInput = String(code).trim();
-    const codeStored = String(user.verificationCode).trim();
+    const codeStored = String(user.verificationCode ?? "").trim();
 
-    if (codeStored !== codeInput) {
+    if (!codeStored || codeStored !== codeInput) {
       return NextResponse.json(
-        { message: `Código inválido. Recebido: ${codeInput}, Esperado: ${codeStored}` }, // Mensagem detalhada para debug
+        { message: "Código inválido ou expirado." },
         { status: 400 }
       );
     }

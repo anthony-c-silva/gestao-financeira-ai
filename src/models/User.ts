@@ -46,6 +46,10 @@ const UserSchema = new Schema(
       type: String,
       default: null,
     },
+    verificationCodeSentAt: {
+      type: Date,
+      default: null,
+    },
 
     // --- CAMPOS DE RECUPERAÇÃO DE SENHA (NOVOS) ---
     resetPasswordToken: {

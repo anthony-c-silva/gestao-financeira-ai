@@ -16,7 +16,12 @@ function addMonths(date: Date, n: number): Date {
 }
 
 // BUSCAR TRANSAÇÕES DO USUÁRIO LOGADO
-export async function GET() {
+//
+// Suporta escopo por ano (`?year=2026`) — usado pelo dashboard para trazer
+// TODAS as transações do ano selecionado (não só as 100 mais recentes),
+// garantindo que relatórios mensais/anuais e totais por contato batam.
+// Sem `year`, mantém um fallback de "mais recentes" para chamadas legadas.
+export async function GET(req: Request) {
   try {
     // 1. Autenticação via Cookie
     const session = await getAuthSession();
@@ -27,11 +32,27 @@ export async function GET() {
     await connectDB();
     if (!Contact) console.log("Carregando modelo Contact...");
 
-    // 2. Busca usando APENAS o ID da sessão
-    const transactions = await Transaction.find({ userId: session.id })
+    const { searchParams } = new URL(req.url);
+    const yearParam = searchParams.get("year");
+    const year = yearParam ? parseInt(yearParam, 10) : null;
+
+    const query: Record<string, unknown> = { userId: session.id };
+
+    // Cap de segurança generoso (bem acima do que uma conta ativa gera em um ano)
+    // em vez do limit(100) fixo anterior, que corrompia relatórios silenciosamente.
+    let queryLimit = 500;
+
+    if (year && Number.isInteger(year)) {
+      const start = new Date(year, 0, 1);
+      const end = new Date(year, 11, 31, 23, 59, 59, 999);
+      query.date = { $gte: start, $lte: end };
+      queryLimit = 3000;
+    }
+
+    const transactions = await Transaction.find(query)
       .populate("contactId", "name type")
       .sort({ date: -1 })
-      .limit(100);
+      .limit(queryLimit);
 
     return NextResponse.json(transactions, { status: 200 });
   } catch (error) {

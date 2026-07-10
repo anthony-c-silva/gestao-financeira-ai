@@ -92,6 +92,7 @@ export async function POST(req: Request) {
       existingUser.phone = phone.replace(/\D/g, "");
       existingUser.password = hashedPassword;
       existingUser.verificationCode = verificationCode; // Atualiza o código
+      existingUser.verificationCodeSentAt = new Date();
       existingUser.address = {
         cep: cep?.replace(/\D/g, ""),
         street,
@@ -115,6 +116,7 @@ export async function POST(req: Request) {
         phone: phone.replace(/\D/g, ""),
         password: hashedPassword,
         verificationCode, // Salva o código
+        verificationCodeSentAt: new Date(),
         emailVerified: false,
         address: {
           cep: cep?.replace(/\D/g, ""),
@@ -129,7 +131,7 @@ export async function POST(req: Request) {
       userId = newUser._id;
 
       // Cria as categorias padrão para o novo usuário
-      const categoriesToCreate = DEFAULT_CATEGORIES.map((cat: any) => ({
+      const categoriesToCreate = DEFAULT_CATEGORIES.map((cat) => ({
         userId: newUser._id,
         name: cat.name,
         type: cat.type,

@@ -46,6 +46,7 @@ export async function GET(req: Request) {
         $match: {
           userId: user._id, // Garante que só busca dados deste usuário
           type: "INCOME",
+          status: "PAID", // Regime de caixa: só receita efetivamente recebida (consistente com o DRE)
           date: { $gte: start, $lte: end },
         },
       },

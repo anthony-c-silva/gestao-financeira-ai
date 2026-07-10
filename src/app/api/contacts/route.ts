@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Contact from "@/models/Contact";
+import { getAuthSession } from "@/lib/auth";
 
 // Interface para a Query
 interface ContactQuery {
@@ -12,24 +13,21 @@ interface ContactQuery {
 // LISTAR CONTATOS (COM PAGINAÇÃO)
 export async function GET(req: Request) {
   try {
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 401 });
+    }
+
     await connectDB();
     const { searchParams } = new URL(req.url);
 
-    const userId = searchParams.get("userId");
     const type = searchParams.get("type");
     const search = searchParams.get("search"); // Busca
     const page = parseInt(searchParams.get("page") || "1"); // Página atual
     const limit = parseInt(searchParams.get("limit") || "20"); // Itens por página
 
-    if (!userId) {
-      return NextResponse.json(
-        { message: "ID do usuário obrigatório" },
-        { status: 400 }
-      );
-    }
-
-    // Montagem da Query
-    const query: ContactQuery = { userId };
+    // Montagem da Query: userId SEMPRE vem da sessão, nunca do client
+    const query: ContactQuery = { userId: session.id };
 
     // Filtro por Tipo (Cliente/Fornecedor)
     if (type && type !== "ALL") {
@@ -74,10 +72,15 @@ export async function GET(req: Request) {
 // CRIAR NOVO CONTATO
 export async function POST(req: Request) {
   try {
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 401 });
+    }
+
     await connectDB();
     const body = await req.json();
 
-    if (!body.userId || !body.name || !body.type) {
+    if (!body.name || !body.type) {
       return NextResponse.json(
         { message: "Dados incompletos" },
         { status: 400 }
@@ -86,7 +89,7 @@ export async function POST(req: Request) {
 
     // 1. Verifica duplicidade de NOME
     const existsName = await Contact.findOne({
-      userId: body.userId,
+      userId: session.id,
       name: body.name,
       type: body.type,
     });
@@ -101,7 +104,7 @@ export async function POST(req: Request) {
     // 2. Verifica duplicidade de DOCUMENTO (CPF/CNPJ)
     if (body.document && body.document.trim() !== "") {
       const existsDoc = await Contact.findOne({
-        userId: body.userId,
+        userId: session.id,
         document: body.document,
       });
       if (existsDoc) {
@@ -115,7 +118,7 @@ export async function POST(req: Request) {
     // 3. Verifica duplicidade de TELEFONE
     if (body.phone && body.phone.trim() !== "") {
       const existsPhone = await Contact.findOne({
-        userId: body.userId,
+        userId: session.id,
         phone: body.phone,
       });
       if (existsPhone) {
@@ -126,7 +129,13 @@ export async function POST(req: Request) {
       }
     }
 
-    const newContact = await Contact.create(body);
+    const newContact = await Contact.create({
+      name: body.name,
+      type: body.type,
+      phone: body.phone,
+      document: body.document,
+      userId: session.id, // Força o ID da sessão, ignora qualquer userId do client
+    });
     return NextResponse.json(newContact, { status: 201 });
   } catch (error) {
     console.error("Erro ao criar contato:", error);

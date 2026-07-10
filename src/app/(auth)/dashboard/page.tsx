@@ -156,14 +156,19 @@ export default function Dashboard() {
 
   const authFetch = useAuthFetch(handleSessionExpired);
 
-  const fetchTransactions = useCallback(async () => {
-    try {
-      const res = await authFetch("/api/transactions");
-      if (res.ok) setTransactions(await res.json());
-    } catch (error) {
-      console.error("Erro ao buscar transações");
-    }
-  }, [authFetch]);
+  // Busca TODAS as transações do ano informado (não só as 100 mais recentes),
+  // para que relatórios mensais/anuais e totais por contato sejam sempre corretos.
+  const fetchTransactions = useCallback(
+    async (year: number) => {
+      try {
+        const res = await authFetch(`/api/transactions?year=${year}`);
+        if (res.ok) setTransactions(await res.json());
+      } catch (error) {
+        console.error("Erro ao buscar transações");
+      }
+    },
+    [authFetch],
+  );
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -183,6 +188,8 @@ export default function Dashboard() {
     }
   }, [authFetch]);
 
+  const lastFetchedYearRef = useRef<number | null>(null);
+
   useEffect(() => {
     const initDashboard = async () => {
       try {
@@ -192,8 +199,11 @@ export default function Dashboard() {
           const userData = await res.json();
           setUser(userData);
 
+          const initialYear = selectedDate.getFullYear();
+          lastFetchedYearRef.current = initialYear;
+
           await Promise.all([
-            fetchTransactions(),
+            fetchTransactions(initialYear),
             fetchCategories(),
             userData.type === "PJ" ? fetchFiscalSummary() : null,
           ]);
@@ -209,13 +219,18 @@ export default function Dashboard() {
     };
 
     initDashboard();
-  }, [
-    authFetch,
-    fetchTransactions,
-    fetchCategories,
-    fetchFiscalSummary,
-    router,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authFetch, fetchCategories, fetchFiscalSummary, router]);
+
+  // Reconsulta as transações sempre que o usuário navega para um ano diferente
+  // (troca de mês dentro do mesmo ano não precisa de nova busca).
+  const selectedYear = selectedDate.getFullYear();
+  useEffect(() => {
+    if (!user) return;
+    if (lastFetchedYearRef.current === selectedYear) return;
+    lastFetchedYearRef.current = selectedYear;
+    fetchTransactions(selectedYear);
+  }, [user, selectedYear, fetchTransactions]);
 
   const handleLogout = async () => {
     try {
@@ -339,7 +354,7 @@ export default function Dashboard() {
         { method: "DELETE" },
       );
       if (res.ok) {
-        fetchTransactions();
+        fetchTransactions(selectedDate.getFullYear());
         if (user.type === "PJ") fetchFiscalSummary();
         setDeleteTransaction(null);
         if (action === "SINGLE") showToast("Transação excluída.", "success");
@@ -360,7 +375,7 @@ export default function Dashboard() {
         body: JSON.stringify({ status: "PAID" }),
       });
       if (res.ok && user) {
-        fetchTransactions();
+        fetchTransactions(selectedDate.getFullYear());
         if (user.type === "PJ" && transaction.type === "INCOME")
           fetchFiscalSummary();
         showToast("Status atualizado!", "success");
@@ -705,7 +720,7 @@ export default function Dashboard() {
         initialData={modalInitialData}
         recurrenceAction={pendingRecurrenceAction}
         onSuccess={() => {
-          fetchTransactions();
+          fetchTransactions(selectedDate.getFullYear());
           if (user.type === "PJ") fetchFiscalSummary();
           showToast("Salvo com sucesso!", "success");
         }}

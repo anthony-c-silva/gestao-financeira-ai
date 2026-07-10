@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { getJwtSecret } from "@/lib/jwt";
 
 const protectedRoutes = ["/dashboard"];
-const publicAuthRoutes = ["/login", "/register", "/forgot-password"];
+const publicAuthRoutes = ["/login", "/register", "/forgot-password", "/verify"];
 
 // O único detalhe que muda é o nome desta função
 export async function proxy(req: NextRequest) {
@@ -19,10 +20,7 @@ export async function proxy(req: NextRequest) {
 
   if (cookie) {
     try {
-      const secret = new TextEncoder().encode(
-        process.env.JWT_SECRET || "fallback_inseguro_mude_no_env"
-      );
-      await jwtVerify(cookie, secret);
+      await jwtVerify(cookie, getJwtSecret());
 
       if (isPublicAuthRoute) {
         return NextResponse.redirect(new URL("/dashboard", req.url));
@@ -40,5 +38,11 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/register"],
+  matcher: [
+    "/dashboard/:path*",
+    "/login",
+    "/register",
+    "/forgot-password",
+    "/verify",
+  ],
 };

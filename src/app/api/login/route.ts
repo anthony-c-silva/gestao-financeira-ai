@@ -4,6 +4,7 @@ import { SignJWT, JWTPayload } from "jose";
 import connectToDatabase from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
+import { getJwtSecret } from "@/lib/jwt";
 
 // 1. Interface explícita removendo o "any"
 interface UserPayload extends JWTPayload {
@@ -16,15 +17,11 @@ interface UserPayload extends JWTPayload {
 
 // Função utilitária para assinar o JWT tipada
 async function signToken(payload: UserPayload) {
-  const secret = new TextEncoder().encode(
-    process.env.JWT_SECRET || "fallback_inseguro_mude_no_env"
-  );
-  
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d") // Sessão dura 7 dias
-    .sign(secret);
+    .sign(getJwtSecret());
 }
 
 export async function POST(req: Request) {

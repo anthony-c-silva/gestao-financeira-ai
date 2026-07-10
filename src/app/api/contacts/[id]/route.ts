@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Contact from "@/models/Contact";
 import Transaction from "@/models/Transaction";
+import { getAuthSession } from "@/lib/auth";
 
 // EDITAR CONTATO (PUT)
 export async function PUT(
@@ -9,11 +10,17 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 401 });
+    }
+
     await connectDB();
     const { id } = await params;
     const body = await req.json();
 
-    const currentContact = await Contact.findById(id);
+    // Garante que o contato pertence ao usuário logado
+    const currentContact = await Contact.findOne({ _id: id, userId: session.id });
     if (!currentContact) {
       return NextResponse.json(
         { message: "Contato não encontrado" },
@@ -75,9 +82,14 @@ export async function PUT(
       }
     }
 
+    // Remove campos que não devem ser alterados via body (userId nunca muda de dono)
+    const safeBody = { ...body };
+    delete safeBody.userId;
+    delete safeBody._id;
+
     const updatedContact = await Contact.findByIdAndUpdate(
       id,
-      { $set: body },
+      { $set: safeBody },
       { new: true }
     );
 
@@ -93,22 +105,29 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ message: "Não autorizado" }, { status: 401 });
+    }
+
     await connectDB();
     const { id } = await params;
 
-    await Transaction.updateMany(
-      { contactId: id },
-      { $unset: { contactId: "" } }
-    );
-
-    const deleted = await Contact.findByIdAndDelete(id);
-
-    if (!deleted) {
+    // Garante que o contato pertence ao usuário logado antes de qualquer mutação
+    const existing = await Contact.findOne({ _id: id, userId: session.id });
+    if (!existing) {
       return NextResponse.json(
         { message: "Contato não encontrado" },
         { status: 404 }
       );
     }
+
+    await Transaction.updateMany(
+      { contactId: id, userId: session.id },
+      { $unset: { contactId: "" } }
+    );
+
+    await Contact.findByIdAndDelete(id);
 
     return NextResponse.json({ message: "Contato excluído" }, { status: 200 });
   } catch (error) {

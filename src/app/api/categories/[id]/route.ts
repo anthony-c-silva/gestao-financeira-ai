@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Category from "@/models/Category";
+import Transaction from "@/models/Transaction";
 import { getAuthSession } from "@/lib/auth";
 
-interface CategoryQuery {
-  userId: string;
-  type?: string;
-}
+// NOTA: GET/POST "por id" não fazem sentido aqui (POST não usa o [id] da rota).
+// Essa rota existe para EDITAR (PUT) e EXCLUIR (DELETE) uma categoria específica.
+// Listagem/criação seguem em /api/categories (route.ts), fonte única de verdade.
 
-export async function GET(req: Request) {
+// EDITAR CATEGORIA (PUT)
+export async function PUT(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     const session = await getAuthSession();
     if (!session) {
@@ -16,119 +20,72 @@ export async function GET(req: Request) {
     }
 
     await connectDB();
-    const { searchParams } = new URL(req.url);
-    // userId vem da sessão, não da URL
-    const type = searchParams.get("type");
+    const { id } = await params;
+    const body = await req.json();
 
-    const count = await Category.countDocuments({ userId: session.id });
-
-    if (count === 0) {
-      // SEED INICIAL DE CATEGORIAS
-      const defaultCategories = [
-        // DESPESAS
-        {
-          name: "Alimentação",
-          type: "EXPENSE",
-          icon: "Utensils",
-          color: "#f97316",
-          bg: "#ffedd5",
-        },
-        {
-          name: "Transporte",
-          type: "EXPENSE",
-          icon: "Car",
-          color: "#3b82f6",
-          bg: "#dbeafe",
-        },
-        {
-          name: "Combustível",
-          type: "EXPENSE",
-          icon: "Fuel",
-          color: "#ef4444",
-          bg: "#fee2e2",
-        },
-        {
-          name: "Aluguel",
-          type: "EXPENSE",
-          icon: "Home",
-          color: "#a855f7",
-          bg: "#f3e8ff",
-        },
-        {
-          name: "Oficina",
-          type: "EXPENSE",
-          icon: "Wrench",
-          color: "#475569",
-          bg: "#e2e8f0",
-        },
-        {
-          name: "Contas Fixas",
-          type: "EXPENSE",
-          icon: "Zap",
-          color: "#eab308",
-          bg: "#fef9c3",
-        },
-        {
-          name: "Outros",
-          type: "EXPENSE",
-          icon: "MoreHorizontal",
-          color: "#64748b",
-          bg: "#f1f5f9",
-        },
-
-        // RECEITAS
-        {
-          name: "Vendas",
-          type: "INCOME",
-          icon: "Briefcase",
-          color: "#10b981",
-          bg: "#d1fae5",
-        },
-        {
-          name: "Serviços",
-          type: "INCOME",
-          icon: "Wrench",
-          color: "#06b6d4",
-          bg: "#cffafe",
-        },
-        {
-          name: "Salários",
-          type: "INCOME",
-          icon: "Users",
-          color: "#6366f1",
-          bg: "#e0e7ff",
-        },
-        {
-          name: "Outros",
-          type: "INCOME",
-          icon: "MoreHorizontal",
-          color: "#64748b",
-          bg: "#f1f5f9",
-        },
-      ];
-
-      const categoriesToCreate = defaultCategories.map((cat) => ({
-        ...cat,
-        userId: session.id, // Usa o ID da sessão
-        isDefault: true,
-      }));
-
-      await Category.insertMany(categoriesToCreate);
+    const category = await Category.findOne({ _id: id, userId: session.id });
+    if (!category) {
+      return NextResponse.json(
+        { message: "Categoria não encontrada" },
+        { status: 404 },
+      );
     }
 
-    const query: CategoryQuery = { userId: session.id };
-    if (type) query.type = type;
+    if (category.isDefault) {
+      return NextResponse.json(
+        { message: "Categorias padrão não podem ser editadas." },
+        { status: 403 },
+      );
+    }
 
-    const categories = await Category.find(query).sort({ name: 1 });
+    const newName = typeof body.name === "string" ? body.name.trim() : category.name;
 
-    return NextResponse.json(categories, { status: 200 });
+    if (newName && newName !== category.name) {
+      const nameTaken = await Category.findOne({
+        userId: session.id,
+        name: newName,
+        type: category.type,
+        _id: { $ne: id },
+      });
+      if (nameTaken) {
+        return NextResponse.json(
+          { message: "Já existe uma categoria com este nome." },
+          { status: 409 },
+        );
+      }
+    }
+
+    const oldName = category.name;
+
+    category.name = newName;
+    if (body.color) category.color = body.color;
+    if (body.bg) category.bg = body.bg;
+    if (body.icon) category.icon = body.icon;
+    await category.save();
+
+    // Propaga o rename para as transações já lançadas, senão elas "perdem" a categoria nos relatórios
+    if (newName !== oldName) {
+      await Transaction.updateMany(
+        { userId: session.id, category: oldName },
+        { $set: { category: newName } },
+      );
+    }
+
+    return NextResponse.json(category, { status: 200 });
   } catch (error) {
-    console.error("Erro categorias:", error);
-    return NextResponse.json({ message: "Erro interno" }, { status: 500 });
+    console.error("Erro ao editar categoria:", error);
+    return NextResponse.json(
+      { message: "Erro ao editar categoria" },
+      { status: 500 },
+    );
   }
 }
 
-export async function POST(req: Request) {
+// EXCLUIR CATEGORIA (DELETE)
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     const session = await getAuthSession();
     if (!session) {
@@ -136,38 +93,44 @@ export async function POST(req: Request) {
     }
 
     await connectDB();
-    const body = await req.json();
+    const { id } = await params;
 
-    if (!body.name || !body.type) {
-      return NextResponse.json({ message: "Dados inválidos" }, { status: 400 });
+    const category = await Category.findOne({ _id: id, userId: session.id });
+    if (!category) {
+      return NextResponse.json(
+        { message: "Categoria não encontrada" },
+        { status: 404 },
+      );
     }
 
-    const exists = await Category.findOne({
-      userId: session.id,
-      name: body.name,
-      type: body.type,
-    });
-
-    if (exists) {
+    if (category.isDefault) {
       return NextResponse.json(
-        { message: "Categoria já existe." },
+        { message: "Categorias padrão não podem ser excluídas." },
+        { status: 403 },
+      );
+    }
+
+    const inUse = await Transaction.exists({
+      userId: session.id,
+      category: category.name,
+    });
+    if (inUse) {
+      return NextResponse.json(
+        {
+          message:
+            "Esta categoria possui transações vinculadas e não pode ser excluída.",
+        },
         { status: 409 },
       );
     }
 
-    const newCategory = await Category.create({
-      userId: session.id, // Força o ID da sessão
-      name: body.name,
-      type: body.type,
-      color: body.color || "#64748b",
-      bg: body.bg || "#f1f5f9",
-      icon: body.icon || "Tag",
-    });
+    await Category.findByIdAndDelete(id);
 
-    return NextResponse.json(newCategory, { status: 201 });
+    return NextResponse.json({ message: "Categoria excluída" }, { status: 200 });
   } catch (error) {
+    console.error("Erro ao excluir categoria:", error);
     return NextResponse.json(
-      { message: "Erro ao criar categoria" },
+      { message: "Erro ao excluir categoria" },
       { status: 500 },
     );
   }

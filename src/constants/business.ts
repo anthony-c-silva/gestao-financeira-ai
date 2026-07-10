@@ -48,4 +48,4 @@ export const DEFAULT_CATEGORIES = [
   { name: "Manutenção", type: "EXPENSE", icon: "Wrench", ...BRAND_BLUE },
   { name: "Saúde", type: "EXPENSE", icon: "Heart", ...DANGER_RED },
   { name: "Lazer", type: "EXPENSE", icon: "Music", ...ALERT_ORANGE },
-];
+] as const;

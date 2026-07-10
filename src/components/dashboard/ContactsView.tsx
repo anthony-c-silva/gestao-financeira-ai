@@ -295,7 +295,7 @@ export function ContactsView({ userId, transactions }: ContactsViewProps) {
                       ) : (
                         <TrendingDown size={12} />
                       )}
-                      {total.toLocaleString("pt-BR", {
+                      {(total / 100).toLocaleString("pt-BR", {
                         style: "currency",
                         currency: "BRL",
                       })}

@@ -14,6 +14,13 @@ export async function POST(req: Request) {
       );
     }
 
+    if (String(newPassword).length < 8) {
+      return NextResponse.json(
+        { message: "A senha deve ter no mínimo 8 caracteres." },
+        { status: 400 },
+      );
+    }
+
     await connectToDatabase();
 
     // Busca usuário pelo e-mail E verifica se o código bate E se não expirou

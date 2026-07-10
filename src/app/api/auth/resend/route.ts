@@ -22,18 +22,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Este e-mail já está verificado." }, { status: 400 });
     }
 
+    // Rate limit simples: no máximo 1 reenvio a cada 30s por conta
+    const RESEND_COOLDOWN_MS = 30_000;
+    if (user.verificationCodeSentAt) {
+      const elapsed = Date.now() - new Date(user.verificationCodeSentAt).getTime();
+      if (elapsed < RESEND_COOLDOWN_MS) {
+        const waitSeconds = Math.ceil((RESEND_COOLDOWN_MS - elapsed) / 1000);
+        return NextResponse.json(
+          { message: `Aguarde ${waitSeconds}s antes de solicitar um novo código.` },
+          { status: 429 },
+        );
+      }
+    }
+
     // Gera novo código
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Atualiza no banco
     user.verificationCode = verificationCode;
+    user.verificationCodeSentAt = new Date();
     await user.save();
-
-    // Log de Segurança (Para você ver no terminal)
-    console.log("========================================");
-    console.log(`📧 REENVIO DE CÓDIGO: ${email}`);
-    console.log(`🔑 NOVO CÓDIGO: ${verificationCode}`);
-    console.log("========================================");
 
     // Envia o e-mail
     try {
