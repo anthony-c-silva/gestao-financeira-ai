@@ -1,5 +1,9 @@
 // src/constants/business.ts
 
+// Canal de suporte exibido quando o usuário se aproxima/ultrapassa o limite fiscal
+export const SUPPORT_WHATSAPP_LINK =
+  "https://wa.me/555196603937?text=Ola, preciso de ajuda com meu enquadramento";
+
 export const BUSINESS_SIZES = {
   MEI: {
     label: "MEI - Microempreendedor Individual",

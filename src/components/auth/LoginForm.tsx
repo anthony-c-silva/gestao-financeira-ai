@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { Toast } from "@/components/ui/Toast";
 import { Logo } from "@/components/ui/Logo";
+import { formatCPFOrCNPJ } from "@/lib/format";
 
 export function LoginForm() {
   const router = useRouter();
@@ -17,22 +18,8 @@ export function LoginForm() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, "");
-    if (value.length > 14) value = value.slice(0, 14);
-
-    if (value.length <= 11) {
-      value = value.replace(/(\d{3})(\d)/, "$1.$2");
-      value = value.replace(/(\d{3})(\d)/, "$1.$2");
-      value = value.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-    } else {
-      value = value.replace(/^(\d{2})(\d)/, "$1.$2");
-      value = value.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
-      value = value.replace(/\.(\d{3})(\d)/, ".$1/$2");
-      value = value.replace(/(\d{4})(\d)/, "$1-$2");
-    }
-
     if (hasError) setHasError(false);
-    setDocument(value);
+    setDocument(formatCPFOrCNPJ(e.target.value));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

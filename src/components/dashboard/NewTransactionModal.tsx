@@ -20,6 +20,7 @@ import {
   CalendarClock,
   PlusCircle,
   Tag,
+  AlertCircle,
 } from "lucide-react";
 
 import { CategoryModal, AVAILABLE_ICONS } from "./CategoryModal";
@@ -116,6 +117,7 @@ export function NewTransactionModal({
   recurrenceAction,
 }: NewTransactionModalProps) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Estados
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -195,6 +197,7 @@ export function NewTransactionModal({
 
   useEffect(() => {
     if (isOpen) {
+      setError(null);
       if (initialData) {
         setEditingId(initialData._id || null);
 
@@ -327,6 +330,7 @@ export function NewTransactionModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
       let finalContactId = selectedContactId;
@@ -393,16 +397,17 @@ export function NewTransactionModal({
         onClose();
         resetForm();
       } else {
-        alert("Erro ao salvar.");
+        setError("Erro ao salvar. Verifique os dados e tente novamente.");
       }
-    } catch (error) {
-      alert("Erro ao salvar.");
+    } catch (submitError) {
+      setError("Erro de conexão. Verifique sua internet e tente novamente.");
     } finally {
       setLoading(false);
     }
   };
 
   const resetForm = () => {
+    setError(null);
     setEditingId(null);
     setAmount("0,00");
     setDescription("");
@@ -466,6 +471,13 @@ export function NewTransactionModal({
         data-vaul-no-drag
       >
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="bg-rose-50 border border-rose-100 text-rose-600 px-4 py-3 rounded-xl text-sm font-bold flex items-start gap-2 animate-in slide-in-from-top-2">
+              <AlertCircle size={18} className="shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
           {/* 1. TIPO DE TRANSAÇÃO (Entrada / Saída) */}
           <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
             <button

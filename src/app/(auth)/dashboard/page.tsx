@@ -17,6 +17,7 @@ import {
   Send,
   X,
   Loader2,
+  FileUp,
 } from "lucide-react";
 import {
   NewTransactionModal,
@@ -32,9 +33,12 @@ import {
 } from "@/components/dashboard/VoiceInput";
 import { ContactsView } from "@/components/dashboard/ContactsView";
 import { RecurrenceOptionsModal } from "@/components/dashboard/RecurrenceOptionsModal";
-import { Toast } from "@/components/ui/Toast";
+import { Toast, ToastType } from "@/components/ui/Toast";
 import { FeedbackModal } from "@/components/ui/FeedbackModal";
 import { useAuthFetch } from "@/lib/authClient";
+import { BudgetModal } from "@/components/dashboard/BudgetModal";
+import { BudgetWithUsage } from "@/components/dashboard/BudgetsCard";
+import { ImportStatementModal } from "@/components/dashboard/ImportStatementModal";
 
 // Importando as Novas Views Limpas
 import { HomeView } from "@/components/dashboard/views/HomeView";
@@ -88,6 +92,13 @@ export interface FiscalSummary {
   alertLevel: "NORMAL" | "WARNING" | "DANGER" | "EXTRAPOLATED";
 }
 
+const ALERT_SEVERITY: Record<string, number> = {
+  NORMAL: 0,
+  WARNING: 1,
+  DANGER: 2,
+  EXTRAPOLATED: 3,
+};
+
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
@@ -100,6 +111,12 @@ export default function Dashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [summaryData, setSummaryData] = useState<FiscalSummary | null>(null);
+  const [budgets, setBudgets] = useState<BudgetWithUsage[]>([]);
+  const [budgetsLoading, setBudgetsLoading] = useState(true);
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const [editingBudget, setEditingBudget] = useState<BudgetWithUsage | null>(
+    null,
+  );
 
   const [showValues, setShowValues] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -115,6 +132,7 @@ export default function Dashboard() {
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] =
     useState(false);
@@ -130,7 +148,7 @@ export default function Dashboard() {
 
   const [toast, setToast] = useState<{
     message: string;
-    type: "success" | "error";
+    type: ToastType;
   } | null>(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -144,7 +162,7 @@ export default function Dashboard() {
   const [isAiProcessing, setIsAiProcessing] = useState(false);
 
   const showToast = useCallback(
-    (message: string, type: "success" | "error") => {
+    (message: string, type: ToastType) => {
       setToast({ message, type });
     },
     [],
@@ -188,6 +206,44 @@ export default function Dashboard() {
     }
   }, [authFetch]);
 
+  // Busca os limites; devolve a lista para quem quiser decidir se avisa o usuário.
+  const fetchBudgets = useCallback(async (): Promise<BudgetWithUsage[]> => {
+    try {
+      const res = await authFetch("/api/budgets");
+      if (res.ok) {
+        const data: BudgetWithUsage[] = await res.json();
+        setBudgets(data);
+        return data;
+      }
+    } catch (error) {
+      console.error("Erro ao buscar limites");
+    } finally {
+      setBudgetsLoading(false);
+    }
+    return [];
+  }, [authFetch]);
+
+  // Busca os limites e, se algum deles estiver em alerta, avisa o usuário.
+  // Usado após lançar/editar/pagar uma transação (não no carregamento inicial,
+  // para não repetir o mesmo aviso a cada vez que o app é aberto).
+  const fetchBudgetsAndNotify = useCallback(async () => {
+    const data = await fetchBudgets();
+    const worst = data.reduce<BudgetWithUsage | null>((acc, b) => {
+      if (b.alertLevel === "NORMAL") return acc;
+      if (!acc || ALERT_SEVERITY[b.alertLevel] > ALERT_SEVERITY[acc.alertLevel])
+        return b;
+      return acc;
+    }, null);
+
+    if (worst) {
+      const label =
+        worst.alertLevel === "EXTRAPOLATED"
+          ? `Limite de "${worst.key}" ultrapassado!`
+          : `Atenção: você já usou ${worst.percentage.toFixed(0)}% do limite de "${worst.key}".`;
+      showToast(label, worst.alertLevel === "EXTRAPOLATED" ? "error" : "warning");
+    }
+  }, [fetchBudgets, showToast]);
+
   const lastFetchedYearRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -205,6 +261,7 @@ export default function Dashboard() {
           await Promise.all([
             fetchTransactions(initialYear),
             fetchCategories(),
+            fetchBudgets(),
             userData.type === "PJ" ? fetchFiscalSummary() : null,
           ]);
         } else {
@@ -220,7 +277,7 @@ export default function Dashboard() {
 
     initDashboard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authFetch, fetchCategories, fetchFiscalSummary, router]);
+  }, [authFetch, fetchCategories, fetchBudgets, fetchFiscalSummary, router]);
 
   // Reconsulta as transações sempre que o usuário navega para um ano diferente
   // (troca de mês dentro do mesmo ano não precisa de nova busca).
@@ -355,6 +412,7 @@ export default function Dashboard() {
       );
       if (res.ok) {
         fetchTransactions(selectedDate.getFullYear());
+        fetchBudgets();
         if (user.type === "PJ") fetchFiscalSummary();
         setDeleteTransaction(null);
         if (action === "SINGLE") showToast("Transação excluída.", "success");
@@ -378,6 +436,7 @@ export default function Dashboard() {
         fetchTransactions(selectedDate.getFullYear());
         if (user.type === "PJ" && transaction.type === "INCOME")
           fetchFiscalSummary();
+        if (transaction.type === "EXPENSE") fetchBudgetsAndNotify();
         showToast("Status atualizado!", "success");
       }
     } catch (error) {
@@ -503,6 +562,15 @@ export default function Dashboard() {
                 >
                   <Download size={16} /> Exportar Dados
                 </button>
+                <button
+                  onClick={() => {
+                    setIsImportModalOpen(true);
+                    setIsProfileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-600 hover:bg-brand-50 hover:text-brand-700 rounded-xl transition-colors font-medium"
+                >
+                  <FileUp size={16} /> Importar Extrato
+                </button>
                 <div className="h-px bg-slate-50 my-1"></div>
                 <button
                   onClick={handleLogout}
@@ -531,6 +599,16 @@ export default function Dashboard() {
             showValues={showValues}
             onToggleShowValues={() => setShowValues(!showValues)}
             formatMoney={formatMoney}
+            budgets={budgets}
+            budgetsLoading={budgetsLoading}
+            onAddBudget={() => {
+              setEditingBudget(null);
+              setIsBudgetModalOpen(true);
+            }}
+            onEditBudget={(budget) => {
+              setEditingBudget(budget);
+              setIsBudgetModalOpen(true);
+            }}
           />
         )}
         {currentTab === "FLOW" && (
@@ -613,6 +691,7 @@ export default function Dashboard() {
                   setIsFabOpen(false);
                 }}
                 onModeChange={(isActive) => setIsInputMode(isActive)}
+                onError={(message) => showToast(message, "error")}
                 userId={user._id}
               />
             </div>
@@ -721,6 +800,7 @@ export default function Dashboard() {
         recurrenceAction={pendingRecurrenceAction}
         onSuccess={() => {
           fetchTransactions(selectedDate.getFullYear());
+          fetchBudgetsAndNotify();
           if (user.type === "PJ") fetchFiscalSummary();
           showToast("Salvo com sucesso!", "success");
         }}
@@ -750,6 +830,20 @@ export default function Dashboard() {
         userName={user.name}
         currentDashboardDate={selectedDate}
       />
+      <ImportStatementModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        categories={categories}
+        onSuccess={(count) => {
+          fetchTransactions(selectedDate.getFullYear());
+          fetchBudgets();
+          if (user.type === "PJ") fetchFiscalSummary();
+          showToast(
+            `${count} transaç${count === 1 ? "ão importada" : "ões importadas"}!`,
+            "success",
+          );
+        }}
+      />
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
@@ -757,6 +851,18 @@ export default function Dashboard() {
         onUpdateUser={handleUpdateUser}
         onLogout={handleLogout}
         onDeleteAccount={() => setIsDeleteAccountModalOpen(true)}
+      />
+      <BudgetModal
+        isOpen={isBudgetModalOpen}
+        onClose={() => setIsBudgetModalOpen(false)}
+        initialData={editingBudget}
+        expenseCategories={categories
+          .filter((c) => c.type === "EXPENSE")
+          .map((c) => c.name)}
+        onSuccess={() => {
+          fetchBudgets();
+          showToast("Limites atualizados!", "success");
+        }}
       />
       <ConfirmationModal
         isOpen={isDeleteAccountModalOpen}

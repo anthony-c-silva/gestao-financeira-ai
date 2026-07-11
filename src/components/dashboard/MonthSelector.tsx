@@ -6,34 +6,47 @@ import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 interface MonthSelectorProps {
   currentDate: Date;
   onDateChange: (date: Date) => void;
+  /** "month" (padrão) navega mês a mês; "year" navega ano a ano. */
+  granularity?: "month" | "year";
 }
 
-export function MonthSelector({ currentDate, onDateChange }: MonthSelectorProps) {
-  const handlePrevMonth = () => {
+export function MonthSelector({
+  currentDate,
+  onDateChange,
+  granularity = "month",
+}: MonthSelectorProps) {
+  const step = granularity === "year" ? "year" : "month";
+
+  const handlePrev = () => {
     const newDate = new Date(currentDate);
-    newDate.setMonth(newDate.getMonth() - 1);
+    if (step === "year") newDate.setFullYear(newDate.getFullYear() - 1);
+    else newDate.setMonth(newDate.getMonth() - 1);
     onDateChange(newDate);
   };
 
-  const handleNextMonth = () => {
+  const handleNext = () => {
     const newDate = new Date(currentDate);
-    newDate.setMonth(newDate.getMonth() + 1);
+    if (step === "year") newDate.setFullYear(newDate.getFullYear() + 1);
+    else newDate.setMonth(newDate.getMonth() + 1);
     onDateChange(newDate);
   };
 
-  // Formata: "Janeiro 2026"
-  const formattedDate = currentDate.toLocaleDateString("pt-BR", {
-    month: "long",
-    year: "numeric",
-  });
+  // Formata: "Janeiro 2026" ou, em modo ano, apenas "2026"
+  const formattedDate =
+    step === "year"
+      ? String(currentDate.getFullYear())
+      : currentDate.toLocaleDateString("pt-BR", {
+          month: "long",
+          year: "numeric",
+        });
 
   // Capitaliza a primeira letra (janeiro -> Janeiro)
   const displayDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
 
   return (
     <div className="flex items-center justify-between bg-white p-2 rounded-2xl shadow-sm border border-slate-100 mb-6">
-      <button 
-        onClick={handlePrevMonth}
+      <button
+        onClick={handlePrev}
         className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-brand-900 transition-colors"
       >
         <ChevronLeft size={20} />
@@ -44,8 +57,8 @@ export function MonthSelector({ currentDate, onDateChange }: MonthSelectorProps)
         <span>{displayDate}</span>
       </div>
 
-      <button 
-        onClick={handleNextMonth}
+      <button
+        onClick={handleNext}
         className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-brand-900 transition-colors"
       >
         <ChevronRight size={20} />

@@ -66,6 +66,7 @@ export function SettingsModal({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const authFetch = useAuthFetch();
 
   const [formData, setFormData] = useState({
@@ -125,6 +126,7 @@ export function SettingsModal({
         confirmPassword: "",
       }));
     }
+    setError(null);
   }, [user, isOpen]);
 
   const handleSelectBusinessSize = (key: string) => {
@@ -155,14 +157,15 @@ export function SettingsModal({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     if (activeTab === "SECURITY") {
       if (formData.password !== formData.confirmPassword) {
-        alert("As senhas não conferem.");
+        setError("As senhas não conferem.");
         return;
       }
       if (formData.password && passwordStrength < 3) {
-        alert("A senha precisa ser mais forte.");
+        setError("A senha precisa ser mais forte.");
         return;
       }
     }
@@ -192,7 +195,6 @@ export function SettingsModal({
       if (res.ok) {
         const updated = await res.json();
         onUpdateUser(updated);
-        alert("Dados atualizados com sucesso!");
         if (activeTab === "SECURITY")
           setFormData((prev) => ({
             ...prev,
@@ -200,10 +202,11 @@ export function SettingsModal({
             confirmPassword: "",
           }));
       } else {
-        alert("Erro ao atualizar.");
+        const data = await res.json().catch(() => null);
+        setError(data?.message || "Erro ao atualizar.");
       }
-    } catch (error) {
-      alert("Erro ao conectar com servidor.");
+    } catch (saveError) {
+      setError("Erro ao conectar com servidor.");
     } finally {
       setLoading(false);
     }
@@ -234,18 +237,30 @@ export function SettingsModal({
       {/* Abas de Navegação */}
       <div className="flex border-b border-slate-100 mb-2">
         <button
-          onClick={() => setActiveTab("PROFILE")}
+          onClick={() => {
+            setActiveTab("PROFILE");
+            setError(null);
+          }}
           className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === "PROFILE" ? "border-brand-900 text-brand-900" : "border-transparent text-slate-400 hover:text-slate-600"}`}
         >
           Perfil & Dados
         </button>
         <button
-          onClick={() => setActiveTab("SECURITY")}
+          onClick={() => {
+            setActiveTab("SECURITY");
+            setError(null);
+          }}
           className={`py-3 px-4 text-sm font-bold border-b-2 transition-colors ${activeTab === "SECURITY" ? "border-brand-900 text-brand-900" : "border-transparent text-slate-400 hover:text-slate-600"}`}
         >
           Segurança
         </button>
       </div>
+
+      {error && (
+        <div className="mt-2 bg-rose-50 border border-rose-100 text-rose-600 px-4 py-3 rounded-xl text-sm font-bold animate-in slide-in-from-top-2">
+          {error}
+        </div>
+      )}
 
       {/* Área de rolagem do formulário */}
       <div className="flex-1 overflow-y-auto py-4 custom-scrollbar">

@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 // 2. Configuração Visual Mobile (Cor da barra e Zoom)
 export const viewport: Viewport = {
-  themeColor: "#ffffff", // Cor da barra do navegador no celular
+  themeColor: "#000066", // Azul da marca — cor da barra do navegador no celular
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { BUSINESS_SIZES } from "@/constants/business";
 import { Toast } from "@/components/ui/Toast";
+import { formatDocumentByType, formatPhone, formatCEP } from "@/lib/format";
 
 // --- FUNÇÕES DE VALIDAÇÃO ---
 const validateCPF = (cpf: string) => {
@@ -94,42 +95,6 @@ export function RegisterForm() {
     state: "",
   });
 
-  const formatDocument = (value: string, type: "PF" | "PJ") => {
-    let numbers = value.replace(/\D/g, "");
-    
-    if (type === "PF") {
-      if (numbers.length > 11) numbers = numbers.slice(0, 11);
-      return numbers
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d{1,2})/, "$1-$2")
-        .replace(/(-\d{2})\d+?$/, "$1");
-    } else {
-      if (numbers.length > 14) numbers = numbers.slice(0, 14);
-      return numbers
-        .replace(/^(\d{2})(\d)/, "$1.$2")
-        .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-        .replace(/\.(\d{3})(\d)/, ".$1/$2")
-        .replace(/(\d{4})(\d)/, "$1-$2")
-        .replace(/(-\d{2})\d+?$/, "$1");
-    }
-  };
-
-  const formatPhone = (value: string) => {
-    const numbers = value.replace(/\D/g, "");
-    if (numbers.length === 11) {
-      return numbers.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
-    }
-    return numbers.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
-  };
-
-  const formatCEP = (value: string) => {
-    return value
-      .replace(/\D/g, "")
-      .replace(/(\d{5})(\d)/, "$1-$2")
-      .replace(/(-\d{3})\d+?$/, "$1");
-  };
-
   const checkPasswordStrength = (pass: string) => {
     let score = 0;
     if (pass.length >= 8) score++;
@@ -177,7 +142,7 @@ export function RegisterForm() {
     const { name, value } = e.target;
     let formattedValue = value;
 
-    if (name === "document") formattedValue = formatDocument(value, personType);
+    if (name === "document") formattedValue = formatDocumentByType(value, personType);
     if (name === "phone") formattedValue = formatPhone(value);
     if (name === "cep") formattedValue = formatCEP(value);
 

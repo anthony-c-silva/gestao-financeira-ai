@@ -13,6 +13,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
+import { useAuthFetch } from "@/lib/authClient";
 
 interface Transaction {
   _id: string;
@@ -45,6 +46,8 @@ export function ExportModal({
 }: ExportModalProps) {
   const [scope, setScope] = useState<"MONTH" | "ALL">("MONTH");
   const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const authFetch = useAuthFetch();
 
   // Formata o nome do mês atual (ex: "Fevereiro de 2026")
   const monthLabel = currentDashboardDate.toLocaleDateString("pt-BR", {
@@ -57,12 +60,19 @@ export function ExportModal({
   useEffect(() => {
     if (isOpen) {
       setScope("MONTH");
+      setError(null);
     }
   }, [isOpen, currentDashboardDate]);
 
-  // Função para filtrar os dados baseados na escolha
-  const getFilteredData = () => {
-    if (scope === "ALL") return transactions;
+  // Função para obter os dados do período escolhido.
+  // No escopo "ALL" busca o histórico completo do servidor, já que o dashboard
+  // só mantém em memória as transações do ano selecionado.
+  const getFilteredData = async (): Promise<Transaction[]> => {
+    if (scope === "ALL") {
+      const res = await authFetch("/api/transactions?all=true");
+      if (!res.ok) throw new Error("Falha ao buscar histórico completo");
+      return res.json();
+    }
 
     return transactions.filter((t) => {
       const tDate = new Date(t.date);
@@ -83,11 +93,12 @@ export function ExportModal({
     (val / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   // --- LÓGICA DO PDF ---
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     setIsExporting(true);
+    setError(null);
     try {
       const doc = new jsPDF();
-      const data = getFilteredData();
+      const data = await getFilteredData();
 
       // Ordenar por data
       data.sort(
@@ -171,7 +182,7 @@ export function ExportModal({
         ],
         body: tableData,
         styles: { fontSize: 8 },
-        headStyles: { fillColor: [79, 70, 229] }, // Indigo
+        headStyles: { fillColor: [0, 0, 102] }, // Azul da marca (#000066)
         columnStyles: {
           5: { halign: "right", fontStyle: "bold" },
         },
@@ -192,17 +203,19 @@ export function ExportModal({
       doc.save(fileName);
       onClose();
     } catch (e) {
-      alert("Erro ao gerar PDF");
+      console.error(e);
+      setError("Erro ao gerar PDF. Tente novamente.");
     } finally {
       setIsExporting(false);
     }
   };
 
   // --- LÓGICA DO EXCEL ---
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     setIsExporting(true);
+    setError(null);
     try {
-      const data = getFilteredData();
+      const data = await getFilteredData();
       const formattedData = data.map((t) => ({
         Data: new Date(t.date).toLocaleDateString("pt-BR"),
         Descrição: t.description,
@@ -223,7 +236,8 @@ export function ExportModal({
       XLSX.writeFile(workbook, fileName);
       onClose();
     } catch (e) {
-      alert("Erro ao gerar Excel");
+      console.error(e);
+      setError("Erro ao gerar Excel. Tente novamente.");
     } finally {
       setIsExporting(false);
     }
@@ -247,6 +261,12 @@ export function ExportModal({
           <X size={20} />
         </button>
       </div>
+
+      {error && (
+        <div className="mb-4 bg-rose-50 border border-rose-100 text-rose-600 px-4 py-3 rounded-xl text-sm font-bold">
+          {error}
+        </div>
+      )}
 
       <div className="space-y-4 mb-6">
         <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">

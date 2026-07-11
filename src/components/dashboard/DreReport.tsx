@@ -11,22 +11,23 @@ interface Transaction {
 
 interface DreReportProps {
   transactions: Transaction[];
-  month: Date; // Mês de referência para o relatório
+  month: Date; // Data de referência para o relatório (mês ou ano, conforme "mode")
+  mode?: "MONTH" | "YEAR";
 }
 
-export function DreReport({ transactions, month }: DreReportProps) {
-  // 1. Filtra transações APENAS do mês selecionado e que estão PAGAS (Regime de Caixa)
+export function DreReport({ transactions, month, mode = "MONTH" }: DreReportProps) {
+  // 1. Filtra transações do período (mês ou ano) que estão PAGAS (Regime de Caixa)
   const monthlyTransactions = transactions.filter((t) => {
     const tDate = new Date(t.date);
     const tDateAdjusted = new Date(
       tDate.valueOf() + tDate.getTimezoneOffset() * 60000,
     );
 
-    return (
-      t.status === "PAID" &&
-      tDateAdjusted.getMonth() === month.getMonth() &&
-      tDateAdjusted.getFullYear() === month.getFullYear()
-    );
+    if (t.status !== "PAID") return false;
+    if (tDateAdjusted.getFullYear() !== month.getFullYear()) return false;
+    if (mode === "MONTH" && tDateAdjusted.getMonth() !== month.getMonth())
+      return false;
+    return true;
   });
 
   // 2. Cálculos do DRE
@@ -58,10 +59,12 @@ export function DreReport({ transactions, month }: DreReportProps) {
             DRE Gerencial
           </h3>
           <p className="text-xs text-slate-500 uppercase tracking-wider font-bold mt-1 truncate">
-            {month.toLocaleDateString("pt-BR", {
-              month: "long",
-              year: "numeric",
-            })}
+            {mode === "YEAR"
+              ? `Ano de ${month.getFullYear()}`
+              : month.toLocaleDateString("pt-BR", {
+                  month: "long",
+                  year: "numeric",
+                })}
           </p>
         </div>
       </div>

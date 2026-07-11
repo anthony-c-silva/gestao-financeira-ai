@@ -35,6 +35,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const yearParam = searchParams.get("year");
     const year = yearParam ? parseInt(yearParam, 10) : null;
+    const all = searchParams.get("all") === "true";
 
     const query: Record<string, unknown> = { userId: session.id };
 
@@ -42,7 +43,10 @@ export async function GET(req: Request) {
     // em vez do limit(100) fixo anterior, que corrompia relatórios silenciosamente.
     let queryLimit = 500;
 
-    if (year && Number.isInteger(year)) {
+    if (all) {
+      // Usado pela exportação "Todo o Histórico": sem filtro de data.
+      queryLimit = 10000;
+    } else if (year && Number.isInteger(year)) {
       const start = new Date(year, 0, 1);
       const end = new Date(year, 11, 31, 23, 59, 59, 999);
       query.date = { $gte: start, $lte: end };

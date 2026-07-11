@@ -10,7 +10,7 @@ export const Logo = () => {
       <div className="relative w-64 h-auto mb-2 transition-transform hover:scale-105">
         <Image
           src="/logo-full.svg" // Certifique-se que o ficheiro está na pasta public
-          alt="Gestão.ai Logo"
+          alt="Smart Fin Logo"
           width={0}
           height={0}
           sizes="100vw"

@@ -4,6 +4,7 @@ import Transaction from "@/models/Transaction";
 import User from "@/models/User";
 import { BUSINESS_SIZES, BusinessSizeType } from "@/constants/business";
 import { getAuthSession } from "@/lib/auth";
+import { computeAlertLevel } from "@/lib/alertLevel";
 
 // Helper para pegar o primeiro e último dia do ano corrente
 const getYearRange = () => {
@@ -61,16 +62,9 @@ export async function GET(req: Request) {
     const currentRevenueCents = revenueStats[0]?.total || 0;
 
     // 4. Regras de Alerta (Feitas todas em Centavos)
-    let alertLevel = "NORMAL";
-    let percentage = 0;
-
-    if (annualLimitCents > 0) {
-      percentage = (currentRevenueCents / annualLimitCents) * 100;
-
-      if (currentRevenueCents > annualLimitCents) alertLevel = "EXTRAPOLATED";
-      else if (percentage >= 90) alertLevel = "DANGER";
-      else if (percentage >= 80) alertLevel = "WARNING";
-    }
+    const percentage =
+      annualLimitCents > 0 ? (currentRevenueCents / annualLimitCents) * 100 : 0;
+    const alertLevel = computeAlertLevel(currentRevenueCents, annualLimitCents);
 
     return NextResponse.json({
       businessType: businessType,

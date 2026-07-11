@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useAuthFetch } from "@/lib/authClient";
 import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
+import { formatPhone, formatCPFOrCNPJ } from "@/lib/format";
 
 export interface ContactData {
   _id?: string;
@@ -62,37 +63,13 @@ export function ContactModal({
     setError(null);
   }, [initialData, isOpen]);
 
-  const maskPhone = (v: string) =>
-    v
-      .replace(/\D/g, "")
-      .replace(/^(\d{2})(\d)/g, "($1) $2")
-      .replace(/(\d)(\d{4})$/, "$1-$2")
-      .substring(0, 15);
-
-  const maskDocument = (v: string) => {
-    const clean = v.replace(/\D/g, "");
-    if (clean.length <= 11) {
-      return clean
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d{1,2})$/, "$1-$2")
-        .substring(0, 14);
-    }
-    return clean
-      .replace(/^(\d{2})(\d)/, "$1.$2")
-      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-      .replace(/\.(\d{3})(\d)/, ".$1/$2")
-      .replace(/(\d{4})(\d)/, "$1-$2")
-      .substring(0, 18);
-  };
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     let finalVal = value;
-    if (name === "phone") finalVal = maskPhone(value);
-    if (name === "document") finalVal = maskDocument(value);
+    if (name === "phone") finalVal = formatPhone(value);
+    if (name === "document") finalVal = formatCPFOrCNPJ(value);
 
     setFormData((prev) => ({ ...prev, [name]: finalVal }));
     if (error) setError(null);

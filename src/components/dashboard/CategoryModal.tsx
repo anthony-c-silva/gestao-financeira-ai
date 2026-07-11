@@ -161,10 +161,10 @@ export function CategoryModal({
         onSuccess();
         setDeleteId(null);
       } else {
-        alert(data.message || "Erro ao excluir.");
+        setError(data.message || "Erro ao excluir.");
       }
     } catch (e) {
-      alert("Erro de conexão.");
+      setError("Erro de conexão.");
     } finally {
       setIsDeleting(false);
     }

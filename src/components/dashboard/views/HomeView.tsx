@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Eye, EyeOff, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { MonthSelector } from "@/components/dashboard/MonthSelector";
 import { FaturamentoCard } from "@/components/dashboard/FaturamentoCard";
+import { BudgetsCard, BudgetWithUsage } from "@/components/dashboard/BudgetsCard";
 
 // 1. Tipagem rigorosa para a transação
 export interface TransactionItem {
@@ -43,6 +44,10 @@ interface HomeViewProps {
   showValues: boolean;
   onToggleShowValues: () => void;
   formatMoney: (val: number) => string;
+  budgets: BudgetWithUsage[];
+  budgetsLoading: boolean;
+  onAddBudget: () => void;
+  onEditBudget: (budget: BudgetWithUsage) => void;
 }
 
 export function HomeView({
@@ -58,6 +63,10 @@ export function HomeView({
   showValues,
   onToggleShowValues,
   formatMoney,
+  budgets,
+  budgetsLoading,
+  onAddBudget,
+  onEditBudget,
 }: HomeViewProps) {
   const [homeFilter, setHomeFilter] = useState<"ALL" | "INCOME" | "EXPENSE">(
     "ALL",
@@ -129,6 +138,13 @@ export function HomeView({
           </div>
         </div>
       </div>
+
+      <BudgetsCard
+        budgets={budgets}
+        loading={budgetsLoading}
+        onAdd={onAddBudget}
+        onEdit={onEditBudget}
+      />
 
       {userType === "PJ" && (
         <FaturamentoCard data={summaryData} loading={loading} />

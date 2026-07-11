@@ -57,10 +57,11 @@ export interface AiTransactionData {
 interface VoiceInputProps {
   onSuccess: (data: AiTransactionData) => void;
   onModeChange: (isListening: boolean) => void;
+  onError?: (message: string) => void;
   userId: string;
 }
 
-export function VoiceInput({ onSuccess, onModeChange, userId }: VoiceInputProps) {
+export function VoiceInput({ onSuccess, onModeChange, onError, userId }: VoiceInputProps) {
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
@@ -68,10 +69,20 @@ export function VoiceInput({ onSuccess, onModeChange, userId }: VoiceInputProps)
   
   // Ref para manter a função atualizada sem recriar o useEffect
   const onModeChangeRef = useRef(onModeChange);
+  const onErrorRef = useRef(onError);
 
   useEffect(() => {
     onModeChangeRef.current = onModeChange;
   }, [onModeChange]);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
+  const notifyError = (message: string) => {
+    if (onErrorRef.current) onErrorRef.current(message);
+    else console.error(message);
+  };
 
   useEffect(() => {
     let recognitionInstance: SpeechRecognition | null = null;
@@ -115,11 +126,11 @@ export function VoiceInput({ onSuccess, onModeChange, userId }: VoiceInputProps)
           }
 
           console.error("Erro no reconhecimento de voz:", event.error);
-          
+
           if (event.error === 'not-allowed') {
-            alert("Permissão de microfone negada.");
+            notifyError("Permissão de microfone negada.");
           }
-          
+
           setIsListening(false);
           onModeChangeRef.current(false);
         };
@@ -151,11 +162,11 @@ export function VoiceInput({ onSuccess, onModeChange, userId }: VoiceInputProps)
         const data = await res.json();
         onSuccess(data);
       } else {
-        alert("Não entendi. Tente falar novamente.");
+        notifyError("Não entendi. Tente falar novamente.");
       }
     } catch (error) {
       console.error(error);
-      alert("Erro ao processar áudio.");
+      notifyError("Erro ao processar áudio.");
     } finally {
       setIsProcessing(false);
     }
@@ -163,7 +174,7 @@ export function VoiceInput({ onSuccess, onModeChange, userId }: VoiceInputProps)
 
   const toggleListening = () => {
     if (!recognition) {
-      alert("Seu navegador não suporta voz.");
+      notifyError("Seu navegador não suporta voz.");
       return;
     }
 

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { AlertTriangle, CheckCircle, TrendingUp, Phone } from "lucide-react";
+import { SUPPORT_WHATSAPP_LINK } from "@/constants/business";
 
 interface FaturamentoCardProps {
   data: {
@@ -124,12 +125,7 @@ export function FaturamentoCard({ data, loading }: FaturamentoCardProps) {
           </p>
 
           <button
-            onClick={() =>
-              window.open(
-                "https://wa.me/555196603937?text=Ola, preciso de ajuda com meu enquadramento",
-                "_blank",
-              )
-            }
+            onClick={() => window.open(SUPPORT_WHATSAPP_LINK, "_blank")}
             className="w-full py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
             <Phone size={14} className="text-green-600 shrink-0" />

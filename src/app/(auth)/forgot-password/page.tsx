@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Mail, KeyRound, ArrowRight, CheckCircle, ArrowLeft, Eye, EyeOff, ShieldCheck, User } from "lucide-react";
 import { Toast } from "@/components/ui/Toast";
-import { Logo } from "@/components/ui/Logo";
+import { formatCPFOrCNPJ } from "@/lib/format";
 
 function ForgotPasswordContent() {
   const router = useRouter();
@@ -25,32 +25,14 @@ function ForgotPasswordContent() {
 
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  const formatDocument = (value: string) => {
-    let numbers = value.replace(/\D/g, "");
-    if (numbers.length > 14) numbers = numbers.slice(0, 14);
-
-    if (numbers.length <= 11) {
-      return numbers
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-    } else {
-      return numbers
-        .replace(/^(\d{2})(\d)/, "$1.$2")
-        .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-        .replace(/\.(\d{3})(\d)/, ".$1/$2")
-        .replace(/(\d{4})(\d)/, "$1-$2");
-    }
-  };
-
   useEffect(() => {
     if (docFromUrl) {
-      setDocument(formatDocument(docFromUrl));
+      setDocument(formatCPFOrCNPJ(docFromUrl));
     }
   }, [docFromUrl]);
 
   const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setDocument(formatDocument(e.target.value));
+    setDocument(formatCPFOrCNPJ(e.target.value));
   };
 
   const handleRequestCode = async (e: React.FormEvent) => {

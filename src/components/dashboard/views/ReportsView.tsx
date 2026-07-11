@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Download, CalendarClock } from "lucide-react";
 import { MonthSelector } from "@/components/dashboard/MonthSelector";
 import { DreReport } from "@/components/dashboard/DreReport";
@@ -58,6 +58,21 @@ interface ReportsViewProps {
   formatMoney: (val: number) => string;
 }
 
+const MONTH_ABBREV = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
+
 export function ReportsView({
   transactions,
   categories,
@@ -68,6 +83,8 @@ export function ReportsView({
   onExportClick,
   formatMoney,
 }: ReportsViewProps) {
+  const [viewMode, setViewMode] = useState<"MES" | "ANO">("MES");
+
   const getDisplayTitle = (t: TransactionItem) => {
     const base = t.contactId?.name || t.description || t.category;
     const suf =
@@ -92,6 +109,8 @@ export function ReportsView({
     futureIncome,
     futureExpense,
     projectedBalance,
+    annualBarChartData,
+    annualPieChartData,
   } = useMemo(() => {
     const dailyMap = new Map<
       string,
@@ -169,6 +188,43 @@ export function ReportsView({
       .filter((t) => t.type === "EXPENSE")
       .reduce((acc, t) => acc + t.amount, 0);
 
+    // --- DADOS ANUAIS (mesmo ano de "today") ---
+    const monthlyMap = MONTH_ABBREV.map((label) => ({
+      date: label,
+      Entradas: 0,
+      Saidas: 0,
+    }));
+    const annualCategoryMap: Record<string, number> = {};
+
+    transactions.forEach((t) => {
+      const dateObj = new Date(t.date);
+      const dateAdjusted = new Date(
+        dateObj.valueOf() + dateObj.getTimezoneOffset() * 60000,
+      );
+      if (dateAdjusted.getFullYear() !== today.getFullYear()) return;
+      if (t.status !== "PAID") return;
+
+      const monthIdx = dateAdjusted.getMonth();
+      if (t.type === "INCOME") monthlyMap[monthIdx].Entradas += t.amount;
+      if (t.type === "EXPENSE") {
+        monthlyMap[monthIdx].Saidas += t.amount;
+        annualCategoryMap[t.category] =
+          (annualCategoryMap[t.category] || 0) + t.amount;
+      }
+    });
+
+    const annualPData = Object.keys(annualCategoryMap)
+      .map((key) => {
+        const catObj = categories.find((c) => c.name === key);
+        return {
+          name: key,
+          value: annualCategoryMap[key],
+          color: catObj?.color || null,
+        };
+      })
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6);
+
     return {
       barChartData: Array.from(dailyMap.values()).slice(-15),
       pieChartData: pData,
@@ -176,6 +232,8 @@ export function ReportsView({
       futureIncome: fIncome,
       futureExpense: fExpense,
       projectedBalance: balance + fIncome - fExpense,
+      annualBarChartData: monthlyMap,
+      annualPieChartData: annualPData,
     };
   }, [transactions, balance, categories, today]);
 
@@ -207,19 +265,44 @@ export function ReportsView({
         </button>
       </header>
 
-      <MonthSelector currentDate={selectedDate} onDateChange={onDateChange} />
+      <div className="flex p-1 bg-slate-200 rounded-2xl">
+        <button
+          onClick={() => setViewMode("MES")}
+          className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${viewMode === "MES" ? "bg-white text-brand-900 shadow-md ring-1 ring-black/5" : "text-slate-500 hover:bg-slate-200/50"}`}
+        >
+          Mês
+        </button>
+        <button
+          onClick={() => setViewMode("ANO")}
+          className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${viewMode === "ANO" ? "bg-white text-brand-900 shadow-md ring-1 ring-black/5" : "text-slate-500 hover:bg-slate-200/50"}`}
+        >
+          Ano
+        </button>
+      </div>
 
-      <DreReport transactions={transactions} month={today} />
+      <MonthSelector
+        currentDate={selectedDate}
+        onDateChange={onDateChange}
+        granularity={viewMode === "ANO" ? "year" : "month"}
+      />
+
+      <DreReport
+        transactions={transactions}
+        month={today}
+        mode={viewMode === "ANO" ? "YEAR" : "MONTH"}
+      />
 
       <section className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
         <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-6">
-          Fluxo de Caixa (Realizado)
+          {viewMode === "ANO"
+            ? "Fluxo de Caixa Mensal (Realizado)"
+            : "Fluxo de Caixa (Realizado)"}
         </h2>
         <div className="h-56 w-full">
-          {barChartData.length > 0 ? (
+          {(viewMode === "ANO" ? annualBarChartData : barChartData).length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={barChartData}
+                data={viewMode === "ANO" ? annualBarChartData : barChartData}
                 margin={{ top: 10, right: 0, left: -20, bottom: 0 }}
               >
                 <CartesianGrid
@@ -274,14 +357,14 @@ export function ReportsView({
 
       <section className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center">
         <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider w-full mb-2">
-          Despesas por Categoria
+          Despesas por Categoria {viewMode === "ANO" ? "(Ano)" : ""}
         </h2>
         <div className="h-64 w-full">
-          {pieChartData.length > 0 ? (
+          {(viewMode === "ANO" ? annualPieChartData : pieChartData).length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={pieChartData}
+                  data={viewMode === "ANO" ? annualPieChartData : pieChartData}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -293,7 +376,7 @@ export function ReportsView({
                   label={isMobile ? undefined : renderCustomLabel}
                   labelLine={!isMobile}
                 >
-                  {pieChartData.map((entry, index) => (
+                  {(viewMode === "ANO" ? annualPieChartData : pieChartData).map((entry, index) => (
                     <Cell
                       key={entry.name}
                       fill={
@@ -325,6 +408,7 @@ export function ReportsView({
         </div>
       </section>
 
+      {viewMode === "MES" && (
       <section className="bg-slate-800 rounded-3xl shadow-lg overflow-hidden text-white relative">
         <div className="absolute top-0 right-0 w-32 h-32 bg-brand-900/20 rounded-full -mr-16 -mt-16 blur-3xl"></div>
         <div className="p-6 border-b border-white/10">
@@ -399,6 +483,7 @@ export function ReportsView({
           )}
         </div>
       </section>
+      )}
     </div>
   );
 }
