@@ -600,6 +600,12 @@ export default function Dashboard() {
             onToggleShowValues={() => setShowValues(!showValues)}
             formatMoney={formatMoney}
             budgets={budgets}
+            budgetCategories={categories.map((c) => ({
+              name: c.name,
+              icon: c.icon,
+              color: c.color,
+              bg: c.bg,
+            }))}
             budgetsLoading={budgetsLoading}
             onAddBudget={() => {
               setEditingBudget(null);
@@ -858,7 +864,7 @@ export default function Dashboard() {
         initialData={editingBudget}
         expenseCategories={categories
           .filter((c) => c.type === "EXPENSE")
-          .map((c) => c.name)}
+          .map((c) => ({ name: c.name, icon: c.icon, color: c.color, bg: c.bg }))}
         onSuccess={() => {
           fetchBudgets();
           showToast("Limites atualizados!", "success");

@@ -13,10 +13,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Repeat,
-  CreditCard,
-  Banknote,
-  QrCode,
-  FileText,
   CalendarClock,
   PlusCircle,
   Tag,
@@ -26,6 +22,7 @@ import {
 import { CategoryModal, AVAILABLE_ICONS } from "./CategoryModal";
 import { useAuthFetch } from "@/lib/authClient";
 import { ResponsiveModal } from "@/components/ui/ResponsiveModal";
+import { PAYMENT_METHODS, PAYMENT_STYLES } from "@/constants/paymentMethods";
 
 const ICON_MAP = AVAILABLE_ICONS.reduce(
   (acc, curr) => {
@@ -34,16 +31,6 @@ const ICON_MAP = AVAILABLE_ICONS.reduce(
   },
   {} as { [key: string]: React.ElementType },
 );
-
-// --- CORES DA MARCA NOS PAGAMENTOS ---
-const PAYMENT_STYLES: { [key: string]: { bg: string; text: string } } = {
-  Pix: { bg: "bg-emerald-100", text: "text-emerald-600" },
-  Dinheiro: { bg: "bg-emerald-50", text: "text-emerald-700" },
-  "Cartão Crédito": { bg: "bg-brand-100", text: "text-brand-900" },
-  "Cartão Débito": { bg: "bg-brand-50", text: "text-brand-700" },
-  Boleto: { bg: "bg-amber-100", text: "text-amber-600" },
-  default: { bg: "bg-slate-100", text: "text-slate-600" },
-};
 
 export interface TransactionData {
   _id?: string;
@@ -84,14 +71,6 @@ interface Category {
   color: string;
   bg: string;
 }
-
-const PAYMENT_METHODS = [
-  { id: "Pix", icon: QrCode },
-  { id: "Dinheiro", icon: Banknote },
-  { id: "Cartão Crédito", icon: CreditCard },
-  { id: "Cartão Débito", icon: CreditCard },
-  { id: "Boleto", icon: FileText },
-];
 
 const MONTHS = [
   "Janeiro",

@@ -5,6 +5,7 @@ import { Eye, EyeOff, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { MonthSelector } from "@/components/dashboard/MonthSelector";
 import { FaturamentoCard } from "@/components/dashboard/FaturamentoCard";
 import { BudgetsCard, BudgetWithUsage } from "@/components/dashboard/BudgetsCard";
+import { CategoryOption } from "@/components/dashboard/BudgetModal";
 
 // 1. Tipagem rigorosa para a transação
 export interface TransactionItem {
@@ -45,6 +46,7 @@ interface HomeViewProps {
   onToggleShowValues: () => void;
   formatMoney: (val: number) => string;
   budgets: BudgetWithUsage[];
+  budgetCategories: CategoryOption[];
   budgetsLoading: boolean;
   onAddBudget: () => void;
   onEditBudget: (budget: BudgetWithUsage) => void;
@@ -64,6 +66,7 @@ export function HomeView({
   onToggleShowValues,
   formatMoney,
   budgets,
+  budgetCategories,
   budgetsLoading,
   onAddBudget,
   onEditBudget,
@@ -141,6 +144,7 @@ export function HomeView({
 
       <BudgetsCard
         budgets={budgets}
+        categories={budgetCategories}
         loading={budgetsLoading}
         onAdd={onAddBudget}
         onEdit={onEditBudget}
