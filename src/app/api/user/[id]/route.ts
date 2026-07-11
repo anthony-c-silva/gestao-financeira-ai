@@ -3,6 +3,8 @@ import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import Transaction from "@/models/Transaction";
 import Contact from "@/models/Contact";
+import Category from "@/models/Category";
+import Budget from "@/models/Budget";
 import bcrypt from "bcryptjs";
 import { getAuthSession } from "@/lib/auth";
 
@@ -83,7 +85,8 @@ export async function DELETE(
     // Limpeza completa em cascata
     await Transaction.deleteMany({ userId: id });
     await Contact.deleteMany({ userId: id });
-    // Adicione aqui outros models se houver (ex: Category)
+    await Category.deleteMany({ userId: id });
+    await Budget.deleteMany({ userId: id });
     const deletedUser = await User.findByIdAndDelete(id);
 
     if (!deletedUser) {
