@@ -379,11 +379,7 @@ export function CategoryModal({
           </button>
         </div>
 
-        {/* ÁREA DE SCROLL (Com data-vaul-no-drag e pb-32 para o teclado) */}
-        <div
-          className="max-h-[75vh] sm:max-h-[85vh] overflow-y-auto custom-scrollbar px-1 py-4 pb-32"
-          data-vaul-no-drag
-        >
+        <div className="overflow-x-hidden px-1 py-4" data-vaul-no-drag>
           <form
             onSubmit={handleSubmit}
             className="space-y-5 border-b border-slate-100 pb-6 mb-6"

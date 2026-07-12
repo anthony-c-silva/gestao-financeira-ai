@@ -127,7 +127,7 @@ export function ContactModal({
         </button>
       </div>
 
-      <div className="max-h-[75vh] overflow-y-auto custom-scrollbar">
+      <div className="overflow-x-hidden">
         <form
           id="contact-form"
           onSubmit={handleSubmit}

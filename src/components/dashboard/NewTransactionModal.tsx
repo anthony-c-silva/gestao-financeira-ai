@@ -445,11 +445,8 @@ export function NewTransactionModal({
         </button>
       </div>
 
-      <div
-        className="max-h-[75vh] sm:max-h-[85vh] overflow-y-auto custom-scrollbar px-1 pb-32"
-        data-vaul-no-drag
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="overflow-x-hidden" data-vaul-no-drag>
+        <form onSubmit={handleSubmit} className="space-y-4 pb-2">
           {error && (
             <div className="bg-rose-50 border border-rose-100 text-rose-600 px-4 py-3 rounded-xl text-sm font-bold flex items-start gap-2 animate-in slide-in-from-top-2">
               <AlertCircle size={18} className="shrink-0 mt-0.5" />
@@ -583,7 +580,7 @@ export function NewTransactionModal({
               </button>
 
               {isCalendarOpen && (
-                <div className="absolute bottom-full mb-2 right-0 sm:left-0 w-[280px] bg-white rounded-2xl shadow-xl border border-slate-100 p-3 z-40 animate-in zoom-in-95">
+                <div className="absolute bottom-full mb-2 left-0 right-0 sm:right-auto w-full sm:w-[280px] bg-white rounded-2xl shadow-xl border border-slate-100 p-3 z-40 animate-in zoom-in-95">
                   <div className="flex items-center justify-between mb-3">
                     <button
                       type="button"
@@ -640,7 +637,7 @@ export function NewTransactionModal({
           </div>
 
           {/* 5. CATEGORIA E MÉTODO */}
-          <div className="grid grid-cols-2 gap-3 relative">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative">
             <div className="relative" ref={categoryRef}>
               <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 ml-1">
                 Categoria
