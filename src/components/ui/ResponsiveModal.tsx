@@ -44,7 +44,7 @@ export function ResponsiveModal({
       <Dialog.Root open={isOpen} onOpenChange={onClose}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto overflow-x-hidden custom-scrollbar rounded-3xl bg-white p-6 shadow-2xl focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto overflow-x-hidden custom-scrollbar rounded-3xl bg-white px-4 py-6 shadow-2xl focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
             <Dialog.Title className="sr-only">{title}</Dialog.Title>
             <Dialog.Description className="sr-only">
               {description}
@@ -62,7 +62,7 @@ export function ResponsiveModal({
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm" />
         <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 mt-24 flex max-h-[96vh] flex-col overflow-hidden rounded-t-[32px] bg-white focus:outline-none">
-          <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar rounded-t-[32px] bg-white p-6 pb-safe">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar rounded-t-[32px] bg-white px-4 py-6 pb-safe">
             <div className="mx-auto mb-6 h-1.5 w-12 shrink-0 rounded-full bg-slate-200" />
             <Drawer.Title className="sr-only">{title}</Drawer.Title>
             <Drawer.Description className="sr-only">

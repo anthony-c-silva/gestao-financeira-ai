@@ -379,7 +379,7 @@ export function CategoryModal({
           </button>
         </div>
 
-        <div className="overflow-x-hidden px-1 py-4" data-vaul-no-drag>
+        <div className="overflow-x-hidden px-1.5 py-4" data-vaul-no-drag>
           <form
             onSubmit={handleSubmit}
             className="space-y-5 border-b border-slate-100 pb-6 mb-6"

@@ -445,7 +445,7 @@ export function NewTransactionModal({
         </button>
       </div>
 
-      <div className="overflow-x-hidden" data-vaul-no-drag>
+      <div className="overflow-x-hidden px-1.5" data-vaul-no-drag>
         <form onSubmit={handleSubmit} className="space-y-4 pb-2">
           {error && (
             <div className="bg-rose-50 border border-rose-100 text-rose-600 px-4 py-3 rounded-xl text-sm font-bold flex items-start gap-2 animate-in slide-in-from-top-2">

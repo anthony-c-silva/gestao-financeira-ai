@@ -127,7 +127,7 @@ export function ContactModal({
         </button>
       </div>
 
-      <div className="overflow-x-hidden">
+      <div className="overflow-x-hidden px-1.5">
         <form
           id="contact-form"
           onSubmit={handleSubmit}
