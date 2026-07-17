@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-const GRAPH_API_VERSION = "v21.0";
+const GRAPH_API_VERSION = "v25.0";
 
 /**
  * Envia uma mensagem de texto via WhatsApp Cloud API (Meta) para o número informado.
