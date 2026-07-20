@@ -97,6 +97,9 @@ export async function POST(req: Request) {
       {
         message: "Login realizado com sucesso!",
         user: userObject,
+        // Token também no corpo: o app mobile o guarda no armazenamento seguro
+        // e o envia via `Authorization: Bearer`. A web ignora e usa o cookie.
+        token,
       },
       { status: 200 }
     );
