@@ -385,6 +385,23 @@ export function NewTransactionModal({
     }
   };
 
+  /**
+   * Troca Entrada/Saída a pedido do usuário.
+   *
+   * Limpa categoria e contato porque ambos são específicos do tipo: as
+   * categorias são filtradas por INCOME/EXPENSE e o contato é Cliente ou
+   * Fornecedor. Sem isso era possível salvar uma receita com categoria de
+   * despesa (ou vinculada a um fornecedor), o que suja os relatórios por
+   * categoria. O texto digitado do contato é preservado — se for um nome
+   * novo, ele é cadastrado no tipo correto ao salvar.
+   */
+  const handleTypeChange = (nextType: "INCOME" | "EXPENSE") => {
+    if (nextType === type) return;
+    setType(nextType);
+    setCategory("");
+    setSelectedContactId(null);
+  };
+
   const resetForm = () => {
     setError(null);
     setEditingId(null);
@@ -458,14 +475,14 @@ export function NewTransactionModal({
           <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
             <button
               type="button"
-              onClick={() => setType("INCOME")}
+              onClick={() => handleTypeChange("INCOME")}
               className={`py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${type === "INCOME" ? "bg-white shadow-sm text-emerald-600" : "text-slate-400 hover:text-slate-600"}`}
             >
               <ArrowUpCircle size={16} /> Entrada
             </button>
             <button
               type="button"
-              onClick={() => setType("EXPENSE")}
+              onClick={() => handleTypeChange("EXPENSE")}
               className={`py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${type === "EXPENSE" ? "bg-white shadow-sm text-rose-600" : "text-slate-400 hover:text-slate-600"}`}
             >
               <ArrowDownCircle size={16} /> Saída
