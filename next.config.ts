@@ -8,8 +8,10 @@ const securityHeaders = [
 ];
 
 // CORS restrito ao preview web do app mobile (Expo roda em localhost:8081).
-// No Android/iOS o CORS nao se aplica, entao isso serve apenas para conseguir
-// desenvolver as telas no navegador. Producao continua sem origem liberada.
+// No Android o CORS nao se aplica, entao isso serve apenas para conseguir
+// desenvolver as telas no navegador — por isso fica FORA do build de producao.
+const isDev = process.env.NODE_ENV === "development";
+
 const devCorsHeaders = [
   { key: "Access-Control-Allow-Origin", value: "http://localhost:8081" },
   { key: "Access-Control-Allow-Methods", value: "GET,POST,PUT,DELETE,OPTIONS" },
@@ -24,10 +26,14 @@ const nextConfig: NextConfig = {
         source: "/:path*",
         headers: securityHeaders,
       },
-      {
-        source: "/api/:path*",
-        headers: devCorsHeaders,
-      },
+      ...(isDev
+        ? [
+            {
+              source: "/api/:path*",
+              headers: devCorsHeaders,
+            },
+          ]
+        : []),
     ];
   },
 };
