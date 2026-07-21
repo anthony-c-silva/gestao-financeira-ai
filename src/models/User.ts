@@ -20,7 +20,12 @@ const UserSchema = new Schema(
       default: "PF",
     },
     businessSize: {
-      type: String, // MEI, ME, EPP... (apenas PJ)
+      // Apenas PJ. O enum importa: `dashboard/summary` usa este valor como
+      // chave em BUSINESS_SIZES e cai no "OTHER" (teto de alerta desligado)
+      // quando nao encontra. Sem o enum, um "mei" minusculo gravado por engano
+      // desligava silenciosamente o alerta de limite de faturamento.
+      type: String,
+      enum: ["MEI", "ME", "EPP", "OTHER"],
     },
     email: {
       type: String,

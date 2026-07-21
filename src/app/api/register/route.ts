@@ -4,7 +4,7 @@ import User from "@/models/User";
 import Category from "@/models/Category";
 import bcrypt from "bcryptjs";
 import { sendVerificationEmail } from "@/lib/mail";
-import { DEFAULT_CATEGORIES } from "@/constants/business";
+import { BUSINESS_SIZES, DEFAULT_CATEGORIES } from "@/constants/business";
 
 export async function POST(req: Request) {
   try {
@@ -33,6 +33,15 @@ export async function POST(req: Request) {
       if (!businessSize) {
         return NextResponse.json(
           { message: "Selecione o enquadramento da empresa (MEI, ME, etc)." },
+          { status: 400 },
+        );
+      }
+      // Antes bastava ser não-vazio: um "mei" minúsculo era gravado como está e
+      // depois não batia com a chave de BUSINESS_SIZES, fazendo o resumo fiscal
+      // cair no "OTHER" e desligar o alerta de teto de faturamento sem avisar.
+      if (!(businessSize in BUSINESS_SIZES)) {
+        return NextResponse.json(
+          { message: "Enquadramento inválido. Use MEI, ME, EPP ou OTHER." },
           { status: 400 },
         );
       }
