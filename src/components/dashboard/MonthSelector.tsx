@@ -17,19 +17,21 @@ export function MonthSelector({
 }: MonthSelectorProps) {
   const step = granularity === "year" ? "year" : "month";
 
-  const handlePrev = () => {
+  // Zera o dia antes de trocar o mês: sem isso, a partir de um dia 31 o
+  // JavaScript "transborda" (31/01 + 1 mês = 03/03) e pula fevereiro inteiro.
+  const shiftDate = (offset: number) => {
     const newDate = new Date(currentDate);
-    if (step === "year") newDate.setFullYear(newDate.getFullYear() - 1);
-    else newDate.setMonth(newDate.getMonth() - 1);
+    if (step === "year") {
+      newDate.setFullYear(newDate.getFullYear() + offset);
+    } else {
+      newDate.setDate(1);
+      newDate.setMonth(newDate.getMonth() + offset);
+    }
     onDateChange(newDate);
   };
 
-  const handleNext = () => {
-    const newDate = new Date(currentDate);
-    if (step === "year") newDate.setFullYear(newDate.getFullYear() + 1);
-    else newDate.setMonth(newDate.getMonth() + 1);
-    onDateChange(newDate);
-  };
+  const handlePrev = () => shiftDate(-1);
+  const handleNext = () => shiftDate(1);
 
   // Formata: "Janeiro 2026" ou, em modo ano, apenas "2026"
   const formattedDate =
