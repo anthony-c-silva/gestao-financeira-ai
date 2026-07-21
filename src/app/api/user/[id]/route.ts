@@ -30,21 +30,29 @@ export async function PUT(
 
     const body = await req.json();
 
-    // Se tiver senha, criptografa
-    if (body.password) {
-      body.password = await bcrypt.hash(body.password, 10);
-    } else {
-      delete body.password;
+    // Lista branca: só estes campos podem ser alterados pelo perfil. Antes o
+    // `$set` recebia o corpo inteiro, então dava para trocar `email` (pulando a
+    // verificação) ou `document` (a credencial de login) numa chamada direta.
+    const update: Record<string, unknown> = {};
+    for (const field of ["name", "phone", "companyName", "businessSize"]) {
+      if (typeof body[field] === "string") update[field] = body[field];
     }
 
-    // Impede alteração de campos sensíveis de sistema via API direta
-    delete body.emailVerified;
-    delete body.verificationCode;
-    delete body.resetPasswordToken;
+    // Senha é opcional: só entra no update quando enviada, sempre com hash.
+    if (typeof body.password === "string" && body.password.length > 0) {
+      update.password = await bcrypt.hash(body.password, 10);
+    }
+
+    if (Object.keys(update).length === 0) {
+      return NextResponse.json(
+        { message: "Nenhum campo válido para atualizar." },
+        { status: 400 },
+      );
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       id,
-      { $set: body },
+      { $set: update },
       { new: true, runValidators: true },
     ).select("-password");
 
