@@ -39,7 +39,10 @@ export async function POST(req: Request) {
       // Antes bastava ser não-vazio: um "mei" minúsculo era gravado como está e
       // depois não batia com a chave de BUSINESS_SIZES, fazendo o resumo fiscal
       // cair no "OTHER" e desligar o alerta de teto de faturamento sem avisar.
-      if (!(businessSize in BUSINESS_SIZES)) {
+      //
+      // `hasOwn` e não `in`: o operador `in` enxerga o Object.prototype, então
+      // um businessSize "toString" ou "constructor" passaria por aqui.
+      if (!Object.hasOwn(BUSINESS_SIZES, businessSize)) {
         return NextResponse.json(
           { message: "Enquadramento inválido. Use MEI, ME, EPP ou OTHER." },
           { status: 400 },
